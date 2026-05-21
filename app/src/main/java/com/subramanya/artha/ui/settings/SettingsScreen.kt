@@ -35,7 +35,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -146,11 +148,31 @@ fun SettingsScreen(
                 )
 
                 HorizontalDivider()
+                SectionHeader(stringResource(R.string.settings_section_security))
+                SecuritySection(
+                    biometric = state.biometricLockEnabled,
+                    smsImport = state.smsAutoImportEnabled,
+                    onBiometricChanged = vm::onBiometricLockChanged,
+                    onSmsImportChanged = vm::onSmsAutoImportChanged,
+                )
+
+                HorizontalDivider()
                 SectionHeader(stringResource(R.string.settings_section_data))
+                var passwordDialog by remember { mutableStateOf(false) }
                 DataSection(
                     onExport = { vm.exportData(context) },
+                    onEncryptedExport = { passwordDialog = true },
                     onReset = vm::requestReset,
                 )
+                if (passwordDialog) {
+                    EncryptedExportPasswordDialog(
+                        onConfirm = { pwd ->
+                            vm.exportDataEncrypted(context, pwd.toCharArray())
+                            passwordDialog = false
+                        },
+                        onDismiss = { passwordDialog = false },
+                    )
+                }
 
                 HorizontalDivider()
                 SectionHeader(stringResource(R.string.settings_section_about))
@@ -361,7 +383,30 @@ private fun DashboardSwitchRow(label: String, checked: Boolean, onChange: (Boole
 }
 
 @Composable
-private fun DataSection(onExport: () -> Unit, onReset: () -> Unit) {
+private fun SecuritySection(
+    biometric: Boolean,
+    smsImport: Boolean,
+    onBiometricChanged: (Boolean) -> Unit,
+    onSmsImportChanged: (Boolean) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        ListItem(
+            modifier = Modifier.fillMaxWidth(),
+            headlineContent = { Text(stringResource(R.string.settings_security_biometric)) },
+            supportingContent = { Text(stringResource(R.string.settings_security_biometric_body)) },
+            trailingContent = { Switch(checked = biometric, onCheckedChange = onBiometricChanged) },
+        )
+        ListItem(
+            modifier = Modifier.fillMaxWidth(),
+            headlineContent = { Text(stringResource(R.string.settings_security_sms)) },
+            supportingContent = { Text(stringResource(R.string.settings_security_sms_body)) },
+            trailingContent = { Switch(checked = smsImport, onCheckedChange = onSmsImportChanged) },
+        )
+    }
+}
+
+@Composable
+private fun DataSection(onExport: () -> Unit, onEncryptedExport: () -> Unit, onReset: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         ListItem(
             modifier = Modifier
@@ -369,6 +414,14 @@ private fun DataSection(onExport: () -> Unit, onReset: () -> Unit) {
                 .clickable(onClick = onExport),
             headlineContent = { Text(stringResource(R.string.settings_data_export)) },
             supportingContent = { Text(stringResource(R.string.settings_data_export_subtitle)) },
+            trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
+        )
+        ListItem(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onEncryptedExport),
+            headlineContent = { Text(stringResource(R.string.settings_data_export_encrypted)) },
+            supportingContent = { Text(stringResource(R.string.settings_data_export_encrypted_subtitle)) },
             trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
         )
         ListItem(
@@ -385,4 +438,54 @@ private fun DataSection(onExport: () -> Unit, onReset: () -> Unit) {
             trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
         )
     }
+}
+
+@Composable
+private fun EncryptedExportPasswordDialog(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var password by remember { mutableStateOf("") }
+    var confirm by remember { mutableStateOf("") }
+    val match = password.isNotBlank() && password == confirm
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_data_export_encrypted_dialog_title)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.settings_data_export_encrypted_dialog_body),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.settings_data_export_encrypted_password)) },
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = confirm,
+                    onValueChange = { confirm = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.settings_data_export_encrypted_password_confirm)) },
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    isError = confirm.isNotEmpty() && !match,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(password) },
+                enabled = match,
+            ) { Text(stringResource(R.string.common_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        },
+    )
 }

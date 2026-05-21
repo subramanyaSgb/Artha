@@ -109,6 +109,12 @@ dependencies {
     // Google Generative AI — backs Phase 3's AI Quick Entry. Key from local.properties.
     implementation(libs.generative.ai)
 
+    // Phase 5 hardening — biometric prompt + encrypted SharedPreferences + Fragment
+    // (BiometricPrompt requires a FragmentActivity host).
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.fragment.ktx)
+
     // Unit testing
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)

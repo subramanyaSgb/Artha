@@ -405,6 +405,17 @@
     <string name="settings_data_reset_done">All data wiped</string>
     <string name="settings_data_export_done">Export ready — pick a target</string>
     <string name="settings_data_export_share_chooser">Share Artha export</string>
+    <string name="settings_data_export_encrypted">Export encrypted backup</string>
+    <string name="settings_data_export_encrypted_subtitle">Password-protected backup (AES-GCM, PBKDF2-SHA256). Use this when sharing via Drive/email.</string>
+    <string name="settings_data_export_encrypted_dialog_title">Set a backup password</string>
+    <string name="settings_data_export_encrypted_dialog_body">Pick a long, unique password. The backup file is useless without it — Artha has no way to recover it.</string>
+    <string name="settings_data_export_encrypted_password">Password</string>
+    <string name="settings_data_export_encrypted_password_confirm">Re-enter to confirm</string>
+    <string name="settings_section_security">Security</string>
+    <string name="settings_security_biometric">Biometric / device-credential lock</string>
+    <string name="settings_security_biometric_body">Prompt for fingerprint, face, or screen-lock on app open. Falls back to your device PIN/pattern if biometrics aren\'t enrolled.</string>
+    <string name="settings_security_sms">SMS auto-import (Phase 5)</string>
+    <string name="settings_security_sms_body">Listen for bank transaction SMS and pre-fill them for your review. Requires SMS permissions; flipping this off revokes the listener.</string>
     <string name="settings_section_about">About</string>
     <string name="settings_about_open">Open About</string>
 
@@ -703,6 +714,21 @@
     <string name="rules_cond_summary_source">Source = %1$s / %2$s</string>
     <string name="rules_cond_summary_destination">Destination = %1$s / %2$s</string>
     <string name="rules_cond_summary_time">Time of day between %1$dh and %2$dh</string>
+
+    <!-- Phase 5: Reports / Analytics screen -->
+    <string name="reports_title">Reports</string>
+    <string name="reports_range_this_month">This month</string>
+    <string name="reports_range_last_month">Last month</string>
+    <string name="reports_range_fy">FY (Apr-Mar)</string>
+    <string name="reports_net_worth">Net worth (liquid + investments − card outstanding)</string>
+    <string name="reports_income">Income</string>
+    <string name="reports_expense">Expense</string>
+    <string name="reports_spending_by_category">Spending by category</string>
+    <string name="reports_spending_by_payment_app">Spending by payment app</string>
+    <string name="reports_top_merchants">Top merchants</string>
+    <string name="reports_tax_sections">Tax-section usage</string>
+    <string name="reports_empty_period">No spending in this period.</string>
+    <string name="reports_tax_empty">No tax-eligible amounts found. Tag investments with a section (80C, 80D, …) on their detail screen.</string>
 
     <!-- Phase 4: People screen -->
     <string name="people_title">People</string>

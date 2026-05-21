@@ -41,6 +41,7 @@ enum class MoreAction {
     Categories, Tags, Settings, About,
     Investments, Insurance, Rules,
     People, Budgets, Goals, Subscriptions, Recurring,
+    Reports,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,7 +126,11 @@ fun MoreSheet(
                 titleRes = R.string.more_people,
                 onClick = { onActionSelected(MoreAction.People) },
             )
-            DisabledTile(Icons.Filled.BarChart, R.string.more_reports, R.string.more_coming_phase_4)
+            MoreTile(
+                icon = Icons.Filled.BarChart,
+                titleRes = R.string.more_reports,
+                onClick = { onActionSelected(MoreAction.Reports) },
+            )
         }
     }
 }

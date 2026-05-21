@@ -26,6 +26,7 @@ import com.subramanya.artha.ui.investments.InvestmentDetailScreen
 import com.subramanya.artha.ui.investments.InvestmentsScreen
 import com.subramanya.artha.ui.people.PeopleScreen
 import com.subramanya.artha.ui.recurring.RecurringScreen
+import com.subramanya.artha.ui.reports.ReportsScreen
 import com.subramanya.artha.ui.rules.RulesScreen
 import com.subramanya.artha.ui.settings.AboutScreen
 import com.subramanya.artha.ui.subscriptions.SubscriptionsScreen
@@ -67,6 +68,10 @@ object SubRoutes {
     const val GOALS = "goals"
     const val SUBSCRIPTIONS = "subscriptions"
     const val RECURRING = "recurring"
+
+    // Phase 5
+    const val REPORTS = "reports"
+    const val PENDING_SMS = "pending_sms"
 
     private const val INVESTMENT_DETAIL_BASE = "investment_detail"
     const val INVESTMENT_DETAIL_ARG_ID = "investmentId"
@@ -252,6 +257,9 @@ fun ArthaNavHost(
         }
         composable(SubRoutes.RECURRING) {
             RecurringScreen(onBack = { navController.popBackStack() })
+        }
+        composable(SubRoutes.REPORTS) {
+            ReportsScreen(onBack = { navController.popBackStack() })
         }
         // No `more` route on purpose — that tap opens a sheet, not a destination.
     }

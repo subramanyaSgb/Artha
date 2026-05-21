@@ -78,6 +78,22 @@ class SettingsPreferences(context: Context) {
         dataStore.edit { it[Keys.BUNDLED_IMPORT_VERSION] = value }
     }
 
+    /** Phase 5 — biometric/device-credential lock on app open. Default off so a fresh
+     *  install doesn't surprise the user with a prompt. The prompt is checked once per
+     *  process launch (not on every screen) per PRD §7.21 "auto-lock timeout". */
+    val biometricLockEnabled: Flow<Boolean> = dataStore.data.map { it[Keys.BIOMETRIC_LOCK] ?: false }
+    suspend fun setBiometricLockEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.BIOMETRIC_LOCK] = value }
+    }
+
+    /** Phase 5 — SMS auto-import toggle. Off by default; flipping it on prompts the
+     *  user for RECEIVE_SMS / READ_SMS at runtime. The receiver only runs while this
+     *  is true so revoking permission also flips this off. */
+    val smsAutoImportEnabled: Flow<Boolean> = dataStore.data.map { it[Keys.SMS_AUTO_IMPORT] ?: false }
+    suspend fun setSmsAutoImportEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.SMS_AUTO_IMPORT] = value }
+    }
+
     suspend fun setUserName(name: String) {
         dataStore.edit { it[Keys.USER_NAME] = name.trim() }
     }
@@ -109,6 +125,8 @@ class SettingsPreferences(context: Context) {
         val DASH_SHOW_CARDS = booleanPreferencesKey("dashboard_show_cards")
         val DASH_SHOW_RECENT = booleanPreferencesKey("dashboard_show_recent")
         val BUNDLED_IMPORT_VERSION = intPreferencesKey("bundled_import_version")
+        val BIOMETRIC_LOCK = booleanPreferencesKey("biometric_lock_enabled")
+        val SMS_AUTO_IMPORT = booleanPreferencesKey("sms_auto_import_enabled")
     }
 }
 

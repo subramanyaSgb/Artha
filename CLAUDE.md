@@ -99,12 +99,18 @@ instead of crashing, so the rest of the app still builds + runs fine.
 - I run **Windows** for local dev. Path separators and shell commands should account for that — prefer cross-platform Gradle tasks over `.sh` scripts.
 - I appreciate when you flag risky changes before making them, even if I'm in auto-accept mode.
 
-## Phase Roadmap (for context, not for action)
+## Phase Roadmap (status)
 
-- **Phase 1 (current):** MVP skeleton, manual entry only
-- **Phase 2:** Investments + Insurance + Card detail polish + Rules Engine UI
-- **Phase 3:** AI Quick Entry (Gemini: text + voice + photo) + smart categorization
-- **Phase 4:** Budgets + Goals + Subscriptions + Recurring + People (lending)
-- **Phase 5:** Hardening — SMS parsing, biometric lock, encrypted backup, Play Store readiness
+- **Phase 1 done** — MVP skeleton, manual entry, bundled bank import, polish pass.
+- **Phase 2 done** — Investments + Insurance + Rules Engine UI + endowment-investment linkage.
+- **Phase 3 done** — AI Quick Entry sheet (text/voice/photo) wired to Gemini via
+  BuildConfig.GEMINI_API_KEY. Empty key short-circuits to a friendly hint.
+- **Phase 4 done** — Budgets + Goals + Subscriptions + Recurring + People.
+- **Phase 5 partial** — Biometric/device-credential lock, Reports/Analytics, AES-GCM
+  encrypted backup. **Deferred:** SMS parsing receiver, recurring-rule auto-fire via
+  WorkManager, crash reporting, cloud sync. SMS in particular needs a bank-specific
+  regex catalogue + runtime-permission UX flow; the Settings toggle + DataStore key
+  are already in place so the receiver can drop in cleanly.
 
-We're in Phase 1. Stay there.
+The app is feature-complete enough for daily use. Treat further work as
+maintenance/extension rather than a fresh phase.

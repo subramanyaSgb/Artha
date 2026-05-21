@@ -1,9 +1,9 @@
 package com.subramanya.artha
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -26,6 +26,7 @@ import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.preferences.ThemeMode
 import com.subramanya.artha.ui.common.ArthaBottomBar
 import com.subramanya.artha.ui.common.ArthaTopBar
+import com.subramanya.artha.ui.lock.BiometricLockGate
 import com.subramanya.artha.ui.more.MoreAction
 import com.subramanya.artha.ui.more.MoreSheet
 import com.subramanya.artha.ui.navigation.ArthaDestination
@@ -41,7 +42,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
-class MainActivity : ComponentActivity() {
+/**
+ * Switched to [FragmentActivity] in Phase 5 — BiometricPrompt requires a
+ * FragmentActivity host. Behaviour is otherwise unchanged from ComponentActivity.
+ */
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -77,51 +82,62 @@ private fun ArthaRoot() {
 
     val themeMode by app.settingsPreferences.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
     val useDynamicColor by app.settingsPreferences.useDynamicColor.collectAsState(initial = true)
+    val biometricLock by app.settingsPreferences.biometricLockEnabled.collectAsState(initial = false)
 
     ArthaTheme(themeMode = themeMode, useDynamicColor = useDynamicColor) {
-        // Triggers DB init + reads userName once; emits a Ready/NeedsOnboarding terminal state.
-        // Also runs the bundled bank-statement importer when its tracked version is older
-        // than [CURRENT_BUNDLED_IMPORT_VERSION] — that covers fresh installs AND post-upgrade
-        // re-runs when a schema bump destroys the old Room DB.
-        val startup by produceState<StartupState>(initialValue = StartupState.Loading, app) {
-            value = withContext(Dispatchers.IO) {
-                val started = System.currentTimeMillis()
-                app.database.categoryDao().count()
-                if (app.settingsPreferences.bundledImportVersion.first() < CURRENT_BUNDLED_IMPORT_VERSION) {
-                    runCatching { BankImporter(app, app.database).importBundled() }
-                    app.settingsPreferences.setBundledImportVersion(CURRENT_BUNDLED_IMPORT_VERSION)
-                }
-                val name = app.settingsPreferences.userName.first()
-                val elapsed = System.currentTimeMillis() - started
-                if (elapsed < MIN_SPLASH_MILLIS) delay(MIN_SPLASH_MILLIS - elapsed)
-                if (name.isBlank()) StartupState.NeedsOnboarding else StartupState.Ready(name)
-            }
+        // Biometric gate wraps the whole inner scope when enabled.
+        if (biometricLock) {
+            BiometricLockGate { ArthaInner(app) }
+        } else {
+            ArthaInner(app)
         }
+    }
+}
 
-        // Local override so completing onboarding can transition us into MainApp without
-        // re-running the produceState block.
-        var override: StartupState? by remember { mutableStateOf(null) }
-        val current = override ?: startup
-
-        when (val state = current) {
-            StartupState.Loading -> SplashScreen()
-            StartupState.NeedsOnboarding -> {
-                val vm: OnboardingViewModel = viewModel(
-                    factory = OnboardingViewModelFactory(app.accountRepository, app.settingsPreferences),
-                )
-                OnboardingFlow(
-                    viewModel = vm,
-                    onCompleted = {
-                        val saved = vm.state.value.name.trim()
-                        override = StartupState.Ready(saved)
-                    },
-                )
+@Composable
+private fun ArthaInner(app: ArthaApplication) {
+    // Triggers DB init + reads userName once; emits a Ready/NeedsOnboarding terminal state.
+    // Also runs the bundled bank-statement importer when its tracked version is older
+    // than [CURRENT_BUNDLED_IMPORT_VERSION] — that covers fresh installs AND post-upgrade
+    // re-runs when a schema bump destroys the old Room DB.
+    val startup by produceState<StartupState>(initialValue = StartupState.Loading, app) {
+        value = withContext(Dispatchers.IO) {
+            val started = System.currentTimeMillis()
+            app.database.categoryDao().count()
+            if (app.settingsPreferences.bundledImportVersion.first() < CURRENT_BUNDLED_IMPORT_VERSION) {
+                runCatching { BankImporter(app, app.database).importBundled() }
+                app.settingsPreferences.setBundledImportVersion(CURRENT_BUNDLED_IMPORT_VERSION)
             }
-            is StartupState.Ready -> MainApp(
-                settingsPreferences = app.settingsPreferences,
-                initialName = state.userName,
+            val name = app.settingsPreferences.userName.first()
+            val elapsed = System.currentTimeMillis() - started
+            if (elapsed < MIN_SPLASH_MILLIS) delay(MIN_SPLASH_MILLIS - elapsed)
+            if (name.isBlank()) StartupState.NeedsOnboarding else StartupState.Ready(name)
+        }
+    }
+
+    // Local override so completing onboarding can transition us into MainApp without
+    // re-running the produceState block.
+    var override: StartupState? by remember { mutableStateOf(null) }
+    val current = override ?: startup
+
+    when (val state = current) {
+        StartupState.Loading -> SplashScreen()
+        StartupState.NeedsOnboarding -> {
+            val vm: OnboardingViewModel = viewModel(
+                factory = OnboardingViewModelFactory(app.accountRepository, app.settingsPreferences),
+            )
+            OnboardingFlow(
+                viewModel = vm,
+                onCompleted = {
+                    val saved = vm.state.value.name.trim()
+                    override = StartupState.Ready(saved)
+                },
             )
         }
+        is StartupState.Ready -> MainApp(
+            settingsPreferences = app.settingsPreferences,
+            initialName = state.userName,
+        )
     }
 }
 
@@ -200,6 +216,7 @@ private fun navigateForMoreAction(navController: NavHostController, action: More
         MoreAction.Goals -> SubRoutes.GOALS
         MoreAction.Subscriptions -> SubRoutes.SUBSCRIPTIONS
         MoreAction.Recurring -> SubRoutes.RECURRING
+        MoreAction.Reports -> SubRoutes.REPORTS
     }
     navController.navigate(route) { launchSingleTop = true }
 }
