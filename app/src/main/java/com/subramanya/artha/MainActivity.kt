@@ -21,6 +21,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.subramanya.artha.data.importing.BankImporter
 import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.preferences.ThemeMode
 import com.subramanya.artha.ui.common.ArthaBottomBar
@@ -64,6 +65,11 @@ private sealed interface StartupState {
 
 private const val MIN_SPLASH_MILLIS: Long = 500L
 
+/** Bumped whenever the bundled bank-statement asset (or the schema it writes into)
+ *  changes so existing installs re-run the importer after a destructive migration.
+ *  Tracks AppDatabase.version for now. */
+private const val CURRENT_BUNDLED_IMPORT_VERSION: Int = 2
+
 @Composable
 private fun ArthaRoot() {
     val context = LocalContext.current
@@ -74,10 +80,17 @@ private fun ArthaRoot() {
 
     ArthaTheme(themeMode = themeMode, useDynamicColor = useDynamicColor) {
         // Triggers DB init + reads userName once; emits a Ready/NeedsOnboarding terminal state.
+        // Also runs the bundled bank-statement importer when its tracked version is older
+        // than [CURRENT_BUNDLED_IMPORT_VERSION] — that covers fresh installs AND post-upgrade
+        // re-runs when a schema bump destroys the old Room DB.
         val startup by produceState<StartupState>(initialValue = StartupState.Loading, app) {
             value = withContext(Dispatchers.IO) {
                 val started = System.currentTimeMillis()
                 app.database.categoryDao().count()
+                if (app.settingsPreferences.bundledImportVersion.first() < CURRENT_BUNDLED_IMPORT_VERSION) {
+                    runCatching { BankImporter(app, app.database).importBundled() }
+                    app.settingsPreferences.setBundledImportVersion(CURRENT_BUNDLED_IMPORT_VERSION)
+                }
                 val name = app.settingsPreferences.userName.first()
                 val elapsed = System.currentTimeMillis() - started
                 if (elapsed < MIN_SPLASH_MILLIS) delay(MIN_SPLASH_MILLIS - elapsed)

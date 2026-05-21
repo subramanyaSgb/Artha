@@ -95,6 +95,9 @@ dependencies {
     // Unit testing
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)
+    // Android stubs out org.json in unit tests (every method throws). Pull in the
+    // real lib so the RuleSpec JSON codec can round-trip in plain JVM tests.
+    testImplementation("org.json:json:20231013")
 
     // Instrumentation testing
     androidTestImplementation(libs.androidx.junit)

@@ -485,4 +485,20 @@
 
     <!-- Dashboard -->
     <string name="dashboard_section_cards_empty">Add a credit/debit card from More → Cards.</string>
+
+    <!-- Settings: import bundled bank data (APK asset) -->
+    <string name="settings_data_import_bundled">Import bundled bank data</string>
+    <string name="settings_data_import_bundled_subtitle">One-tap seed of ~3.9k Federal Bank + ICICI transactions baked into this build. Safe to retry — already-imported rows are skipped.</string>
+    <string name="settings_data_import_bundled_progress">Importing transactions…</string>
+    <string name="settings_data_import_bundled_done">Imported: %1$d txns, %2$d accounts created, %3$d reused, %4$d skipped (already present).</string>
+    <string name="settings_data_import_bundled_missing">No bundled data found in this build. Rebuild after running export-json.</string>
+    <string name="settings_data_import_bundled_parse_error">Bundled file is corrupt: %1$s</string>
+
+    <!-- Settings: wipe imported bank-statement data -->
+    <string name="settings_data_wipe_import">Wipe imported bank data</string>
+    <string name="settings_data_wipe_import_subtitle">Removes the Federal Bank + ICICI accounts and every transaction tagged as imported. Your manually-entered data stays.</string>
+    <string name="settings_data_wipe_import_confirm_title">Wipe imported data?</string>
+    <string name="settings_data_wipe_import_confirm_body">This deletes:\n• The "Federal Bank (Jupiter)" and "ICICI Bank" accounts (if present)\n• Every transaction whose notes start with "Imported from"\n\nManually-entered accounts and transactions are untouched. Use this to retry the import after tweaking the categoriser.</string>
+    <string name="settings_data_wipe_import_yes">Wipe imports</string>
+    <string name="settings_data_wipe_import_done">Imported data removed: %1$d transactions, %2$d accounts.</string>
 </resources>

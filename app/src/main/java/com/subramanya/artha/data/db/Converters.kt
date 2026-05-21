@@ -5,8 +5,11 @@ import com.subramanya.artha.data.entity.enums.AccountType
 import com.subramanya.artha.data.entity.enums.CardNetwork
 import com.subramanya.artha.data.entity.enums.CardType
 import com.subramanya.artha.data.entity.enums.CategoryType
+import com.subramanya.artha.data.entity.enums.InsuranceType
+import com.subramanya.artha.data.entity.enums.InvestmentType
 import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
+import com.subramanya.artha.data.entity.enums.PremiumFrequency
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
@@ -41,4 +44,13 @@ class Converters {
 
     @TypeConverter fun fromTransactionSource(v: TransactionSource): String = v.name
     @TypeConverter fun toTransactionSource(v: String): TransactionSource = TransactionSource.valueOf(v)
+
+    @TypeConverter fun fromInvestmentType(v: InvestmentType): String = v.name
+    @TypeConverter fun toInvestmentType(v: String): InvestmentType = InvestmentType.valueOf(v)
+
+    @TypeConverter fun fromInsuranceType(v: InsuranceType): String = v.name
+    @TypeConverter fun toInsuranceType(v: String): InsuranceType = InsuranceType.valueOf(v)
+
+    @TypeConverter fun fromPremiumFrequency(v: PremiumFrequency): String = v.name
+    @TypeConverter fun toPremiumFrequency(v: String): PremiumFrequency = PremiumFrequency.valueOf(v)
 }

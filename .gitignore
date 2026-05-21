@@ -103,3 +103,16 @@ out/
 # Personal documents that occasionally land in docs/ during testing
 docs/*.zip
 docs/*.pdf
+
+# Raw bank-statement source files — personal financial data. The Python
+# importer scripts in docs/Bank statement/ are tracked, but never the data.
+docs/Bank statement/*.xlsx
+docs/Bank statement/*.xls
+docs/Bank statement/*.pdf
+docs/Bank statement/__pycache__/
+
+# Generated bundled-import asset — contains every imported transaction (3,900+
+# rows of personal financial data). Re-generate locally with:
+#   python "docs/Bank statement/import_to_artha.py" --export-json
+# before each APK build that needs it.
+app/src/main/assets/seed/bank_import.json

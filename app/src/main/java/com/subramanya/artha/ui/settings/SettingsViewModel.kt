@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.seed.SeedCategories
+import com.subramanya.artha.data.importing.BankImporter
 import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.preferences.SpouseTransactionDefault
 import com.subramanya.artha.data.preferences.ThemeMode
@@ -35,9 +36,15 @@ data class SettingsUiState(
     val dashboardShowRecent: Boolean = true,
     val showFirstResetDialog: Boolean = false,
     val showFinalResetDialog: Boolean = false,
+    val showWipeImportConfirm: Boolean = false,
+    val isImportingBundled: Boolean = false,
     /** Set right after Export → file is ready to be shared. */
     val pendingExportFile: File? = null,
 )
+
+/** Account names the bank-statement importer creates. Wipe-imports keys off these. */
+private val IMPORTED_ACCOUNT_NAMES = setOf("Federal Bank (Jupiter)", "ICICI Bank")
+private const val IMPORTED_NOTES_PREFIX = "Imported from "
 
 class SettingsViewModel(
     private val settingsPreferences: SettingsPreferences,
@@ -46,6 +53,8 @@ class SettingsViewModel(
 
     private val firstResetDialog = MutableStateFlow(false)
     private val finalResetDialog = MutableStateFlow(false)
+    private val wipeImportConfirm = MutableStateFlow(false)
+    private val importingBundled = MutableStateFlow(false)
     private val pendingExport = MutableStateFlow<File?>(null)
 
     private val dashboardPrefs = combine(
@@ -55,14 +64,20 @@ class SettingsViewModel(
         settingsPreferences.dashboardShowRecent,
     ) { monthly, accounts, cards, recent -> DashboardVisibility(monthly, accounts, cards, recent) }
 
+    private val dialogFlags = combine(
+        firstResetDialog, finalResetDialog, wipeImportConfirm, pendingExport, dashboardPrefs,
+    ) { first, final, wipe, export, vis ->
+        DialogsAndVisibility(first, final, wipe, export, vis, importing = false)
+    }.combine(importingBundled) { bag, importing ->
+        bag.copy(importing = importing)
+    }
+
     val state: StateFlow<SettingsUiState> = combine(
         settingsPreferences.userName,
         settingsPreferences.themeMode,
         settingsPreferences.useDynamicColor,
         settingsPreferences.spouseTransactionDefault,
-        combine(firstResetDialog, finalResetDialog, pendingExport, dashboardPrefs) { a, b, c, d ->
-            DialogsAndVisibility(a, b, c, d)
-        },
+        dialogFlags,
     ) { name, theme, dynamic, spouse, bag ->
         SettingsUiState(
             userName = name,
@@ -75,6 +90,8 @@ class SettingsViewModel(
             dashboardShowRecent = bag.visibility.recent,
             showFirstResetDialog = bag.firstReset,
             showFinalResetDialog = bag.finalReset,
+            showWipeImportConfirm = bag.wipeImport,
+            isImportingBundled = bag.importing,
             pendingExportFile = bag.export,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
@@ -83,8 +100,10 @@ class SettingsViewModel(
     private data class DialogsAndVisibility(
         val firstReset: Boolean,
         val finalReset: Boolean,
+        val wipeImport: Boolean,
         val export: File?,
         val visibility: DashboardVisibility,
+        val importing: Boolean,
     )
 
     fun onNameChanged(value: String) {
@@ -225,6 +244,63 @@ class SettingsViewModel(
             settingsPreferences.resetSpouseTransactionDefault()
             finalResetDialog.update { false }
             onDone()
+        }
+    }
+
+    // ----- import bundled bank-statement data (APK asset) -----
+
+    /**
+     * Reads `assets/seed/bank_import.json` (generated offline by the Python
+     * script) and writes the 3,913 transactions + their two source accounts
+     * into Room. Idempotent — calling twice is a no-op thanks to deterministic
+     * UUID5 transaction IDs + IGNORE-on-conflict.
+     *
+     * Callers get the result via [onDone] so they can surface a toast.
+     */
+    fun importBundledBankData(context: Context, onDone: (BankImporter.Result) -> Unit) {
+        if (importingBundled.value) return
+        viewModelScope.launch {
+            importingBundled.update { true }
+            val result = withContext(Dispatchers.IO) {
+                BankImporter(context.applicationContext, database).importBundled()
+            }
+            importingBundled.update { false }
+            onDone(result)
+        }
+    }
+
+    // ----- wipe imported bank-statement data -----
+
+    fun requestWipeImport() = wipeImportConfirm.update { true }
+    fun dismissWipeImport() = wipeImportConfirm.update { false }
+
+    /**
+     * Removes only the data the external bank-statement importer added:
+     *   - every transaction whose notes start with "Imported from "
+     *   - every account whose name matches one of [IMPORTED_ACCOUNT_NAMES]
+     *
+     * Manual entries stay untouched. Returns counts via [onDone] so the host can
+     * surface a toast.
+     */
+    fun wipeImportedData(onDone: (deletedTxns: Int, deletedAccounts: Int) -> Unit) {
+        viewModelScope.launch {
+            val (txnCount, acctCount) = withContext(Dispatchers.IO) {
+                val txnDao = database.transactionDao()
+                val acctDao = database.accountDao()
+                val allTxns = txnDao.observeAll().first()
+                val importedTxnIds = allTxns
+                    .filter { (it.notes ?: "").startsWith(IMPORTED_NOTES_PREFIX) }
+                    .map { it.id }
+                if (importedTxnIds.isNotEmpty()) txnDao.deleteByIds(importedTxnIds)
+
+                val allAccts = acctDao.observeAll().first()
+                val importedAccts = allAccts.filter { it.name in IMPORTED_ACCOUNT_NAMES }
+                importedAccts.forEach { acctDao.delete(it) }
+
+                importedTxnIds.size to importedAccts.size
+            }
+            wipeImportConfirm.update { false }
+            onDone(txnCount, acctCount)
         }
     }
 }

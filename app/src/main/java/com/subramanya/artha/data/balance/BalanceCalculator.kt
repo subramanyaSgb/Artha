@@ -97,6 +97,40 @@ object BalanceCalculator {
         return balance
     }
 
+    /**
+     * Sum of money the user has put into a specific investment. Computed from the
+     * transaction log so the user never has to maintain a running total manually.
+     *
+     * Rules:
+     *   - INVESTMENT_BUY with destination = this investment → adds to invested
+     *   - INVESTMENT_SELL with source = this investment       → subtracts from invested
+     *
+     * Returns can be negative if the user has sold more than they bought (rare;
+     * indicates partial profit-taking past the original principal).
+     */
+    fun computeInvestmentInvested(
+        investmentId: String,
+        transactions: List<TransactionEntity>,
+    ): Double {
+        var invested = 0.0
+        for (txn in transactions) {
+            when (txn.type) {
+                TransactionType.INVESTMENT_BUY -> {
+                    if (txn.destinationType == SourceKind.INVESTMENT && txn.destinationId == investmentId) {
+                        invested += txn.amount
+                    }
+                }
+                TransactionType.INVESTMENT_SELL -> {
+                    if (txn.sourceType == SourceKind.INVESTMENT && txn.sourceId == investmentId) {
+                        invested -= txn.amount
+                    }
+                }
+                else -> Unit
+            }
+        }
+        return invested
+    }
+
     fun computeCardOutstanding(
         cardId: String,
         transactions: List<TransactionEntity>,

@@ -7,9 +7,12 @@ import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
+import com.subramanya.artha.data.repository.InsuranceRepository
+import com.subramanya.artha.data.repository.InvestmentRepository
 import com.subramanya.artha.data.repository.PersonRepository
 import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.data.repository.TransactionRepository
+import com.subramanya.artha.data.repository.TransactionRuleRepository
 
 /**
  * No DI framework in Phase 1. Repositories are lazy-built singletons attached to the
@@ -39,5 +42,14 @@ class ArthaApplication : Application() {
     }
     val transactionRepository: TransactionRepository by lazy {
         TransactionRepository(database.transactionDao())
+    }
+    val investmentRepository: InvestmentRepository by lazy {
+        InvestmentRepository(database.investmentDao(), database.transactionDao())
+    }
+    val insuranceRepository: InsuranceRepository by lazy {
+        InsuranceRepository(database.insuranceDao())
+    }
+    val transactionRuleRepository: TransactionRuleRepository by lazy {
+        TransactionRuleRepository(database.transactionRuleDao())
     }
 }

@@ -46,6 +46,11 @@ interface TransactionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: TransactionEntity)
 
+    /** Bulk insert used by the bank-statement importer. IGNORE so re-running with
+     *  the same deterministic IDs is a no-op rather than overwriting user edits. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAllIgnore(transactions: List<TransactionEntity>): List<Long>
+
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
 

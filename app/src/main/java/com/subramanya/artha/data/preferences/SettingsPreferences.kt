@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -67,6 +68,16 @@ class SettingsPreferences(context: Context) {
         dataStore.edit { it[Keys.DASH_SHOW_RECENT] = value }
     }
 
+    /** Highest DB schema version that the bundled bank-statement importer has run for.
+     *  When the DB version bumps (e.g. v1 -> v2), the splash will re-run the importer
+     *  to repopulate data wiped by destructive migration. Surviving "Reset All Data"
+     *  is intentional — reset wipes Room only, this stays set, so the user truly gets
+     *  a clean slate. Wiped only on uninstall/reinstall. */
+    val bundledImportVersion: Flow<Int> = dataStore.data.map { it[Keys.BUNDLED_IMPORT_VERSION] ?: 0 }
+    suspend fun setBundledImportVersion(value: Int) {
+        dataStore.edit { it[Keys.BUNDLED_IMPORT_VERSION] = value }
+    }
+
     suspend fun setUserName(name: String) {
         dataStore.edit { it[Keys.USER_NAME] = name.trim() }
     }
@@ -97,6 +108,7 @@ class SettingsPreferences(context: Context) {
         val DASH_SHOW_ACCOUNTS = booleanPreferencesKey("dashboard_show_accounts")
         val DASH_SHOW_CARDS = booleanPreferencesKey("dashboard_show_cards")
         val DASH_SHOW_RECENT = booleanPreferencesKey("dashboard_show_recent")
+        val BUNDLED_IMPORT_VERSION = intPreferencesKey("bundled_import_version")
     }
 }
 
