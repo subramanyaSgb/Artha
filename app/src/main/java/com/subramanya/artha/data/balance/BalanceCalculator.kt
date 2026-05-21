@@ -1,0 +1,125 @@
+package com.subramanya.artha.data.balance
+
+import com.subramanya.artha.data.entity.TransactionEntity
+import com.subramanya.artha.data.entity.enums.SourceKind
+import com.subramanya.artha.data.entity.enums.TransactionType
+
+/**
+ * Pure-Kotlin balance derivation. Account balances and credit-card outstandings are
+ * NEVER stored — they are recomputed from the transaction log whenever the inputs change.
+ *
+ * Direction rules (mirror the source/destination convention documented on
+ * TransactionEntity):
+ *   - source = the affected account/card on the user's side.
+ *   - destination = second affected side, only used for TRANSFER and CARD_PAYMENT in Phase 1.
+ *   - The TransactionType decides whether money flows in or out of source/destination.
+ *
+ * For accounts:
+ *   - EXPENSE, LOAN_GIVEN, GIFT_SENT, INVESTMENT_BUY        → source loses money
+ *   - TRANSFER, CARD_PAYMENT                                 → source loses, destination gains
+ *   - INCOME, REFUND, CASHBACK, INTEREST,
+ *     LOAN_RECEIVED, GIFT_RECEIVED, INVESTMENT_SELL          → source gains money
+ *   - ADJUSTMENT                                             → signed by amount (negative allowed)
+ *
+ * For credit cards (outstanding = how much the user owes):
+ *   - EXPENSE, LOAN_GIVEN, GIFT_SENT charged TO the card    → outstanding increases
+ *   - REFUND, CASHBACK on the card                          → outstanding decreases
+ *   - CARD_PAYMENT where destination = card                 → outstanding decreases (bill paid)
+ *   - ADJUSTMENT                                             → signed by amount
+ */
+object BalanceCalculator {
+
+    private val MONEY_OUT_OF_SOURCE: Set<TransactionType> =
+        setOf(
+            TransactionType.EXPENSE,
+            TransactionType.LOAN_GIVEN,
+            TransactionType.GIFT_SENT,
+            TransactionType.INVESTMENT_BUY,
+            TransactionType.TRANSFER,
+            TransactionType.CARD_PAYMENT,
+        )
+
+    private val MONEY_INTO_SOURCE: Set<TransactionType> =
+        setOf(
+            TransactionType.INCOME,
+            TransactionType.REFUND,
+            TransactionType.CASHBACK,
+            TransactionType.INTEREST,
+            TransactionType.LOAN_RECEIVED,
+            TransactionType.GIFT_RECEIVED,
+            TransactionType.INVESTMENT_SELL,
+        )
+
+    private val MONEY_INTO_DESTINATION: Set<TransactionType> =
+        setOf(
+            TransactionType.TRANSFER,
+            TransactionType.CARD_PAYMENT,
+        )
+
+    /** Card charges: increase outstanding when applied as `source = CARD`. */
+    private val CARD_CHARGES: Set<TransactionType> =
+        setOf(
+            TransactionType.EXPENSE,
+            TransactionType.LOAN_GIVEN,
+            TransactionType.GIFT_SENT,
+        )
+
+    /** Card credits: decrease outstanding when applied as `source = CARD`. */
+    private val CARD_CREDITS: Set<TransactionType> =
+        setOf(
+            TransactionType.REFUND,
+            TransactionType.CASHBACK,
+        )
+
+    fun computeAccountBalance(
+        openingBalance: Double,
+        accountId: String,
+        transactions: List<TransactionEntity>,
+    ): Double {
+        var balance = openingBalance
+        for (txn in transactions) {
+            // money leaving this account (source side)
+            if (txn.sourceType == SourceKind.ACCOUNT && txn.sourceId == accountId) {
+                when (txn.type) {
+                    in MONEY_OUT_OF_SOURCE -> balance -= txn.amount
+                    in MONEY_INTO_SOURCE -> balance += txn.amount
+                    TransactionType.ADJUSTMENT -> balance += txn.amount
+                    else -> Unit
+                }
+            }
+            // money arriving in this account (destination side: transfer/card_payment)
+            if (txn.destinationType == SourceKind.ACCOUNT && txn.destinationId == accountId) {
+                if (txn.type in MONEY_INTO_DESTINATION) {
+                    balance += txn.amount
+                }
+            }
+        }
+        return balance
+    }
+
+    fun computeCardOutstanding(
+        cardId: String,
+        transactions: List<TransactionEntity>,
+    ): Double {
+        var outstanding = 0.0
+        for (txn in transactions) {
+            // charges and credits applied directly to the card (source side)
+            if (txn.sourceType == SourceKind.CARD && txn.sourceId == cardId) {
+                when (txn.type) {
+                    in CARD_CHARGES -> outstanding += txn.amount
+                    in CARD_CREDITS -> outstanding -= txn.amount
+                    TransactionType.ADJUSTMENT -> outstanding += txn.amount
+                    else -> Unit
+                }
+            }
+            // bill payment: destination = this card → outstanding decreases
+            if (txn.destinationType == SourceKind.CARD &&
+                txn.destinationId == cardId &&
+                txn.type == TransactionType.CARD_PAYMENT
+            ) {
+                outstanding -= txn.amount
+            }
+        }
+        return outstanding
+    }
+}
