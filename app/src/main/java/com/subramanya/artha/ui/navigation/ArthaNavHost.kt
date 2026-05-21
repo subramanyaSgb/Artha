@@ -115,6 +115,7 @@ fun ArthaNavHost(
                 onOpenAccount = { id -> navController.navigate(SubRoutes.accountDetail(id)) },
                 onOpenCard = { id -> navController.navigate(SubRoutes.cardDetail(id)) },
                 onOpenTransaction = { id -> navController.navigate(SubRoutes.transactionDetail(id)) },
+                onOpenInsurance = { id -> navController.navigate(SubRoutes.insuranceDetail(id)) },
                 onAddAccount = {
                     navController.navigate(ArthaDestination.Accounts.route) {
                         popUpTo(navController.graph.findStartDestination().id)

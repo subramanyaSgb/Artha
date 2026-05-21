@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -76,6 +77,7 @@ fun DashboardScreen(
     onOpenAccount: (String) -> Unit = {},
     onOpenCard: (String) -> Unit = {},
     onOpenTransaction: (String) -> Unit = {},
+    onOpenInsurance: (String) -> Unit = {},
     onAddAccount: () -> Unit = {},
     onAddCard: () -> Unit = {},
 ) {
@@ -87,6 +89,8 @@ fun DashboardScreen(
             accountRepository = app.accountRepository,
             cardRepository = app.cardRepository,
             transactionRepository = app.transactionRepository,
+            investmentRepository = app.investmentRepository,
+            insuranceRepository = app.insuranceRepository,
         ),
     )
     val state by vm.state.collectAsStateWithLifecycle()
@@ -108,6 +112,14 @@ fun DashboardScreen(
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
                 NetPositionHero(state = state)
+
+                if (state.premiumsDueThisWeek.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    PremiumDueBanner(
+                        policies = state.premiumsDueThisWeek,
+                        onTap = { onOpenInsurance(state.premiumsDueThisWeek.first().id) },
+                    )
+                }
 
                 if (showMonthly) {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -170,6 +182,55 @@ fun DashboardScreen(
             ),
         )
         AddTransactionSheet(viewModel = txnVm, onDismiss = { showSheet = false })
+    }
+}
+
+// ---------------- premium-due banner ----------------
+
+@Composable
+private fun PremiumDueBanner(
+    policies: List<com.subramanya.artha.domain.model.Insurance>,
+    onTap: () -> Unit,
+) {
+    val nearest = policies.first()
+    val dueText = nearest.nextPremiumDate?.let {
+        com.subramanya.artha.utils.DateFormatter.longDate(it)
+    }.orEmpty()
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clickable(onClick = onTap),
+        color = MaterialTheme.colorScheme.errorContainer,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (policies.size == 1) {
+                        stringResource(R.string.dashboard_premium_due_one)
+                    } else {
+                        stringResource(R.string.dashboard_premium_due_many, policies.size)
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Text(
+                    text = "${nearest.name} · $dueText",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        }
     }
 }
 

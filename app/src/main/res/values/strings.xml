@@ -486,6 +486,8 @@
 
     <!-- Dashboard -->
     <string name="dashboard_section_cards_empty">Add a credit/debit card from More → Cards.</string>
+    <string name="dashboard_premium_due_one">Insurance premium due soon</string>
+    <string name="dashboard_premium_due_many">%1$d insurance premiums due soon</string>
 
     <!-- Investments screen -->
     <string name="investments_title">Investments</string>
