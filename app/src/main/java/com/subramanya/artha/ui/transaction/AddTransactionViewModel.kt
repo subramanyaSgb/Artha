@@ -104,6 +104,27 @@ class AddTransactionViewModel(
      * credit card. The user still picks the source account and amount. Idempotent —
      * safe to call from LaunchedEffect.
      */
+    /**
+     * AI Quick Entry handoff (Phase 3). The parser surfaces a typed
+     * [com.subramanya.artha.ai.AiQuickEntryParsed]; we copy whatever has non-null
+     * value into the form, leaving source/destination/category-id resolution to
+     * the user since fuzzy-matching a string like "Food" to a category id is
+     * brittle and the user is already in the sheet.
+     */
+    fun applyAiPrefill(parsed: com.subramanya.artha.ai.AiQuickEntryParsed) {
+        _state.update { current ->
+            current.copy(
+                tab = parsed.type.value?.toTab() ?: current.tab,
+                amountText = parsed.amount.value?.toPlainString() ?: current.amountText,
+                description = parsed.description.value ?: current.description,
+                paymentApp = parsed.paymentApp.value ?: current.paymentApp,
+                place = parsed.place.value ?: current.place,
+                dateTimeMillis = parsed.dateMillis.value ?: current.dateTimeMillis,
+                notes = parsed.notes?.takeIf { it.isNotBlank() } ?: current.notes,
+            )
+        }
+    }
+
     fun applyPayBillPrefill(toCard: FundsEndpoint) {
         _state.update {
             it.copy(

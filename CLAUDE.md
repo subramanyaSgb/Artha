@@ -59,6 +59,19 @@ Phase scope reminder: Splash, Onboarding, Dashboard, Transactions list, Add Tran
 - Lint: `./gradlew lint`
 - Format: configure ktlint / Spotless in Session 1
 
+### Phase 3 — Gemini API key
+
+AI Quick Entry uses Google's Generative AI SDK. Drop your key into
+`local.properties` so it never lands in git:
+
+```
+geminiApiKey=AIzaSy...
+```
+
+Then `./gradlew assembleDebug` bakes it into `BuildConfig.GEMINI_API_KEY`.
+Empty key → the parser returns `NoApiKey` and the UI shows a friendly hint
+instead of crashing, so the rest of the app still builds + runs fine.
+
 ## What NOT to Do
 
 - Do not add features outside the current phase's scope. Check `docs/PRD.md` section 13 if unsure.

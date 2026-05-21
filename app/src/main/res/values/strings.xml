@@ -489,6 +489,29 @@
     <string name="dashboard_premium_due_one">Insurance premium due soon</string>
     <string name="dashboard_premium_due_many">%1$d insurance premiums due soon</string>
 
+    <!-- AI Quick Entry (Phase 3) -->
+    <string name="ai_quick_entry_title">AI Quick Entry</string>
+    <string name="ai_quick_entry_subtitle">Type, dictate, or attach a receipt photo — Gemini will pre-fill the transaction for you to confirm.</string>
+    <string name="ai_quick_entry_text_label">What happened?</string>
+    <string name="ai_quick_entry_text_placeholder">e.g. 350 at CCD via GPay yesterday</string>
+    <string name="ai_quick_entry_voice">Voice</string>
+    <string name="ai_quick_entry_voice_prompt">Describe the transaction</string>
+    <string name="ai_quick_entry_photo">Attach receipt</string>
+    <string name="ai_quick_entry_photo_attached">Photo attached</string>
+    <string name="ai_quick_entry_submit">Parse</string>
+    <string name="ai_quick_entry_confirm">Continue → confirm fields</string>
+    <string name="ai_quick_entry_no_key_title">Gemini API key not set</string>
+    <string name="ai_quick_entry_no_key_body">Add `geminiApiKey=…` to local.properties, then rebuild the APK. Until then, AI Quick Entry stays offline.</string>
+    <string name="ai_quick_entry_error_title">Couldn\'t parse</string>
+    <string name="ai_quick_entry_preview_title">Preview — verify low-confidence fields (red)</string>
+    <string name="ai_quick_entry_preview_amount">Amount</string>
+    <string name="ai_quick_entry_preview_type">Type</string>
+    <string name="ai_quick_entry_preview_description">Description</string>
+    <string name="ai_quick_entry_preview_category">Category hint</string>
+    <string name="ai_quick_entry_preview_payment_app">Payment app</string>
+    <string name="ai_quick_entry_preview_date">Date</string>
+    <string name="ai_quick_entry_preview_place">Place</string>
+
     <!-- Investments screen -->
     <string name="investments_title">Investments</string>
     <string name="investments_fab_add">Add investment</string>

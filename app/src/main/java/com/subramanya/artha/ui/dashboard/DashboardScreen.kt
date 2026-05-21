@@ -1,6 +1,5 @@
 package com.subramanya.artha.ui.dashboard
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -64,6 +63,8 @@ import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.common.RefreshableContent
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
+import com.subramanya.artha.ai.AiQuickEntryParsed
+import com.subramanya.artha.ui.ai.AiQuickEntrySheet
 import com.subramanya.artha.ui.transaction.AddTransactionSheet
 import com.subramanya.artha.ui.transaction.AddTransactionViewModel
 import com.subramanya.artha.ui.transaction.AddTransactionViewModelFactory
@@ -95,6 +96,8 @@ fun DashboardScreen(
     )
     val state by vm.state.collectAsStateWithLifecycle()
     var showSheet by remember { mutableStateOf(false) }
+    var showAiSheet by remember { mutableStateOf(false) }
+    var pendingAiPrefill: AiQuickEntryParsed? by remember { mutableStateOf(null) }
 
     // Section visibility — user toggles via Settings → Dashboard sections.
     val showMonthly by app.settingsPreferences.dashboardShowMonthly.collectAsStateWithLifecycle(initialValue = true)
@@ -158,9 +161,7 @@ fun DashboardScreen(
 
             FabRow(
                 onTap = { showSheet = true },
-                onLongPress = {
-                    Toast.makeText(context, R.string.dashboard_fab_ai_toast, Toast.LENGTH_SHORT).show()
-                },
+                onLongPress = { showAiSheet = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(16.dp),
@@ -181,7 +182,25 @@ fun DashboardScreen(
                 settingsPreferences = app.settingsPreferences,
             ),
         )
+        // Hand off AI-parsed fields once the VM is alive.
+        pendingAiPrefill?.let { parsed ->
+            androidx.compose.runtime.LaunchedEffect(parsed) {
+                txnVm.applyAiPrefill(parsed)
+                pendingAiPrefill = null
+            }
+        }
         AddTransactionSheet(viewModel = txnVm, onDismiss = { showSheet = false })
+    }
+
+    if (showAiSheet) {
+        AiQuickEntrySheet(
+            onDismiss = { showAiSheet = false },
+            onConfirmed = { parsed ->
+                pendingAiPrefill = parsed
+                showAiSheet = false
+                showSheet = true
+            },
+        )
     }
 }
 

@@ -1,6 +1,8 @@
 package com.subramanya.artha
 
 import android.app.Application
+import com.subramanya.artha.ai.AiQuickEntryParser
+import com.subramanya.artha.ai.GeminiQuickEntryParser
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.DatabaseProvider
 import com.subramanya.artha.data.preferences.SettingsPreferences
@@ -51,5 +53,12 @@ class ArthaApplication : Application() {
     }
     val transactionRuleRepository: TransactionRuleRepository by lazy {
         TransactionRuleRepository(database.transactionRuleDao())
+    }
+
+    /** Backed by [GeminiQuickEntryParser] reading BuildConfig.GEMINI_API_KEY.
+     *  An empty key triggers the parser's NoApiKey short-circuit so the UI shows a
+     *  hint instead of crashing. */
+    val aiQuickEntryParser: AiQuickEntryParser by lazy {
+        GeminiQuickEntryParser(apiKey = BuildConfig.GEMINI_API_KEY)
     }
 }

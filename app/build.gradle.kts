@@ -1,9 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+// Gemini API key lives in local.properties (never committed) so each dev/install
+// can plug its own key without touching the repo. Falls back to empty string,
+// which the parser stub interprets as "no key configured, show a friendly hint."
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val geminiKey: String = localProps.getProperty("geminiApiKey", "")
 
 android {
     namespace = "com.subramanya.artha"
@@ -23,6 +34,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Surface the API key to runtime code via BuildConfig — never logged.
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     }
 
     buildTypes {
@@ -91,6 +105,9 @@ dependencies {
 
     // Charts
     implementation(libs.vico.compose.m3)
+
+    // Google Generative AI — backs Phase 3's AI Quick Entry. Key from local.properties.
+    implementation(libs.generative.ai)
 
     // Unit testing
     testImplementation(libs.junit)
