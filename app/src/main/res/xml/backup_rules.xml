@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Phase 1: backups disabled at the application level (allowBackup=false).
+    Phase 5 hardening will replace this with encrypted user-initiated export.
+-->
+<full-backup-content>
+    <exclude domain="root" path="." />
+</full-backup-content>

@@ -94,5 +94,8 @@ desktop.ini
 # VS Code (workspace-local; keep extensions.json if you want to share)
 .vscode/
 
+# MCP tool scratch dirs (e.g. code-review-graph)
+.code-review-graph/
+
 # Output / artifact directories
 out/

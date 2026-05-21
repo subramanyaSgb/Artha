@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Artha</string>
+    <string name="scaffold_placeholder">Artha — Phase 1 setup complete</string>
+</resources>
