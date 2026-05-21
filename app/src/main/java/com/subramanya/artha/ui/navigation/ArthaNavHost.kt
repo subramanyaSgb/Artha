@@ -18,6 +18,8 @@ import com.subramanya.artha.ui.cards.CardDetailScreen
 import com.subramanya.artha.ui.cards.CardsScreen
 import com.subramanya.artha.ui.categories.CategoriesScreen
 import com.subramanya.artha.ui.dashboard.DashboardScreen
+import com.subramanya.artha.ui.insurance.InsuranceDetailScreen
+import com.subramanya.artha.ui.insurance.InsurancesScreen
 import com.subramanya.artha.ui.investments.InvestmentDetailScreen
 import com.subramanya.artha.ui.investments.InvestmentsScreen
 import com.subramanya.artha.ui.settings.AboutScreen
@@ -50,11 +52,17 @@ object SubRoutes {
 
     // Phase 2
     const val INVESTMENTS = "investments"
+    const val INSURANCES = "insurances"
 
     private const val INVESTMENT_DETAIL_BASE = "investment_detail"
     const val INVESTMENT_DETAIL_ARG_ID = "investmentId"
     const val INVESTMENT_DETAIL_PATTERN = "$INVESTMENT_DETAIL_BASE/{$INVESTMENT_DETAIL_ARG_ID}"
     fun investmentDetail(id: String): String = "$INVESTMENT_DETAIL_BASE/$id"
+
+    private const val INSURANCE_DETAIL_BASE = "insurance_detail"
+    const val INSURANCE_DETAIL_ARG_ID = "insuranceId"
+    const val INSURANCE_DETAIL_PATTERN = "$INSURANCE_DETAIL_BASE/{$INSURANCE_DETAIL_ARG_ID}"
+    fun insuranceDetail(id: String): String = "$INSURANCE_DETAIL_BASE/$id"
 }
 
 private const val NAV_ANIM_MS: Int = 220
@@ -193,6 +201,23 @@ fun ArthaNavHost(
                 investmentId = id,
                 onBack = { navController.popBackStack() },
                 onOpenTransaction = { txnId -> navController.navigate(SubRoutes.transactionDetail(txnId)) },
+            )
+        }
+        composable(SubRoutes.INSURANCES) {
+            InsurancesScreen(
+                onBack = { navController.popBackStack() },
+                onOpenInsurance = { id -> navController.navigate(SubRoutes.insuranceDetail(id)) },
+            )
+        }
+        composable(
+            route = SubRoutes.INSURANCE_DETAIL_PATTERN,
+            arguments = listOf(navArgument(SubRoutes.INSURANCE_DETAIL_ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(SubRoutes.INSURANCE_DETAIL_ARG_ID).orEmpty()
+            InsuranceDetailScreen(
+                insuranceId = id,
+                onBack = { navController.popBackStack() },
+                onOpenInvestment = { invId -> navController.navigate(SubRoutes.investmentDetail(invId)) },
             )
         }
         // No `more` route on purpose — that tap opens a sheet, not a destination.

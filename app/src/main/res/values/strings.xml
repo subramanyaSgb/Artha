@@ -546,6 +546,82 @@
     <string name="investment_delete_confirm_body">This permanently removes the investment. Transactions that referenced it stay in the log for history but will no longer roll up here.</string>
     <string name="investment_delete_confirm_yes">Delete permanently</string>
 
+    <!-- Insurance screen -->
+    <string name="insurance_title">Insurance</string>
+    <string name="insurance_fab_add">Add policy</string>
+    <string name="insurance_empty">No policies yet. Tap + to add one.</string>
+    <string name="insurance_hero_annual_premium">Premiums per year</string>
+    <string name="insurance_hero_subtitle">across %1$d policies</string>
+    <string name="insurance_hero_due_soon">%1$d due in 30 days</string>
+    <string name="insurance_due_banner_title">Premium due soon</string>
+    <string name="insurance_row_premium_fmt">%1$s premium</string>
+    <string name="insurance_row_sum_assured_label">Sum assured</string>
+    <string name="insurance_row_due_today">Due today</string>
+    <string name="insurance_row_due_tomorrow">Due tomorrow</string>
+    <string name="insurance_row_due_in_days">Due in %1$d days</string>
+    <string name="insurance_row_overdue">Overdue</string>
+
+    <!-- Insurance types -->
+    <string name="insurance_type_health">Health</string>
+    <string name="insurance_type_vehicle">Vehicle</string>
+    <string name="insurance_type_life_term">Life (Term)</string>
+    <string name="insurance_type_life_endowment">Life (Endowment / ULIP)</string>
+    <string name="insurance_type_travel">Travel</string>
+    <string name="insurance_type_home">Home</string>
+    <string name="insurance_type_other">Other</string>
+
+    <!-- Premium frequency -->
+    <string name="premium_frequency_monthly">Monthly</string>
+    <string name="premium_frequency_quarterly">Quarterly</string>
+    <string name="premium_frequency_half_yearly">Half-yearly</string>
+    <string name="premium_frequency_yearly">Yearly</string>
+    <string name="premium_frequency_single">Single-pay</string>
+
+    <!-- Insurance form -->
+    <string name="insurance_form_add_title">Add policy</string>
+    <string name="insurance_form_edit_title">Edit policy</string>
+    <string name="insurance_form_name_label">Policy name</string>
+    <string name="insurance_form_name_placeholder">e.g. Family Health Plan, HDFC Click 2 Protect</string>
+    <string name="insurance_form_type_label">Type</string>
+    <string name="insurance_form_provider_label">Provider</string>
+    <string name="insurance_form_provider_placeholder">e.g. ICICI Lombard, HDFC Life</string>
+    <string name="insurance_form_policy_number_label">Policy number (optional)</string>
+    <string name="insurance_form_sum_assured_label">Sum assured</string>
+    <string name="insurance_form_premium_label">Premium amount</string>
+    <string name="insurance_form_frequency_label">Premium frequency</string>
+    <string name="insurance_form_start_label">Start date</string>
+    <string name="insurance_form_next_due_label">Next premium due (optional)</string>
+    <string name="insurance_form_clear_due">Clear next-due date</string>
+    <string name="insurance_form_end_label">End date (optional)</string>
+    <string name="insurance_form_clear_end">Clear end date</string>
+    <string name="insurance_form_nominee_label">Nominee (optional)</string>
+    <string name="insurance_form_agent_label">Agent contact (optional)</string>
+    <string name="insurance_form_tax_section_label">Tax section (optional)</string>
+    <string name="insurance_form_tax_section_placeholder">e.g. 80C, 80D (auto-set for Health/Term)</string>
+    <string name="insurance_form_save">Save</string>
+    <string name="insurance_form_validation_name">Name is required</string>
+    <string name="insurance_form_validation_provider">Provider is required</string>
+    <string name="insurance_form_validation_amount">Enter a valid amount</string>
+    <string name="insurance_form_link_investment_title">Also track as investment</string>
+    <string name="insurance_form_link_investment_body">Creates a linked Investment row (type ULIP) so premiums tracked as investment buys roll up here too.</string>
+
+    <!-- Insurance detail -->
+    <string name="insurance_detail_sum_assured_label">Sum assured</string>
+    <string name="insurance_detail_premium_label">Premium</string>
+    <string name="insurance_detail_policy_number">Policy #</string>
+    <string name="insurance_detail_start">Started</string>
+    <string name="insurance_detail_next_due">Next due</string>
+    <string name="insurance_detail_end">Ends</string>
+    <string name="insurance_detail_nominee">Nominee</string>
+    <string name="insurance_detail_agent">Agent</string>
+    <string name="insurance_detail_tax_section">Tax section</string>
+    <string name="insurance_detail_linked_investment_title">Linked investment</string>
+
+    <!-- Insurance delete -->
+    <string name="insurance_delete_confirm_title">Delete this policy?</string>
+    <string name="insurance_delete_confirm_body">This permanently removes the policy record. A linked investment row (if any) stays — delete it separately if you want it gone too.</string>
+    <string name="insurance_delete_confirm_yes">Delete permanently</string>
+
     <!-- Settings: import bundled bank data (APK asset) -->
     <string name="settings_data_import_bundled">Import bundled bank data</string>
     <string name="settings_data_import_bundled_subtitle">One-tap seed of ~3.9k Federal Bank + ICICI transactions baked into this build. Safe to retry — already-imported rows are skipped.</string>
