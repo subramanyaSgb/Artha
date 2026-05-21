@@ -75,4 +75,88 @@
     <string name="onboarding_account_pending_count_plural">%1$d accounts added so far</string>
     <string name="onboarding_account_validation_name">Name is required</string>
     <string name="onboarding_account_validation_balance">Enter a valid amount</string>
+
+    <!-- Add Transaction sheet -->
+    <string name="txn_title_new">New transaction</string>
+    <string name="txn_tab_expense">Expense</string>
+    <string name="txn_tab_income">Income</string>
+    <string name="txn_tab_transfer">Transfer</string>
+    <string name="txn_amount_label">Amount</string>
+    <string name="txn_amount_placeholder">0</string>
+    <string name="txn_date_label">Date &amp; time</string>
+    <string name="txn_from_label">From</string>
+    <string name="txn_to_label">To</string>
+    <string name="txn_category_label">Category</string>
+    <string name="txn_category_choose">Choose category</string>
+    <string name="txn_subcategory_label">Sub-category</string>
+    <string name="txn_subcategory_optional">Sub-category (optional)</string>
+    <string name="txn_description_label">Description</string>
+    <string name="txn_description_placeholder">e.g. Mother Dairy</string>
+    <string name="txn_payment_app_label">Payment app</string>
+    <string name="txn_people_label">People</string>
+    <string name="txn_people_add">Add person</string>
+    <string name="txn_place_label">Place</string>
+    <string name="txn_place_placeholder">e.g. HSR Layout</string>
+    <string name="txn_place_gps_todo">GPS pin: coming later</string>
+    <string name="txn_tags_label">Tags</string>
+    <string name="txn_tags_add">Add tag</string>
+    <string name="txn_receipt_label">Receipt</string>
+    <string name="txn_receipt_camera">Camera</string>
+    <string name="txn_receipt_gallery">Gallery</string>
+    <string name="txn_receipt_remove">Remove</string>
+    <string name="txn_receipt_camera_todo">Camera capture: coming in next pass</string>
+    <string name="txn_receipt_attached">Receipt attached</string>
+    <string name="txn_notes_label">Notes</string>
+    <string name="txn_save">Save</string>
+    <string name="txn_cancel">Cancel</string>
+    <string name="txn_card_payment_hint">Credit card payment — won\'t count as expense</string>
+    <string name="txn_no_accounts">No accounts yet — add one from Accounts</string>
+    <string name="txn_no_cards">No cards yet — add one from Cards</string>
+
+    <!-- Validation -->
+    <string name="txn_validation_amount">Amount must be greater than 0</string>
+    <string name="txn_validation_source">Pick where the money comes from</string>
+    <string name="txn_validation_destination">Pick where the money goes to</string>
+    <string name="txn_validation_category">Pick a category</string>
+    <string name="txn_validation_description">Description is required</string>
+    <string name="txn_validation_same_source_dest">Source and destination must differ</string>
+
+    <!-- Payment apps -->
+    <string name="payment_app_gpay">GPay</string>
+    <string name="payment_app_phonepe">PhonePe</string>
+    <string name="payment_app_paytm">Paytm</string>
+    <string name="payment_app_cred">CRED</string>
+    <string name="payment_app_bhim">BHIM</string>
+    <string name="payment_app_bank_app">Bank app</string>
+    <string name="payment_app_card_swipe">Card swipe</string>
+    <string name="payment_app_cash">Cash</string>
+    <string name="payment_app_netbanking">Netbanking</string>
+    <string name="payment_app_other">Other</string>
+
+    <!-- Category picker -->
+    <string name="category_picker_title">Choose category</string>
+    <string name="category_picker_search">Search categories</string>
+    <string name="category_picker_clear">Clear</string>
+    <string name="category_picker_empty">No matches</string>
+
+    <!-- People / Tags pickers -->
+    <string name="person_picker_add_title">Add person</string>
+    <string name="person_picker_name_label">Name</string>
+    <string name="person_picker_relation_label">Relation</string>
+    <string name="person_relation_spouse">Spouse</string>
+    <string name="person_relation_parent">Parent</string>
+    <string name="person_relation_sibling">Sibling</string>
+    <string name="person_relation_child">Child</string>
+    <string name="person_relation_friend">Friend</string>
+    <string name="person_relation_colleague">Colleague</string>
+    <string name="person_relation_business">Business</string>
+    <string name="person_relation_other">Other</string>
+    <string name="tag_picker_add_title">Add tag</string>
+    <string name="tag_picker_name_label">Tag name</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+
+    <!-- Dashboard FAB -->
+    <string name="dashboard_fab_add">Add transaction</string>
+    <string name="dashboard_fab_ai_toast">AI Quick Entry coming in Phase 3</string>
 </resources>
