@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Rule
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.BarChart
@@ -36,7 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.subramanya.artha.R
 
-enum class MoreAction { Categories, Tags, Settings, About, Investments, Insurance }
+enum class MoreAction { Categories, Tags, Settings, About, Investments, Insurance, Rules }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +90,11 @@ fun MoreSheet(
                 icon = Icons.Filled.Shield,
                 titleRes = R.string.more_insurance,
                 onClick = { onActionSelected(MoreAction.Insurance) },
+            )
+            MoreTile(
+                icon = Icons.AutoMirrored.Filled.Rule,
+                titleRes = R.string.more_rules,
+                onClick = { onActionSelected(MoreAction.Rules) },
             )
             DisabledTile(Icons.Filled.AccountBalanceWallet, R.string.more_budgets, R.string.more_coming_phase_4)
             DisabledTile(Icons.Filled.Flag, R.string.more_goals, R.string.more_coming_phase_4)

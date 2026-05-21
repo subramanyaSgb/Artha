@@ -205,6 +205,7 @@ fun CardDetailScreen(
                 personRepository = app.personRepository,
                 tagRepository = app.tagRepository,
                 transactionRepository = app.transactionRepository,
+                transactionRuleRepository = app.transactionRuleRepository,
                 settingsPreferences = app.settingsPreferences,
             ),
         )

@@ -474,6 +474,7 @@
 
     <!-- More drawer -->
     <string name="more_tags">Tags</string>
+    <string name="more_rules">Rules</string>
 
     <!-- Settings: dashboard visibility -->
     <string name="settings_section_dashboard">Dashboard sections</string>
@@ -621,6 +622,84 @@
     <string name="insurance_delete_confirm_title">Delete this policy?</string>
     <string name="insurance_delete_confirm_body">This permanently removes the policy record. A linked investment row (if any) stays — delete it separately if you want it gone too.</string>
     <string name="insurance_delete_confirm_yes">Delete permanently</string>
+
+    <!-- Rules engine -->
+    <string name="rules_title">Rules</string>
+    <string name="rules_fab_add">Add rule</string>
+    <string name="rules_empty">No rules yet. The 10 pre-seeded rules from the manual should appear here automatically.</string>
+    <string name="rules_row_subtitle">%1$d condition(s), %2$d action(s)</string>
+    <string name="rules_row_system_tag">system</string>
+    <string name="rules_delete_confirm_title">Delete this rule?</string>
+    <string name="rules_delete_confirm_body">Removes the rule. Already-saved transactions are unaffected.</string>
+    <string name="rules_delete_system_warning">This is a system rule. Deleting it means it won\'t come back unless you reset all data. Toggling it off is usually safer.</string>
+    <string name="rules_delete_confirm_yes">Delete</string>
+
+    <!-- Rule form -->
+    <string name="rules_form_add_title">New rule</string>
+    <string name="rules_form_edit_title">Edit rule</string>
+    <string name="rules_form_name_label">Rule name</string>
+    <string name="rules_form_name_placeholder">e.g. Auto-tag Swiggy lunches</string>
+    <string name="rules_form_priority_label">Priority</string>
+    <string name="rules_form_priority_hint">Lower numbers run first. Seeded rules use 10–90; user rules default to 100.</string>
+    <string name="rules_form_section_when">When</string>
+    <string name="rules_form_logic_all">All conditions match</string>
+    <string name="rules_form_logic_any">Any condition matches</string>
+    <string name="rules_form_section_then">Then</string>
+    <string name="rules_form_add_condition">Add condition</string>
+    <string name="rules_form_add_action">Add action</string>
+    <string name="rules_form_save">Save rule</string>
+    <string name="rules_form_validation_no_actions">Add at least one action.</string>
+
+    <!-- Rule condition labels -->
+    <string name="rules_cond_kind_desc">Description contains…</string>
+    <string name="rules_cond_kind_amount">Amount compare…</string>
+    <string name="rules_cond_kind_type">Transaction type is…</string>
+    <string name="rules_cond_kind_payment_app">Payment app is…</string>
+    <string name="rules_cond_kind_person_relation">Has person with relation…</string>
+    <string name="rules_cond_kind_source">Source is…</string>
+    <string name="rules_cond_kind_destination">Destination is…</string>
+    <string name="rules_cond_kind_time">Time of day between…</string>
+    <string name="rules_cond_desc_contains_label">Text to match</string>
+    <string name="rules_cond_amount_label">Amount</string>
+    <string name="rules_cond_type_label">Type</string>
+    <string name="rules_cond_payment_app_label">Payment app</string>
+    <string name="rules_cond_person_relation_label">Relation</string>
+    <string name="rules_cond_source_label">Source kind</string>
+    <string name="rules_cond_destination_label">Destination kind</string>
+    <string name="rules_cond_source_id_label">Source/destination id (optional)</string>
+    <string name="rules_cond_source_id_placeholder">leave blank to match any id of that kind</string>
+    <string name="rules_cond_time_from">From hour (0-23)</string>
+    <string name="rules_cond_time_to">To hour (0-23)</string>
+    <string name="rules_cond_summary_desc">Description contains \"%1$s\"</string>
+    <string name="rules_cond_summary_amount">Amount %1$s %2$.2f</string>
+    <string name="rules_cond_summary_type">Type = %1$s</string>
+    <string name="rules_cond_summary_payment_app">Payment app = %1$s</string>
+    <string name="rules_cond_summary_person">Has person where relation = %1$s</string>
+    <string name="rules_cond_summary_source">Source = %1$s / %2$s</string>
+    <string name="rules_cond_summary_destination">Destination = %1$s / %2$s</string>
+    <string name="rules_cond_summary_time">Time of day between %1$dh and %2$dh</string>
+
+    <!-- Rule action labels -->
+    <string name="rules_action_kind_set_type">Set transaction type…</string>
+    <string name="rules_action_kind_set_category">Set category…</string>
+    <string name="rules_action_kind_set_tax">Set tax section…</string>
+    <string name="rules_action_kind_add_tag">Add tag…</string>
+    <string name="rules_action_kind_add_person">Add person…</string>
+    <string name="rules_action_kind_exclude_expense">Exclude from monthly-expense total</string>
+    <string name="rules_action_kind_prompt_spouse">Prompt for spouse transfer-or-expense</string>
+    <string name="rules_action_set_type_label">Type to set</string>
+    <string name="rules_action_category_id_label">Category id</string>
+    <string name="rules_action_subcategory_id_label">Sub-category id (optional)</string>
+    <string name="rules_action_tax_section_label">Tax section</string>
+    <string name="rules_action_tag_id_label">Tag id</string>
+    <string name="rules_action_person_id_label">Person id</string>
+    <string name="rules_action_summary_set_type">Set type → %1$s</string>
+    <string name="rules_action_summary_set_category">Set category → %1$s</string>
+    <string name="rules_action_summary_set_tax">Set tax section → %1$s</string>
+    <string name="rules_action_summary_add_tag">Add tag → %1$s</string>
+    <string name="rules_action_summary_add_person">Add person → %1$s</string>
+    <string name="rules_action_summary_exclude">Exclude from monthly-expense total</string>
+    <string name="rules_action_summary_spouse">Prompt for spouse transfer-or-expense</string>
 
     <!-- Settings: import bundled bank data (APK asset) -->
     <string name="settings_data_import_bundled">Import bundled bank data</string>

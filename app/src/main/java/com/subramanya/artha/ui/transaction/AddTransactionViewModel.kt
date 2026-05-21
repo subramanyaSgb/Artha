@@ -17,17 +17,20 @@ import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.data.repository.PersonRepository
 import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.data.repository.TransactionRepository
+import com.subramanya.artha.data.repository.TransactionRuleRepository
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Person
 import com.subramanya.artha.domain.model.Tag
 import com.subramanya.artha.domain.model.Transaction
+import com.subramanya.artha.domain.rules.RuleEngine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -50,6 +53,7 @@ class AddTransactionViewModel(
     private val personRepository: PersonRepository,
     private val tagRepository: TagRepository,
     private val transactionRepository: TransactionRepository,
+    private val transactionRuleRepository: TransactionRuleRepository,
     private val settingsPreferences: SettingsPreferences,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : ViewModel() {
@@ -379,7 +383,7 @@ class AddTransactionViewModel(
             val created = editingCreatedAt ?: now
             val effectiveType = override?.type ?: snapshot.effectiveType
             val effectiveDestination = override?.destination ?: snapshot.destination
-            val txn = Transaction(
+            val baseTxn = Transaction(
                 id = id,
                 type = effectiveType,
                 amount = snapshot.parsedAmount ?: 0.0,
@@ -408,7 +412,16 @@ class AddTransactionViewModel(
                 createdAt = created,
                 updatedAt = now,
             )
-            transactionRepository.save(txn)
+            // Apply the Rules Engine before persisting. The engine may rewrite type,
+            // category, tax section, and add tags/people. PromptSpouse / ExcludeFromExpense
+            // signals are produced too but ignored here for now — the spouse path is
+            // already handled by interceptSaveIfNeeded() above; exclude-from-expense is a
+            // future enhancement for the MonthlyAggregator hint table.
+            val activeRules = transactionRuleRepository.observeActive()
+                .let { runCatching { it.first() }.getOrDefault(emptyList()) }
+            val knownPeople = people.value
+            val engineResult = RuleEngine.apply(baseTxn, activeRules, knownPeople)
+            transactionRepository.save(engineResult.transaction)
             _state.update { it.copy(isSaving = false, savedAndClose = true) }
         }
     }
@@ -441,6 +454,7 @@ class AddTransactionViewModelFactory(
     private val personRepository: PersonRepository,
     private val tagRepository: TagRepository,
     private val transactionRepository: TransactionRepository,
+    private val transactionRuleRepository: TransactionRuleRepository,
     private val settingsPreferences: SettingsPreferences,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
@@ -455,6 +469,7 @@ class AddTransactionViewModelFactory(
             personRepository,
             tagRepository,
             transactionRepository,
+            transactionRuleRepository,
             settingsPreferences,
         ) as T
     }

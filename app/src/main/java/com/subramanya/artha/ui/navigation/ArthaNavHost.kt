@@ -22,6 +22,7 @@ import com.subramanya.artha.ui.insurance.InsuranceDetailScreen
 import com.subramanya.artha.ui.insurance.InsurancesScreen
 import com.subramanya.artha.ui.investments.InvestmentDetailScreen
 import com.subramanya.artha.ui.investments.InvestmentsScreen
+import com.subramanya.artha.ui.rules.RulesScreen
 import com.subramanya.artha.ui.settings.AboutScreen
 import com.subramanya.artha.ui.settings.SettingsScreen
 import com.subramanya.artha.ui.tags.TagsScreen
@@ -53,6 +54,7 @@ object SubRoutes {
     // Phase 2
     const val INVESTMENTS = "investments"
     const val INSURANCES = "insurances"
+    const val RULES = "rules"
 
     private const val INVESTMENT_DETAIL_BASE = "investment_detail"
     const val INVESTMENT_DETAIL_ARG_ID = "investmentId"
@@ -219,6 +221,9 @@ fun ArthaNavHost(
                 onBack = { navController.popBackStack() },
                 onOpenInvestment = { invId -> navController.navigate(SubRoutes.investmentDetail(invId)) },
             )
+        }
+        composable(SubRoutes.RULES) {
+            RulesScreen(onBack = { navController.popBackStack() })
         }
         // No `more` route on purpose — that tap opens a sheet, not a destination.
     }
