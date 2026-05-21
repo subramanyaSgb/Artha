@@ -7,11 +7,15 @@ import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.DatabaseProvider
 import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.repository.AccountRepository
+import com.subramanya.artha.data.repository.BudgetRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
+import com.subramanya.artha.data.repository.GoalRepository
 import com.subramanya.artha.data.repository.InsuranceRepository
 import com.subramanya.artha.data.repository.InvestmentRepository
 import com.subramanya.artha.data.repository.PersonRepository
+import com.subramanya.artha.data.repository.RecurringRuleRepository
+import com.subramanya.artha.data.repository.SubscriptionRepository
 import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.data.repository.TransactionRuleRepository
@@ -53,6 +57,20 @@ class ArthaApplication : Application() {
     }
     val transactionRuleRepository: TransactionRuleRepository by lazy {
         TransactionRuleRepository(database.transactionRuleDao())
+    }
+
+    // Phase 4
+    val budgetRepository: BudgetRepository by lazy {
+        BudgetRepository(database.budgetDao(), transactionRepository)
+    }
+    val goalRepository: GoalRepository by lazy {
+        GoalRepository(database.goalDao(), accountRepository, investmentRepository)
+    }
+    val subscriptionRepository: SubscriptionRepository by lazy {
+        SubscriptionRepository(database.subscriptionDao())
+    }
+    val recurringRuleRepository: RecurringRuleRepository by lazy {
+        RecurringRuleRepository(database.recurringRuleDao())
     }
 
     /** Backed by [GeminiQuickEntryParser] reading BuildConfig.GEMINI_API_KEY.

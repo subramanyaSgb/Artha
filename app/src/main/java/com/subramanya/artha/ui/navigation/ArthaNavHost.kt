@@ -20,10 +20,15 @@ import com.subramanya.artha.ui.categories.CategoriesScreen
 import com.subramanya.artha.ui.dashboard.DashboardScreen
 import com.subramanya.artha.ui.insurance.InsuranceDetailScreen
 import com.subramanya.artha.ui.insurance.InsurancesScreen
+import com.subramanya.artha.ui.budgets.BudgetsScreen
+import com.subramanya.artha.ui.goals.GoalsScreen
 import com.subramanya.artha.ui.investments.InvestmentDetailScreen
 import com.subramanya.artha.ui.investments.InvestmentsScreen
+import com.subramanya.artha.ui.people.PeopleScreen
+import com.subramanya.artha.ui.recurring.RecurringScreen
 import com.subramanya.artha.ui.rules.RulesScreen
 import com.subramanya.artha.ui.settings.AboutScreen
+import com.subramanya.artha.ui.subscriptions.SubscriptionsScreen
 import com.subramanya.artha.ui.settings.SettingsScreen
 import com.subramanya.artha.ui.tags.TagsScreen
 import com.subramanya.artha.ui.transactions.TransactionDetailScreen
@@ -55,6 +60,13 @@ object SubRoutes {
     const val INVESTMENTS = "investments"
     const val INSURANCES = "insurances"
     const val RULES = "rules"
+
+    // Phase 4
+    const val PEOPLE = "people"
+    const val BUDGETS = "budgets"
+    const val GOALS = "goals"
+    const val SUBSCRIPTIONS = "subscriptions"
+    const val RECURRING = "recurring"
 
     private const val INVESTMENT_DETAIL_BASE = "investment_detail"
     const val INVESTMENT_DETAIL_ARG_ID = "investmentId"
@@ -225,6 +237,21 @@ fun ArthaNavHost(
         }
         composable(SubRoutes.RULES) {
             RulesScreen(onBack = { navController.popBackStack() })
+        }
+        composable(SubRoutes.PEOPLE) {
+            PeopleScreen(onBack = { navController.popBackStack() })
+        }
+        composable(SubRoutes.BUDGETS) {
+            BudgetsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(SubRoutes.GOALS) {
+            GoalsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(SubRoutes.SUBSCRIPTIONS) {
+            SubscriptionsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(SubRoutes.RECURRING) {
+            RecurringScreen(onBack = { navController.popBackStack() })
         }
         // No `more` route on purpose — that tap opens a sheet, not a destination.
     }

@@ -68,7 +68,7 @@ private const val MIN_SPLASH_MILLIS: Long = 500L
 /** Bumped whenever the bundled bank-statement asset (or the schema it writes into)
  *  changes so existing installs re-run the importer after a destructive migration.
  *  Tracks AppDatabase.version for now. */
-private const val CURRENT_BUNDLED_IMPORT_VERSION: Int = 2
+private const val CURRENT_BUNDLED_IMPORT_VERSION: Int = 3
 
 @Composable
 private fun ArthaRoot() {
@@ -195,6 +195,11 @@ private fun navigateForMoreAction(navController: NavHostController, action: More
         MoreAction.Investments -> SubRoutes.INVESTMENTS
         MoreAction.Insurance -> SubRoutes.INSURANCES
         MoreAction.Rules -> SubRoutes.RULES
+        MoreAction.People -> SubRoutes.PEOPLE
+        MoreAction.Budgets -> SubRoutes.BUDGETS
+        MoreAction.Goals -> SubRoutes.GOALS
+        MoreAction.Subscriptions -> SubRoutes.SUBSCRIPTIONS
+        MoreAction.Recurring -> SubRoutes.RECURRING
     }
     navController.navigate(route) { launchSingleTop = true }
 }

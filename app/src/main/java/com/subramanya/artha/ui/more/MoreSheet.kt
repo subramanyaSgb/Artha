@@ -37,7 +37,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.subramanya.artha.R
 
-enum class MoreAction { Categories, Tags, Settings, About, Investments, Insurance, Rules }
+enum class MoreAction {
+    Categories, Tags, Settings, About,
+    Investments, Insurance, Rules,
+    People, Budgets, Goals, Subscriptions, Recurring,
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,11 +100,31 @@ fun MoreSheet(
                 titleRes = R.string.more_rules,
                 onClick = { onActionSelected(MoreAction.Rules) },
             )
-            DisabledTile(Icons.Filled.AccountBalanceWallet, R.string.more_budgets, R.string.more_coming_phase_4)
-            DisabledTile(Icons.Filled.Flag, R.string.more_goals, R.string.more_coming_phase_4)
-            DisabledTile(Icons.Filled.Subscriptions, R.string.more_subscriptions, R.string.more_coming_phase_4)
-            DisabledTile(Icons.Filled.EventRepeat, R.string.more_recurring, R.string.more_coming_phase_4)
-            DisabledTile(Icons.Filled.Group, R.string.more_people, R.string.more_coming_phase_4)
+            MoreTile(
+                icon = Icons.Filled.AccountBalanceWallet,
+                titleRes = R.string.more_budgets,
+                onClick = { onActionSelected(MoreAction.Budgets) },
+            )
+            MoreTile(
+                icon = Icons.Filled.Flag,
+                titleRes = R.string.more_goals,
+                onClick = { onActionSelected(MoreAction.Goals) },
+            )
+            MoreTile(
+                icon = Icons.Filled.Subscriptions,
+                titleRes = R.string.more_subscriptions,
+                onClick = { onActionSelected(MoreAction.Subscriptions) },
+            )
+            MoreTile(
+                icon = Icons.Filled.EventRepeat,
+                titleRes = R.string.more_recurring,
+                onClick = { onActionSelected(MoreAction.Recurring) },
+            )
+            MoreTile(
+                icon = Icons.Filled.Group,
+                titleRes = R.string.more_people,
+                onClick = { onActionSelected(MoreAction.People) },
+            )
             DisabledTile(Icons.Filled.BarChart, R.string.more_reports, R.string.more_coming_phase_4)
         }
     }

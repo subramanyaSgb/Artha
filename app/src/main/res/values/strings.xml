@@ -704,6 +704,101 @@
     <string name="rules_cond_summary_destination">Destination = %1$s / %2$s</string>
     <string name="rules_cond_summary_time">Time of day between %1$dh and %2$dh</string>
 
+    <!-- Phase 4: People screen -->
+    <string name="people_title">People</string>
+    <string name="people_fab_add">Add person</string>
+    <string name="people_empty">No people yet. Add friends, family, or business contacts to track who owes whom.</string>
+    <string name="people_settled">Settled</string>
+    <string name="people_owes_you">Owes you</string>
+    <string name="people_you_owe">You owe</string>
+    <string name="people_form_add_title">Add person</string>
+    <string name="people_form_edit_title">Edit person</string>
+    <string name="people_form_contact_label">Contact (optional)</string>
+    <string name="people_delete_confirm_title">Delete this person?</string>
+    <string name="people_delete_confirm_body">Removes the person record. Past transactions tagged with them keep the (now-orphaned) tag.</string>
+    <string name="people_delete_confirm_yes">Delete</string>
+
+    <!-- Phase 4: Budgets -->
+    <string name="budgets_title">Budgets</string>
+    <string name="budgets_fab_add">Add budget</string>
+    <string name="budgets_empty">No budgets yet. Tap + to set a monthly cap.</string>
+    <string name="budgets_days_left">%1$d days left</string>
+    <string name="budget_scope_overall">Overall</string>
+    <string name="budget_scope_category">Category</string>
+    <string name="budget_period_weekly">Weekly</string>
+    <string name="budget_period_monthly">Monthly</string>
+    <string name="budget_period_yearly">Yearly</string>
+    <string name="budgets_form_add_title">Add budget</string>
+    <string name="budgets_form_edit_title">Edit budget</string>
+    <string name="budgets_form_name_label">Name</string>
+    <string name="budgets_form_scope_label">Scope</string>
+    <string name="budgets_form_category_id_label">Category id (paste from Categories screen)</string>
+    <string name="budgets_form_period_label">Period</string>
+    <string name="budgets_form_amount_label">Budget amount</string>
+    <string name="budgets_form_threshold_label">Alert at %</string>
+    <string name="budgets_delete_confirm_title">Delete this budget?</string>
+    <string name="budgets_delete_confirm_body">Removes the budget. Transactions are untouched.</string>
+    <string name="budgets_delete_confirm_yes">Delete</string>
+
+    <!-- Phase 4: Goals -->
+    <string name="goals_title">Goals</string>
+    <string name="goals_fab_add">Add goal</string>
+    <string name="goals_empty">No goals yet. Tap + to add one (Emergency Fund, Vacation, etc.).</string>
+    <string name="goals_days_remaining">%1$d days left</string>
+    <string name="goals_form_add_title">Add goal</string>
+    <string name="goals_form_edit_title">Edit goal</string>
+    <string name="goals_form_name_label">Goal name</string>
+    <string name="goals_form_target_label">Target amount</string>
+    <string name="goals_form_linked_accounts">Linked accounts</string>
+    <string name="goals_form_linked_investments">Linked investments</string>
+    <string name="goals_form_no_options">Nothing to link yet.</string>
+    <string name="goals_delete_confirm_title">Delete this goal?</string>
+    <string name="goals_delete_confirm_body">Removes the goal record. Linked accounts/investments aren\'t touched.</string>
+    <string name="goals_delete_confirm_yes">Delete</string>
+
+    <!-- Phase 4: Subscriptions -->
+    <string name="subscriptions_title">Subscriptions</string>
+    <string name="subscriptions_fab_add">Add subscription</string>
+    <string name="subscriptions_empty">No subscriptions yet. Add Netflix, Spotify, iCloud, etc.</string>
+    <string name="subscriptions_hero_monthly">Monthly outgo (annualised)</string>
+    <string name="subscriptions_hero_yearly">%1$s per year</string>
+    <string name="subscriptions_row_due">due %1$s</string>
+    <string name="subscription_freq_monthly">Monthly</string>
+    <string name="subscription_freq_quarterly">Quarterly</string>
+    <string name="subscription_freq_yearly">Yearly</string>
+    <string name="subscriptions_form_add_title">Add subscription</string>
+    <string name="subscriptions_form_edit_title">Edit subscription</string>
+    <string name="subscriptions_form_name_label">Subscription name</string>
+    <string name="subscriptions_form_provider_label">Provider (optional)</string>
+    <string name="subscriptions_form_amount_label">Amount per cycle</string>
+    <string name="subscriptions_form_frequency_label">Billing frequency</string>
+    <string name="subscriptions_form_status_label">Status</string>
+    <string name="subscriptions_delete_confirm_title">Delete this subscription?</string>
+    <string name="subscriptions_delete_confirm_body">Removes the subscription. Past transactions are kept.</string>
+    <string name="subscriptions_delete_confirm_yes">Delete</string>
+
+    <!-- Phase 4: Recurring -->
+    <string name="recurring_title">Recurring</string>
+    <string name="recurring_fab_add">Add recurring rule</string>
+    <string name="recurring_empty">No recurring rules yet. Use these to remind yourself of rent, EMIs, SIPs.</string>
+    <string name="recurring_row_next_run">next %1$s</string>
+    <string name="recurring_freq_daily">Daily</string>
+    <string name="recurring_freq_weekly">Weekly</string>
+    <string name="recurring_freq_monthly">Monthly</string>
+    <string name="recurring_freq_yearly">Yearly</string>
+    <string name="recurring_form_add_title">Add recurring rule</string>
+    <string name="recurring_form_edit_title">Edit recurring rule</string>
+    <string name="recurring_form_hint">Note: in this build the rule is stored but auto-firing on schedule is deferred to Phase 5 (needs WorkManager). You\'ll still see it on the list as a reminder.</string>
+    <string name="recurring_form_name_label">Rule name</string>
+    <string name="recurring_form_template_label">Transaction template (free-text — used as description)</string>
+    <string name="recurring_form_frequency_label">Frequency</string>
+    <string name="recurring_form_day_of_month">Day of month (1-31)</string>
+    <string name="recurring_form_day_of_week">Day of week (1=Mon..7=Sun)</string>
+    <string name="recurring_form_auto_confirm">Auto-confirm without notification</string>
+    <string name="recurring_delete_confirm_title">Delete this recurring rule?</string>
+    <string name="recurring_delete_confirm_body">Removes the rule. Past transactions it created stay in the log.</string>
+    <string name="recurring_delete_confirm_yes">Delete</string>
+
     <!-- Rule action labels -->
     <string name="rules_action_kind_set_type">Set transaction type…</string>
     <string name="rules_action_kind_set_category">Set category…</string>

@@ -2,6 +2,8 @@ package com.subramanya.artha.data.db
 
 import androidx.room.TypeConverter
 import com.subramanya.artha.data.entity.enums.AccountType
+import com.subramanya.artha.data.entity.enums.BudgetPeriod
+import com.subramanya.artha.data.entity.enums.BudgetScope
 import com.subramanya.artha.data.entity.enums.CardNetwork
 import com.subramanya.artha.data.entity.enums.CardType
 import com.subramanya.artha.data.entity.enums.CategoryType
@@ -10,7 +12,10 @@ import com.subramanya.artha.data.entity.enums.InvestmentType
 import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
+import com.subramanya.artha.data.entity.enums.RecurringFrequency
 import com.subramanya.artha.data.entity.enums.SourceKind
+import com.subramanya.artha.data.entity.enums.SubscriptionFrequency
+import com.subramanya.artha.data.entity.enums.SubscriptionStatus
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
 
@@ -53,4 +58,19 @@ class Converters {
 
     @TypeConverter fun fromPremiumFrequency(v: PremiumFrequency): String = v.name
     @TypeConverter fun toPremiumFrequency(v: String): PremiumFrequency = PremiumFrequency.valueOf(v)
+
+    @TypeConverter fun fromBudgetScope(v: BudgetScope): String = v.name
+    @TypeConverter fun toBudgetScope(v: String): BudgetScope = BudgetScope.valueOf(v)
+
+    @TypeConverter fun fromBudgetPeriod(v: BudgetPeriod): String = v.name
+    @TypeConverter fun toBudgetPeriod(v: String): BudgetPeriod = BudgetPeriod.valueOf(v)
+
+    @TypeConverter fun fromSubscriptionFrequency(v: SubscriptionFrequency): String = v.name
+    @TypeConverter fun toSubscriptionFrequency(v: String): SubscriptionFrequency = SubscriptionFrequency.valueOf(v)
+
+    @TypeConverter fun fromSubscriptionStatus(v: SubscriptionStatus): String = v.name
+    @TypeConverter fun toSubscriptionStatus(v: String): SubscriptionStatus = SubscriptionStatus.valueOf(v)
+
+    @TypeConverter fun fromRecurringFrequency(v: RecurringFrequency): String = v.name
+    @TypeConverter fun toRecurringFrequency(v: String): RecurringFrequency = RecurringFrequency.valueOf(v)
 }
