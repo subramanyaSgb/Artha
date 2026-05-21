@@ -218,4 +218,52 @@
     <!-- Group headers -->
     <string name="group_header_today">Today</string>
     <string name="group_header_yesterday">Yesterday</string>
+
+    <!-- Accounts screen -->
+    <string name="accounts_title">Accounts</string>
+    <string name="accounts_fab_add">Add account</string>
+    <string name="accounts_menu_show_archived">Archived accounts</string>
+    <string name="accounts_menu_back_active">Back to active</string>
+    <string name="accounts_section_archived">Archived</string>
+    <string name="accounts_empty_active">No accounts yet. Tap + to add one.</string>
+    <string name="accounts_empty_archived">No archived accounts.</string>
+    <string name="accounts_reorder_done">Done</string>
+    <string name="accounts_reorder_hint">Long-press a row to reorder</string>
+    <string name="accounts_action_move_up">Move up</string>
+    <string name="accounts_action_move_down">Move down</string>
+    <string name="accounts_action_restore">Restore</string>
+
+    <!-- Account form (add/edit) -->
+    <string name="account_form_add_title">Add account</string>
+    <string name="account_form_edit_title">Edit account</string>
+    <string name="account_form_name_label">Account name</string>
+    <string name="account_form_name_placeholder">e.g. ICICI Savings</string>
+    <string name="account_form_type_label">Type</string>
+    <string name="account_form_institution_label">Institution (optional)</string>
+    <string name="account_form_institution_placeholder">e.g. ICICI Bank</string>
+    <string name="account_form_last4_label">Last 4 digits (optional)</string>
+    <string name="account_form_opening_label">Opening balance</string>
+    <string name="account_form_icon_label">Icon</string>
+    <string name="account_form_color_label">Color</string>
+    <string name="account_form_save">Save</string>
+    <string name="account_form_validation_name">Name is required</string>
+    <string name="account_form_validation_balance">Enter a valid amount</string>
+    <string name="account_form_validation_last4">Must be 4 digits</string>
+
+    <!-- Account detail -->
+    <string name="account_detail_back">Back</string>
+    <string name="account_detail_action_edit">Edit</string>
+    <string name="account_detail_action_archive">Archive</string>
+    <string name="account_detail_action_restore">Restore</string>
+    <string name="account_detail_hero_current">Current balance</string>
+    <string name="account_detail_hero_opening">Opening balance</string>
+    <string name="account_detail_hero_total_in">Total in</string>
+    <string name="account_detail_hero_total_out">Total out</string>
+    <string name="account_detail_chart_title">Last 30 days</string>
+    <string name="account_detail_chart_empty">No movement in the last 30 days.</string>
+    <string name="account_detail_txns_title">Transactions</string>
+    <string name="account_detail_txns_empty">No transactions yet for this account.</string>
+    <string name="account_detail_archive_confirm_title">Archive this account?</string>
+    <string name="account_detail_archive_confirm_body">Archived accounts are hidden from the main list but their transactions remain. You can restore them from the Archived menu.</string>
+    <string name="account_detail_archive_confirm_yes">Archive</string>
 </resources>
