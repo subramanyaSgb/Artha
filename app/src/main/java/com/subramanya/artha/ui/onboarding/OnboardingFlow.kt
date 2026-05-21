@@ -1,0 +1,169 @@
+package com.subramanya.artha.ui.onboarding
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.subramanya.artha.R
+import kotlinx.coroutines.launch
+
+private const val PAGE_COUNT: Int = 3
+
+@Composable
+fun OnboardingFlow(
+    viewModel: OnboardingViewModel,
+    onCompleted: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
+    val scope = rememberCoroutineScope()
+
+    // Once persistence succeeds, hand control back to MainActivity.
+    LaunchedEffect(state.savedAndReady) {
+        if (state.savedAndReady) onCompleted()
+    }
+
+    Surface(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                userScrollEnabled = canScrollForward(state, pagerState.currentPage),
+            ) { page ->
+                when (page) {
+                    0 -> WelcomeStep()
+                    1 -> NameStep(
+                        name = state.name,
+                        onNameChanged = viewModel::onNameChanged,
+                    )
+                    2 -> AddAccountStep(
+                        draft = state.accountDraft,
+                        pendingCount = state.pendingAccounts.size,
+                        onNameChanged = viewModel::onAccountNameChanged,
+                        onTypeChanged = viewModel::onAccountTypeChanged,
+                        onInstitutionChanged = viewModel::onAccountInstitutionChanged,
+                        onOpeningBalanceChanged = viewModel::onOpeningBalanceChanged,
+                        onAddAnother = { viewModel.stashCurrentAccount() },
+                    )
+                }
+            }
+
+            PageIndicator(
+                pageCount = PAGE_COUNT,
+                selected = pagerState.currentPage,
+                modifier = Modifier.padding(vertical = 16.dp),
+            )
+
+            BottomBar(
+                currentPage = pagerState.currentPage,
+                state = state,
+                onBack = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
+                onNext = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                onDone = { viewModel.finishOnboarding() },
+            )
+        }
+    }
+}
+
+/**
+ * Step 2 needs a non-blank name before Next; step 3 needs a valid finish-criteria.
+ * Returning false here also disables touch-swipe, so the user can't bypass validation.
+ */
+private fun canScrollForward(state: OnboardingUiState, currentPage: Int): Boolean = when (currentPage) {
+    0 -> true
+    1 -> state.name.isNotBlank()
+    else -> false
+}
+
+@Composable
+private fun PageIndicator(pageCount: Int, selected: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        repeat(pageCount) { index ->
+            val color = if (index == selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .size(if (index == selected) 10.dp else 8.dp)
+                    .clip(CircleShape)
+                    .background(color),
+            )
+        }
+    }
+}
+
+@Composable
+private fun BottomBar(
+    currentPage: Int,
+    state: OnboardingUiState,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (currentPage > 0) {
+            TextButton(onClick = onBack) { Text(stringResource(R.string.onboarding_back)) }
+        } else {
+            // Reserve space so the right button stays right-aligned.
+            Box(modifier = Modifier.size(width = 1.dp, height = 1.dp))
+        }
+        if (currentPage < PAGE_COUNT - 1) {
+            Button(
+                onClick = onNext,
+                enabled = canAdvance(currentPage, state),
+            ) { Text(stringResource(R.string.onboarding_next)) }
+        } else {
+            Button(
+                onClick = onDone,
+                enabled = state.canFinishOnboarding && !state.isSaving,
+            ) { Text(stringResource(R.string.onboarding_done)) }
+        }
+    }
+}
+
+private fun canAdvance(currentPage: Int, state: OnboardingUiState): Boolean = when (currentPage) {
+    0 -> true
+    1 -> state.name.isNotBlank()
+    else -> false
+}
+

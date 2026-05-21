@@ -3,6 +3,7 @@ package com.subramanya.artha
 import android.app.Application
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.DatabaseProvider
+import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
@@ -18,6 +19,8 @@ import com.subramanya.artha.data.repository.TransactionRepository
 class ArthaApplication : Application() {
 
     val database: AppDatabase by lazy { DatabaseProvider.get(this) }
+
+    val settingsPreferences: SettingsPreferences by lazy { SettingsPreferences(this) }
 
     val accountRepository: AccountRepository by lazy {
         AccountRepository(database.accountDao(), database.transactionDao())

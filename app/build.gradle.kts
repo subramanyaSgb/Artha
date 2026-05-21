@@ -83,6 +83,9 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // DataStore (Session 4 onboarding persists userName here)
+    implementation(libs.androidx.datastore.preferences)
+
     // kotlinx
     implementation(libs.kotlinx.datetime)
 

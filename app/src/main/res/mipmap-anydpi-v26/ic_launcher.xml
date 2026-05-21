@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
-    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <!-- Foreground is a PNG bitmap so Devanagari "अ" can be rendered with a real
+         Devanagari font. VectorDrawable cannot draw text glyphs. -->
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <!-- Monochrome (themed icons, Android 13+) keeps the path-based fallback "A"
+         because monochrome must be a vector drawable. -->
     <monochrome android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>

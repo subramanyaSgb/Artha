@@ -36,4 +36,43 @@
     <string name="more_reports">Reports</string>
     <string name="more_coming_phase_2">Coming in Phase 2</string>
     <string name="more_coming_phase_4">Coming in Phase 4</string>
+
+    <!-- Splash -->
+    <string name="splash_logo_glyph">अ</string>
+    <string name="splash_app_name">Artha</string>
+    <string name="splash_tagline">Your money. Your rules.</string>
+
+    <!-- Onboarding common -->
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_done">Done</string>
+
+    <!-- Onboarding step 1: welcome -->
+    <string name="onboarding_welcome_title">Welcome to Artha</string>
+    <string name="onboarding_welcome_body">Your data stays on this phone. No cloud account, no tracking — Artha works entirely offline. Built for the way money actually moves in India.</string>
+
+    <!-- Onboarding step 2: name -->
+    <string name="onboarding_name_title">What should we call you?</string>
+    <string name="onboarding_name_body">We\'ll greet you with this name in the app. You can change it later in Settings.</string>
+    <string name="onboarding_name_label">Your name</string>
+    <string name="onboarding_currency_locked">Currency: ₹ INR (locked for v1)</string>
+
+    <!-- Onboarding step 3: add account -->
+    <string name="onboarding_account_title">Add your first account</string>
+    <string name="onboarding_account_body">Add one or more accounts to get started. You can edit or add more later.</string>
+    <string name="onboarding_account_name_label">Account name</string>
+    <string name="onboarding_account_name_placeholder">e.g. ICICI Savings</string>
+    <string name="onboarding_account_type_label">Type</string>
+    <string name="onboarding_account_type_savings">Bank Savings</string>
+    <string name="onboarding_account_type_current">Bank Current</string>
+    <string name="onboarding_account_type_cash">Cash</string>
+    <string name="onboarding_account_type_wallet">Wallet</string>
+    <string name="onboarding_account_institution_label">Institution (optional)</string>
+    <string name="onboarding_account_institution_placeholder">e.g. ICICI Bank</string>
+    <string name="onboarding_account_opening_label">Opening balance</string>
+    <string name="onboarding_account_add_another">Add another</string>
+    <string name="onboarding_account_pending_count">%1$d account added so far</string>
+    <string name="onboarding_account_pending_count_plural">%1$d accounts added so far</string>
+    <string name="onboarding_account_validation_name">Name is required</string>
+    <string name="onboarding_account_validation_balance">Enter a valid amount</string>
 </resources>
