@@ -1,7 +1,9 @@
 package com.subramanya.artha.ui.dashboard
 
 import android.widget.Toast
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,8 +42,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -461,14 +468,39 @@ private fun TransactionRow(txn: Transaction) {
 
 @Composable
 private fun FabRow(onTap: () -> Unit, onLongPress: () -> Unit, modifier: Modifier = Modifier) {
-    ExtendedFloatingActionButton(
-        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-        text = { Text(stringResource(R.string.dashboard_fab_add)) },
-        onClick = {},
+    // Compose pitfall: the FAB internally wires Modifier.clickable, which consumes
+    // events on the default Main pass before any outer detector can see them. To layer
+    // a long-press handler on top of the existing tap, we watch the Initial pass — the
+    // parent sees raw events first. AwaitPointerEventScope.withTimeout (the scope-aware
+    // overload — kotlinx.coroutines.withTimeout is not callable from this restricted
+    // scope) throws PointerEventTimeoutCancellationException when the press is held
+    // long enough; we treat that as a long-press, consume the down event so the FAB's
+    // clickable does not also fire a tap on release.
+    val haptic = LocalHapticFeedback.current
+    val longPressTimeoutMillis = LocalViewConfiguration.current.longPressTimeoutMillis
+    Box(
         modifier = modifier.pointerInput(Unit) {
-            detectTapGestures(onTap = { onTap() }, onLongPress = { onLongPress() })
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                try {
+                    withTimeout(longPressTimeoutMillis) {
+                        waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                    }
+                    // Released before the timeout — let the FAB's own clickable handle the tap.
+                } catch (_: PointerEventTimeoutCancellationException) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongPress()
+                    down.consume()
+                }
+            }
         },
-    )
+    ) {
+        ExtendedFloatingActionButton(
+            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            text = { Text(stringResource(R.string.dashboard_fab_add)) },
+            onClick = onTap,
+        )
+    }
 }
 
 // ---------------- helpers ----------------
