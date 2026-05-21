@@ -19,6 +19,16 @@ data class FundsEndpoint(
     val isCreditCard: Boolean = false,
 )
 
+/**
+ * Snapshot of what the spouse-prompt dialog needs to render. Non-null when the dialog
+ * is showing; cleared when the user responds or cancels.
+ */
+data class SpousePromptInfo(
+    val amount: Double,
+    val personId: String,
+    val personName: String,
+)
+
 data class AddTransactionUiState(
     val tab: TransactionTab = TransactionTab.EXPENSE,
     val amountText: String = "",
@@ -39,6 +49,7 @@ data class AddTransactionUiState(
     val showValidationErrors: Boolean = false,
     val isSaving: Boolean = false,
     val savedAndClose: Boolean = false,
+    val pendingSpousePrompt: SpousePromptInfo? = null,
 ) {
     val parsedAmount: Double?
         get() = amountText.toDoubleOrNull()?.takeIf { it > 0.0 }

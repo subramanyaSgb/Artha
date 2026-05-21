@@ -1,7 +1,12 @@
 package com.subramanya.artha.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -15,6 +20,7 @@ import com.subramanya.artha.ui.categories.CategoriesScreen
 import com.subramanya.artha.ui.dashboard.DashboardScreen
 import com.subramanya.artha.ui.settings.AboutScreen
 import com.subramanya.artha.ui.settings.SettingsScreen
+import com.subramanya.artha.ui.tags.TagsScreen
 import com.subramanya.artha.ui.transactions.TransactionDetailScreen
 import com.subramanya.artha.ui.transactions.TransactionsScreen
 
@@ -36,9 +42,12 @@ object SubRoutes {
     fun transactionDetail(transactionId: String): String = "$TRANSACTION_DETAIL_BASE/$transactionId"
 
     const val CATEGORIES = "categories"
+    const val TAGS = "tags"
     const val SETTINGS = "settings"
     const val ABOUT = "about"
 }
+
+private const val NAV_ANIM_MS: Int = 220
 
 @Composable
 fun ArthaNavHost(
@@ -49,8 +58,43 @@ fun ArthaNavHost(
         navController = navController,
         startDestination = ArthaDestination.Dashboard.route,
         modifier = modifier,
+        // Push: slide new screen in from the right + fade. Pop: slide back to the right.
+        enterTransition = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(NAV_ANIM_MS),
+            ) + fadeIn(tween(NAV_ANIM_MS))
+        },
+        exitTransition = {
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(NAV_ANIM_MS),
+            ) + fadeOut(tween(NAV_ANIM_MS))
+        },
+        popEnterTransition = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(NAV_ANIM_MS),
+            ) + fadeIn(tween(NAV_ANIM_MS))
+        },
+        popExitTransition = {
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(NAV_ANIM_MS),
+            ) + fadeOut(tween(NAV_ANIM_MS))
+        },
     ) {
-        composable(ArthaDestination.Dashboard.route) { DashboardScreen() }
+        composable(ArthaDestination.Dashboard.route) {
+            DashboardScreen(
+                onOpenTransactions = {
+                    navController.navigate(ArthaDestination.Transactions.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+            )
+        }
         composable(ArthaDestination.Transactions.route) {
             TransactionsScreen(
                 onOpenTransaction = { id -> navController.navigate(SubRoutes.transactionDetail(id)) },
@@ -89,6 +133,9 @@ fun ArthaNavHost(
         }
         composable(SubRoutes.CATEGORIES) {
             CategoriesScreen(onBack = { navController.popBackStack() })
+        }
+        composable(SubRoutes.TAGS) {
+            TagsScreen(onBack = { navController.popBackStack() })
         }
         composable(SubRoutes.SETTINGS) {
             SettingsScreen(

@@ -17,6 +17,9 @@ interface TagDao {
     @Query("SELECT * FROM tags WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): TagEntity?
 
+    @Query("SELECT COUNT(*) FROM transaction_tags WHERE tag_id = :tagId")
+    suspend fun usageCount(tagId: String): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(tag: TagEntity)
 

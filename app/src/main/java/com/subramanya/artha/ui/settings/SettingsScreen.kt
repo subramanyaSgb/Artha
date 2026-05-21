@@ -109,6 +109,19 @@ fun SettingsScreen(
                 )
 
                 HorizontalDivider()
+                SectionHeader(stringResource(R.string.settings_section_dashboard))
+                DashboardSectionsBlock(
+                    showMonthly = state.dashboardShowMonthly,
+                    showAccounts = state.dashboardShowAccounts,
+                    showCards = state.dashboardShowCards,
+                    showRecent = state.dashboardShowRecent,
+                    onMonthlyChanged = vm::onDashboardShowMonthlyChanged,
+                    onAccountsChanged = vm::onDashboardShowAccountsChanged,
+                    onCardsChanged = vm::onDashboardShowCardsChanged,
+                    onRecentChanged = vm::onDashboardShowRecentChanged,
+                )
+
+                HorizontalDivider()
                 SectionHeader(stringResource(R.string.settings_section_appearance))
                 AppearanceSection(
                     themeMode = state.themeMode,
@@ -309,6 +322,40 @@ private fun SpouseChip(
         selected = current == target,
         onClick = { onSelect(target) },
         label = { Text(stringResource(labelRes)) },
+    )
+}
+
+@Composable
+private fun DashboardSectionsBlock(
+    showMonthly: Boolean,
+    showAccounts: Boolean,
+    showCards: Boolean,
+    showRecent: Boolean,
+    onMonthlyChanged: (Boolean) -> Unit,
+    onAccountsChanged: (Boolean) -> Unit,
+    onCardsChanged: (Boolean) -> Unit,
+    onRecentChanged: (Boolean) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(
+            text = stringResource(R.string.settings_dashboard_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
+        )
+        DashboardSwitchRow(stringResource(R.string.settings_dashboard_monthly), showMonthly, onMonthlyChanged)
+        DashboardSwitchRow(stringResource(R.string.settings_dashboard_accounts), showAccounts, onAccountsChanged)
+        DashboardSwitchRow(stringResource(R.string.settings_dashboard_cards), showCards, onCardsChanged)
+        DashboardSwitchRow(stringResource(R.string.settings_dashboard_recent), showRecent, onRecentChanged)
+    }
+}
+
+@Composable
+private fun DashboardSwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    ListItem(
+        modifier = Modifier.fillMaxWidth(),
+        headlineContent = { Text(label) },
+        trailingContent = { Switch(checked = checked, onCheckedChange = onChange) },
     )
 }
 

@@ -166,6 +166,7 @@ private fun MainApp(
 private fun navigateForMoreAction(navController: NavHostController, action: MoreAction) {
     val route = when (action) {
         MoreAction.Categories -> SubRoutes.CATEGORIES
+        MoreAction.Tags -> SubRoutes.TAGS
         MoreAction.Settings -> SubRoutes.SETTINGS
         MoreAction.About -> SubRoutes.ABOUT
     }

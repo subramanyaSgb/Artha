@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Subscriptions
@@ -35,7 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.subramanya.artha.R
 
-enum class MoreAction { Categories, Settings, About }
+enum class MoreAction { Categories, Tags, Settings, About }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +63,11 @@ fun MoreSheet(
                 icon = Icons.Filled.Category,
                 titleRes = R.string.more_categories,
                 onClick = { onActionSelected(MoreAction.Categories) },
+            )
+            MoreTile(
+                icon = Icons.Filled.Sell,
+                titleRes = R.string.more_tags,
+                onClick = { onActionSelected(MoreAction.Tags) },
             )
             MoreTile(
                 icon = Icons.Filled.Settings,

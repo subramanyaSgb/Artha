@@ -14,6 +14,8 @@ class TagRepository(private val tagDao: TagDao) {
 
     suspend fun getById(id: String): Tag? = tagDao.getById(id)?.toDomain()
 
+    suspend fun usageCount(tagId: String): Int = tagDao.usageCount(tagId)
+
     suspend fun upsert(tag: Tag) = tagDao.upsert(tag.toEntity())
 
     suspend fun update(tag: Tag) = tagDao.update(tag.toEntity())

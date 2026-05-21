@@ -182,6 +182,7 @@ fun TransactionDetailScreen(
                 personRepository = app.personRepository,
                 tagRepository = app.tagRepository,
                 transactionRepository = app.transactionRepository,
+                settingsPreferences = app.settingsPreferences,
             ),
         )
         LaunchedEffect(txn?.id) {

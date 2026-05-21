@@ -8,6 +8,9 @@ import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
+import com.subramanya.artha.data.entity.enums.TransactionType
+import com.subramanya.artha.data.preferences.SettingsPreferences
+import com.subramanya.artha.data.preferences.SpouseTransactionDefault
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
@@ -33,9 +36,12 @@ import java.util.UUID
 /**
  * State for the Add Transaction sheet.
  *
- * Save flow goes through [interceptSaveIfNeeded] → [commitSave]. The intercept hook
- * is the dedicated extension point for the spouse-prompt dialog (deferred); when it
- * lands, that logic will short-circuit here without surgery elsewhere.
+ * Save flow: trySave() → interceptSaveIfNeeded() → commitSave(). The intercept hook
+ * is where the spouse-prompt dialog short-circuits: if the user is saving an EXPENSE
+ * with a person tagged as SPOUSE and they haven't pinned a permanent default in
+ * Settings → Behavior, we stash a `pendingSpousePrompt` and let the UI render the
+ * dialog. Otherwise we either save straight through or apply the saved default
+ * override before saving.
  */
 class AddTransactionViewModel(
     private val accountRepository: AccountRepository,
@@ -44,6 +50,7 @@ class AddTransactionViewModel(
     private val personRepository: PersonRepository,
     private val tagRepository: TagRepository,
     private val transactionRepository: TransactionRepository,
+    private val settingsPreferences: SettingsPreferences,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : ViewModel() {
 
@@ -81,6 +88,11 @@ class AddTransactionViewModel(
     val tags: StateFlow<List<Tag>> =
         tagRepository.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Persisted spouse default — mirrored locally so trySave reads it synchronously. */
+    private val spouseDefault: StateFlow<SpouseTransactionDefault> =
+        settingsPreferences.spouseTransactionDefault
+            .stateIn(viewModelScope, SharingStarted.Eagerly, SpouseTransactionDefault.ASK)
+
     // ---------- prefill ----------
 
     /**
@@ -110,7 +122,7 @@ class AddTransactionViewModel(
      * same row rather than minting a new one.
      */
     fun applyEditPrefill(
-        transaction: com.subramanya.artha.domain.model.Transaction,
+        transaction: Transaction,
         source: FundsEndpoint?,
         destination: FundsEndpoint?,
         categoryDisplay: String?,
@@ -143,10 +155,9 @@ class AddTransactionViewModel(
     private var editingTransactionId: String? = null
     private var editingCreatedAt: Long? = null
 
-    private fun com.subramanya.artha.data.entity.enums.TransactionType.toTab(): TransactionTab = when (this) {
-        com.subramanya.artha.data.entity.enums.TransactionType.INCOME -> TransactionTab.INCOME
-        com.subramanya.artha.data.entity.enums.TransactionType.TRANSFER,
-        com.subramanya.artha.data.entity.enums.TransactionType.CARD_PAYMENT -> TransactionTab.TRANSFER
+    private fun TransactionType.toTab(): TransactionTab = when (this) {
+        TransactionType.INCOME -> TransactionTab.INCOME
+        TransactionType.TRANSFER, TransactionType.CARD_PAYMENT -> TransactionTab.TRANSFER
         else -> TransactionTab.EXPENSE
     }
 
@@ -156,7 +167,6 @@ class AddTransactionViewModel(
     // ---------- field setters ----------
 
     fun onTabChanged(tab: TransactionTab) {
-        // Switching tabs clears category/destination because they don't make sense across types.
         _state.update {
             it.copy(
                 tab = tab,
@@ -194,7 +204,6 @@ class AddTransactionViewModel(
             it.copy(
                 categoryId = category.id,
                 categoryDisplay = category.name,
-                // Reset sub-category whenever parent changes — old selection may no longer be a child.
                 subCategoryId = null,
                 subCategoryDisplay = null,
             )
@@ -281,11 +290,6 @@ class AddTransactionViewModel(
 
     // ---------- save ----------
 
-    /**
-     * Public save entry-point. Today it just commits; later it will branch out to the
-     * spouse-prompt dialog when EXPENSE + a person with PersonRelation.SPOUSE is tagged
-     * AND the user hasn't set a permanent default.
-     */
     fun trySave() {
         val snapshot = _state.value
         if (!snapshot.isValid || snapshot.isSaving) {
@@ -296,19 +300,88 @@ class AddTransactionViewModel(
         commitSave(snapshot)
     }
 
-    /** Extension point for the spouse-prompt dialog (Phase 1 follow-up). */
-    @Suppress("UNUSED_PARAMETER")
-    private fun interceptSaveIfNeeded(snapshot: AddTransactionUiState): Boolean = false
+    /**
+     * Implements PRD §7.5.1. Returns true when the save has been deferred (dialog shown
+     * to the user, or an override was applied and commitSave already invoked).
+     */
+    private fun interceptSaveIfNeeded(snapshot: AddTransactionUiState): Boolean {
+        if (snapshot.tab != TransactionTab.EXPENSE) return false
+        val spousePerson = people.value.firstOrNull {
+            it.id in snapshot.peopleIds && it.relation == PersonRelation.SPOUSE
+        } ?: return false
 
-    private fun commitSave(snapshot: AddTransactionUiState) {
+        return when (spouseDefault.value) {
+            SpouseTransactionDefault.ASK -> {
+                _state.update {
+                    it.copy(
+                        pendingSpousePrompt = SpousePromptInfo(
+                            amount = snapshot.parsedAmount ?: 0.0,
+                            personId = spousePerson.id,
+                            personName = spousePerson.name,
+                        ),
+                    )
+                }
+                true
+            }
+            SpouseTransactionDefault.TRANSFER -> {
+                commitSave(snapshot, applySpouseTransferOverride(spousePerson))
+                true
+            }
+            SpouseTransactionDefault.EXPENSE -> false
+        }
+    }
+
+    /**
+     * User responded to the prompt. Optionally persist a permanent default, then save.
+     * Either choice closes the dialog; CANCEL goes through [cancelSpousePrompt].
+     */
+    fun respondToSpousePrompt(choice: SpouseChoice, persistDefault: SpouseTransactionDefault?) {
+        val snapshot = _state.value
+        val spousePerson = people.value.firstOrNull {
+            it.id in snapshot.peopleIds && it.relation == PersonRelation.SPOUSE
+        }
+        if (persistDefault != null) {
+            viewModelScope.launch { settingsPreferences.setSpouseTransactionDefault(persistDefault) }
+        }
+        _state.update { it.copy(pendingSpousePrompt = null) }
+        when (choice) {
+            SpouseChoice.TRANSFER -> {
+                if (spousePerson != null) commitSave(snapshot, applySpouseTransferOverride(spousePerson))
+                else commitSave(snapshot)
+            }
+            SpouseChoice.EXPENSE -> commitSave(snapshot)
+        }
+    }
+
+    fun cancelSpousePrompt() {
+        _state.update { it.copy(pendingSpousePrompt = null) }
+    }
+
+    /**
+     * Override spec for "Transfer to spouse": type becomes TRANSFER (excluded from monthly
+     * expense totals via MonthlyAggregator) and destination becomes a synthetic EXTERNAL
+     * endpoint pointing at the spouse Person — informational, doesn't credit any account.
+     */
+    private fun applySpouseTransferOverride(spouse: Person): SaveOverride = SaveOverride(
+        type = TransactionType.TRANSFER,
+        destination = FundsEndpoint(
+            kind = SourceKind.EXTERNAL,
+            id = spouse.id,
+            displayName = spouse.name,
+        ),
+    )
+
+    private fun commitSave(snapshot: AddTransactionUiState, override: SaveOverride? = null) {
         _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val now = clock()
             val id = editingTransactionId ?: UUID.randomUUID().toString()
             val created = editingCreatedAt ?: now
+            val effectiveType = override?.type ?: snapshot.effectiveType
+            val effectiveDestination = override?.destination ?: snapshot.destination
             val txn = Transaction(
                 id = id,
-                type = snapshot.effectiveType,
+                type = effectiveType,
                 amount = snapshot.parsedAmount ?: 0.0,
                 currency = "INR",
                 date = snapshot.dateTimeMillis,
@@ -317,8 +390,8 @@ class AddTransactionViewModel(
                 subCategoryId = snapshot.subCategoryId,
                 sourceType = snapshot.source!!.kind,
                 sourceId = snapshot.source.id,
-                destinationType = snapshot.destination?.kind,
-                destinationId = snapshot.destination?.id,
+                destinationType = effectiveDestination?.kind,
+                destinationId = effectiveDestination?.id,
                 paymentApp = snapshot.paymentApp,
                 place = snapshot.place.trim().takeIf { it.isNotBlank() },
                 latitude = null,
@@ -351,6 +424,11 @@ class AddTransactionViewModel(
         return allCategories.value.filter { it.parentId == parentId && it.type == type }
     }
 
+    private data class SaveOverride(
+        val type: TransactionType,
+        val destination: FundsEndpoint?,
+    )
+
     private companion object {
         private const val DEFAULT_TAG_COLOR: Long = 0xFF6366F1
     }
@@ -363,6 +441,7 @@ class AddTransactionViewModelFactory(
     private val personRepository: PersonRepository,
     private val tagRepository: TagRepository,
     private val transactionRepository: TransactionRepository,
+    private val settingsPreferences: SettingsPreferences,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -376,6 +455,7 @@ class AddTransactionViewModelFactory(
             personRepository,
             tagRepository,
             transactionRepository,
+            settingsPreferences,
         ) as T
     }
 }

@@ -125,6 +125,17 @@ fun AddTransactionSheet(
         )
     }
 
+    state.pendingSpousePrompt?.let { prompt ->
+        SpousePromptDialog(
+            amount = prompt.amount,
+            personName = prompt.personName,
+            onCancel = viewModel::cancelSpousePrompt,
+            onSave = { choice, persistDefault ->
+                viewModel.respondToSpousePrompt(choice, persistDefault)
+            },
+        )
+    }
+
     if (showCategoryPicker) {
         CategoryPickerSheet(
             categories = categories,

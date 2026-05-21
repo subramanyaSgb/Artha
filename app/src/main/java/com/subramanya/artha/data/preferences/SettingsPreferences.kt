@@ -45,6 +45,28 @@ class SettingsPreferences(context: Context) {
             ?: SpouseTransactionDefault.ASK
     }
 
+    // Dashboard section visibility — Net Position hero always shows; everything else is opt-out.
+    val dashboardShowMonthly: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_MONTHLY] ?: true }
+    val dashboardShowAccounts: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_ACCOUNTS] ?: true }
+    val dashboardShowCards: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_CARDS] ?: true }
+    val dashboardShowRecent: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_RECENT] ?: true }
+
+    suspend fun setDashboardShowMonthly(value: Boolean) {
+        dataStore.edit { it[Keys.DASH_SHOW_MONTHLY] = value }
+    }
+
+    suspend fun setDashboardShowAccounts(value: Boolean) {
+        dataStore.edit { it[Keys.DASH_SHOW_ACCOUNTS] = value }
+    }
+
+    suspend fun setDashboardShowCards(value: Boolean) {
+        dataStore.edit { it[Keys.DASH_SHOW_CARDS] = value }
+    }
+
+    suspend fun setDashboardShowRecent(value: Boolean) {
+        dataStore.edit { it[Keys.DASH_SHOW_RECENT] = value }
+    }
+
     suspend fun setUserName(name: String) {
         dataStore.edit { it[Keys.USER_NAME] = name.trim() }
     }
@@ -71,6 +93,10 @@ class SettingsPreferences(context: Context) {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
         val SPOUSE_DEFAULT = stringPreferencesKey("spouse_transaction_default")
+        val DASH_SHOW_MONTHLY = booleanPreferencesKey("dashboard_show_monthly")
+        val DASH_SHOW_ACCOUNTS = booleanPreferencesKey("dashboard_show_accounts")
+        val DASH_SHOW_CARDS = booleanPreferencesKey("dashboard_show_cards")
+        val DASH_SHOW_RECENT = booleanPreferencesKey("dashboard_show_recent")
     }
 }
 

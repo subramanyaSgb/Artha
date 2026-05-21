@@ -29,6 +29,10 @@ data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val useDynamicColor: Boolean = true,
     val spouseDefault: SpouseTransactionDefault = SpouseTransactionDefault.ASK,
+    val dashboardShowMonthly: Boolean = true,
+    val dashboardShowAccounts: Boolean = true,
+    val dashboardShowCards: Boolean = true,
+    val dashboardShowRecent: Boolean = true,
     val showFirstResetDialog: Boolean = false,
     val showFinalResetDialog: Boolean = false,
     /** Set right after Export → file is ready to be shared. */
@@ -44,24 +48,44 @@ class SettingsViewModel(
     private val finalResetDialog = MutableStateFlow(false)
     private val pendingExport = MutableStateFlow<File?>(null)
 
+    private val dashboardPrefs = combine(
+        settingsPreferences.dashboardShowMonthly,
+        settingsPreferences.dashboardShowAccounts,
+        settingsPreferences.dashboardShowCards,
+        settingsPreferences.dashboardShowRecent,
+    ) { monthly, accounts, cards, recent -> DashboardVisibility(monthly, accounts, cards, recent) }
+
     val state: StateFlow<SettingsUiState> = combine(
         settingsPreferences.userName,
         settingsPreferences.themeMode,
         settingsPreferences.useDynamicColor,
         settingsPreferences.spouseTransactionDefault,
-        combine(firstResetDialog, finalResetDialog, pendingExport) { a, b, c -> Triple(a, b, c) },
-    ) { name, theme, dynamic, spouse, dialogs ->
-        val (first, final, export) = dialogs
+        combine(firstResetDialog, finalResetDialog, pendingExport, dashboardPrefs) { a, b, c, d ->
+            DialogsAndVisibility(a, b, c, d)
+        },
+    ) { name, theme, dynamic, spouse, bag ->
         SettingsUiState(
             userName = name,
             themeMode = theme,
             useDynamicColor = dynamic,
             spouseDefault = spouse,
-            showFirstResetDialog = first,
-            showFinalResetDialog = final,
-            pendingExportFile = export,
+            dashboardShowMonthly = bag.visibility.monthly,
+            dashboardShowAccounts = bag.visibility.accounts,
+            dashboardShowCards = bag.visibility.cards,
+            dashboardShowRecent = bag.visibility.recent,
+            showFirstResetDialog = bag.firstReset,
+            showFinalResetDialog = bag.finalReset,
+            pendingExportFile = bag.export,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
+
+    private data class DashboardVisibility(val monthly: Boolean, val accounts: Boolean, val cards: Boolean, val recent: Boolean)
+    private data class DialogsAndVisibility(
+        val firstReset: Boolean,
+        val finalReset: Boolean,
+        val export: File?,
+        val visibility: DashboardVisibility,
+    )
 
     fun onNameChanged(value: String) {
         viewModelScope.launch { settingsPreferences.setUserName(value) }
@@ -81,6 +105,19 @@ class SettingsViewModel(
 
     fun resetSpousePrompt() {
         viewModelScope.launch { settingsPreferences.resetSpouseTransactionDefault() }
+    }
+
+    fun onDashboardShowMonthlyChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsPreferences.setDashboardShowMonthly(enabled) }
+    }
+    fun onDashboardShowAccountsChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsPreferences.setDashboardShowAccounts(enabled) }
+    }
+    fun onDashboardShowCardsChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsPreferences.setDashboardShowCards(enabled) }
+    }
+    fun onDashboardShowRecentChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsPreferences.setDashboardShowRecent(enabled) }
     }
 
     // ----- export -----

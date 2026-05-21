@@ -27,7 +27,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,6 +60,7 @@ import com.subramanya.artha.domain.model.AccountWithBalance
 import com.subramanya.artha.domain.model.CardWithBalance
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.ui.common.EmptyState
+import com.subramanya.artha.ui.common.RefreshableContent
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.ui.transaction.AddTransactionSheet
 import com.subramanya.artha.ui.transaction.AddTransactionViewModel
@@ -69,7 +69,10 @@ import com.subramanya.artha.utils.IndianNumberFormat
 import com.subramanya.artha.utils.TimeRange
 
 @Composable
-fun DashboardScreen(modifier: Modifier = Modifier) {
+fun DashboardScreen(
+    modifier: Modifier = Modifier,
+    onOpenTransactions: () -> Unit = {},
+) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
 
@@ -83,8 +86,14 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     val state by vm.state.collectAsStateWithLifecycle()
     var showSheet by remember { mutableStateOf(false) }
 
+    // Section visibility — user toggles via Settings → Dashboard sections.
+    val showMonthly by app.settingsPreferences.dashboardShowMonthly.collectAsStateWithLifecycle(initialValue = true)
+    val showAccounts by app.settingsPreferences.dashboardShowAccounts.collectAsStateWithLifecycle(initialValue = true)
+    val showCards by app.settingsPreferences.dashboardShowCards.collectAsStateWithLifecycle(initialValue = true)
+    val showRecent by app.settingsPreferences.dashboardShowRecent.collectAsStateWithLifecycle(initialValue = true)
+
     Surface(modifier = modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        RefreshableContent(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -94,21 +103,30 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.height(8.dp))
                 NetPositionHero(state = state)
 
-                Spacer(modifier = Modifier.height(16.dp))
-                MonthlyStrip(state = state)
+                if (showMonthly) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MonthlyStrip(state = state)
+                }
 
-                Spacer(modifier = Modifier.height(24.dp))
-                AccountsRow(accounts = state.accounts)
+                if (showAccounts) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    AccountsRow(accounts = state.accounts)
+                }
 
-                Spacer(modifier = Modifier.height(24.dp))
-                CardsRow(cards = state.cards)
+                if (showCards) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    CardsRow(cards = state.cards)
+                }
 
-                Spacer(modifier = Modifier.height(24.dp))
-                RecentSection(
-                    range = state.recentRange,
-                    transactions = state.recentTransactions,
-                    onRangeChanged = vm::onRecentRangeChanged,
-                )
+                if (showRecent) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    RecentSection(
+                        range = state.recentRange,
+                        transactions = state.recentTransactions,
+                        onRangeChanged = vm::onRecentRangeChanged,
+                        onViewAll = onOpenTransactions,
+                    )
+                }
             }
 
             FabRow(
@@ -132,6 +150,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 personRepository = app.personRepository,
                 tagRepository = app.tagRepository,
                 transactionRepository = app.transactionRepository,
+                settingsPreferences = app.settingsPreferences,
             ),
         )
         AddTransactionSheet(viewModel = txnVm, onDismiss = { showSheet = false })
@@ -307,8 +326,10 @@ private fun CardsRow(cards: List<CardWithBalance>) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         if (cards.isEmpty()) {
-            // Cards aren't a Phase-1 onboarding requirement; quiet empty-state.
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            EmptyState(
+                icon = Icons.Filled.CreditCard,
+                title = stringResource(R.string.dashboard_section_cards_empty),
+            )
         } else {
             Row(
                 modifier = Modifier
@@ -361,6 +382,7 @@ private fun RecentSection(
     range: TimeRange,
     transactions: List<Transaction>,
     onRangeChanged: (TimeRange) -> Unit,
+    onViewAll: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -374,8 +396,7 @@ private fun RecentSection(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
-            // "View all" deep-link to Transactions screen — wired in Session 10 polish.
-            TextButton(onClick = { /* deferred */ }) {
+            TextButton(onClick = onViewAll) {
                 Text(stringResource(R.string.dashboard_view_all))
             }
         }

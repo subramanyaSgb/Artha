@@ -440,4 +440,49 @@
     <string name="txn_detail_delete_confirm_title">Delete this transaction?</string>
     <string name="txn_detail_delete_confirm_body">This permanently removes the transaction and adjusts your balances. This cannot be undone.</string>
     <string name="txn_detail_delete_confirm_yes">Delete</string>
+
+    <!-- Spouse-prompt dialog -->
+    <string name="spouse_prompt_title">Sending %1$s to %2$s</string>
+    <string name="spouse_prompt_question">How should this be tracked?</string>
+    <string name="spouse_prompt_transfer_title">Transfer (to her savings)</string>
+    <string name="spouse_prompt_transfer_body">Won\'t count as a monthly expense</string>
+    <string name="spouse_prompt_expense_title">Expense</string>
+    <string name="spouse_prompt_expense_body">Counts toward monthly spending</string>
+    <string name="spouse_prompt_dont_ask_transfer">Don\'t ask again — always use Transfer</string>
+    <string name="spouse_prompt_dont_ask_expense">Don\'t ask again — always use Expense</string>
+    <string name="spouse_prompt_save">Save</string>
+    <string name="spouse_prompt_cancel">Cancel</string>
+
+    <!-- Tags screen -->
+    <string name="tags_title">Tags</string>
+    <string name="tags_fab_add">Add tag</string>
+    <string name="tags_empty">No tags yet. Tap + to add one.</string>
+    <string name="tags_action_edit">Edit</string>
+    <string name="tags_action_delete">Delete</string>
+    <string name="tags_in_use_toast">Tag is in use by %1$d transaction(s)</string>
+    <string name="tags_delete_confirm_title">Delete this tag?</string>
+    <string name="tags_delete_confirm_body">This permanently removes the tag. Transactions that referenced it keep their other tags. This cannot be undone.</string>
+    <string name="tags_delete_confirm_yes">Delete</string>
+
+    <!-- Tag form -->
+    <string name="tag_form_add_title">Add tag</string>
+    <string name="tag_form_edit_title">Edit tag</string>
+    <string name="tag_form_name_label">Tag name</string>
+    <string name="tag_form_color_label">Color</string>
+    <string name="tag_form_save">Save</string>
+    <string name="tag_form_validation_name">Name is required</string>
+
+    <!-- More drawer -->
+    <string name="more_tags">Tags</string>
+
+    <!-- Settings: dashboard visibility -->
+    <string name="settings_section_dashboard">Dashboard sections</string>
+    <string name="settings_dashboard_monthly">Income / expense strip</string>
+    <string name="settings_dashboard_accounts">Accounts row</string>
+    <string name="settings_dashboard_cards">Cards row</string>
+    <string name="settings_dashboard_recent">Recent transactions</string>
+    <string name="settings_dashboard_hint">Net Position always stays on top.</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_section_cards_empty">Add a credit/debit card from More → Cards.</string>
 </resources>
