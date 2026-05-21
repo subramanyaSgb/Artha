@@ -159,4 +159,63 @@
     <!-- Dashboard FAB -->
     <string name="dashboard_fab_add">Add transaction</string>
     <string name="dashboard_fab_ai_toast">AI Quick Entry coming in Phase 3</string>
+
+    <!-- Dashboard sections -->
+    <string name="dashboard_net_position">Net position</string>
+    <string name="dashboard_net_position_subtitle">across %1$d accounts, %2$d cards</string>
+    <string name="dashboard_this_month_income">Income this month</string>
+    <string name="dashboard_this_month_expense">Expenses this month</string>
+    <string name="dashboard_section_accounts">Accounts</string>
+    <string name="dashboard_section_cards">Cards</string>
+    <string name="dashboard_section_recent">Recent</string>
+    <string name="dashboard_section_recent_today">Today</string>
+    <string name="dashboard_section_recent_week">This week</string>
+    <string name="dashboard_section_recent_month">This month</string>
+    <string name="dashboard_view_all">View all</string>
+    <string name="dashboard_card_due_chip">Due %1$s</string>
+    <string name="dashboard_card_due_in_days">Due in %1$d days</string>
+    <string name="dashboard_card_due_today">Due today</string>
+    <string name="dashboard_card_due_tomorrow">Due tomorrow</string>
+    <string name="dashboard_accounts_empty">Add your first account from More → Accounts.</string>
+    <string name="dashboard_recent_empty">No transactions for this range yet.</string>
+
+    <!-- Transactions screen -->
+    <string name="transactions_search_placeholder">Search transactions</string>
+    <string name="transactions_filter_date">Date</string>
+    <string name="transactions_filter_type">Type</string>
+    <string name="transactions_filter_account">Account</string>
+    <string name="transactions_filter_card">Card</string>
+    <string name="transactions_filter_category">Category</string>
+    <string name="transactions_filter_clear_all">Clear filters</string>
+    <string name="transactions_filter_any">Any</string>
+    <string name="transactions_sort_label">Sort</string>
+    <string name="transactions_sort_date_desc">Date — newest first</string>
+    <string name="transactions_sort_date_asc">Date — oldest first</string>
+    <string name="transactions_sort_amount_desc">Amount — largest first</string>
+    <string name="transactions_sort_amount_asc">Amount — smallest first</string>
+    <string name="transactions_empty">No transactions match these filters</string>
+    <string name="transactions_select_count">%1$d selected</string>
+    <string name="transactions_select_delete">Delete</string>
+    <string name="transactions_select_clear">Clear selection</string>
+    <string name="transactions_delete_confirm_title">Delete selected?</string>
+    <string name="transactions_delete_confirm_body">%1$d transaction(s) will be permanently removed.</string>
+    <string name="transactions_delete_confirm_yes">Delete</string>
+
+    <!-- Type-filter labels -->
+    <string name="txn_type_expense">Expense</string>
+    <string name="txn_type_income">Income</string>
+    <string name="txn_type_transfer">Transfer</string>
+    <string name="txn_type_card_payment">Card payment</string>
+    <string name="txn_type_refund">Refund</string>
+    <string name="txn_type_cashback">Cashback</string>
+    <string name="txn_type_interest">Interest</string>
+    <string name="txn_type_loan_given">Loan given</string>
+    <string name="txn_type_loan_received">Loan received</string>
+    <string name="txn_type_gift_sent">Gift sent</string>
+    <string name="txn_type_gift_received">Gift received</string>
+    <string name="txn_type_adjustment">Adjustment</string>
+
+    <!-- Group headers -->
+    <string name="group_header_today">Today</string>
+    <string name="group_header_yesterday">Yesterday</string>
 </resources>

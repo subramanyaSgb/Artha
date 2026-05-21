@@ -1,0 +1,19 @@
+package com.subramanya.artha.ui.dashboard
+
+import com.subramanya.artha.data.balance.MonthlyTotals
+import com.subramanya.artha.domain.model.AccountWithBalance
+import com.subramanya.artha.domain.model.CardWithBalance
+import com.subramanya.artha.domain.model.Transaction
+import com.subramanya.artha.utils.TimeRange
+
+data class DashboardUiState(
+    val isLoading: Boolean = true,
+    val netPosition: Double = 0.0,
+    val accountCount: Int = 0,
+    val cardCount: Int = 0,
+    val monthlyTotals: MonthlyTotals = MonthlyTotals.ZERO,
+    val accounts: List<AccountWithBalance> = emptyList(),
+    val cards: List<CardWithBalance> = emptyList(),
+    val recentRange: TimeRange = TimeRange.TODAY,
+    val recentTransactions: List<Transaction> = emptyList(),
+)
