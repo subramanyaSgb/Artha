@@ -1,6 +1,7 @@
 package com.subramanya.artha.ui.dashboard
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -72,6 +73,11 @@ import com.subramanya.artha.utils.TimeRange
 fun DashboardScreen(
     modifier: Modifier = Modifier,
     onOpenTransactions: () -> Unit = {},
+    onOpenAccount: (String) -> Unit = {},
+    onOpenCard: (String) -> Unit = {},
+    onOpenTransaction: (String) -> Unit = {},
+    onAddAccount: () -> Unit = {},
+    onAddCard: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
@@ -110,12 +116,20 @@ fun DashboardScreen(
 
                 if (showAccounts) {
                     Spacer(modifier = Modifier.height(24.dp))
-                    AccountsRow(accounts = state.accounts)
+                    AccountsRow(
+                        accounts = state.accounts,
+                        onOpenAccount = onOpenAccount,
+                        onAddAccount = onAddAccount,
+                    )
                 }
 
                 if (showCards) {
                     Spacer(modifier = Modifier.height(24.dp))
-                    CardsRow(cards = state.cards)
+                    CardsRow(
+                        cards = state.cards,
+                        onOpenCard = onOpenCard,
+                        onAddCard = onAddCard,
+                    )
                 }
 
                 if (showRecent) {
@@ -125,6 +139,7 @@ fun DashboardScreen(
                         transactions = state.recentTransactions,
                         onRangeChanged = vm::onRecentRangeChanged,
                         onViewAll = onOpenTransactions,
+                        onOpenTransaction = onOpenTransaction,
                     )
                 }
             }
@@ -246,7 +261,11 @@ private fun MoneyMiniCard(
 // ---------------- horizontal rows ----------------
 
 @Composable
-private fun AccountsRow(accounts: List<AccountWithBalance>) {
+private fun AccountsRow(
+    accounts: List<AccountWithBalance>,
+    onOpenAccount: (String) -> Unit,
+    onAddAccount: () -> Unit,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = stringResource(R.string.dashboard_section_accounts),
@@ -268,16 +287,21 @@ private fun AccountsRow(accounts: List<AccountWithBalance>) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 accounts.forEach { withBalance ->
-                    AccountTile(withBalance)
+                    AccountTile(withBalance, onClick = { onOpenAccount(withBalance.account.id) })
                 }
+                AddTile(onClick = onAddAccount)
             }
         }
     }
 }
 
 @Composable
-private fun AccountTile(withBalance: AccountWithBalance) {
-    Card(modifier = Modifier.width(180.dp)) {
+private fun AccountTile(withBalance: AccountWithBalance, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(180.dp)
+            .clickable(onClick = onClick),
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Icon(
                 imageVector = Icons.Filled.AccountBalance,
@@ -317,7 +341,11 @@ private fun AccountTile(withBalance: AccountWithBalance) {
 }
 
 @Composable
-private fun CardsRow(cards: List<CardWithBalance>) {
+private fun CardsRow(
+    cards: List<CardWithBalance>,
+    onOpenCard: (String) -> Unit,
+    onAddCard: () -> Unit,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = stringResource(R.string.dashboard_section_cards),
@@ -339,16 +367,21 @@ private fun CardsRow(cards: List<CardWithBalance>) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 cards.forEach { withBalance ->
-                    CardTile(withBalance)
+                    CardTile(withBalance, onClick = { onOpenCard(withBalance.card.id) })
                 }
+                AddTile(onClick = onAddCard)
             }
         }
     }
 }
 
 @Composable
-private fun CardTile(withBalance: CardWithBalance) {
-    Card(modifier = Modifier.width(200.dp)) {
+private fun CardTile(withBalance: CardWithBalance, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(200.dp)
+            .clickable(onClick = onClick),
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Icon(
                 imageVector = Icons.Filled.CreditCard,
@@ -383,6 +416,7 @@ private fun RecentSection(
     transactions: List<Transaction>,
     onRangeChanged: (TimeRange) -> Unit,
     onViewAll: () -> Unit,
+    onOpenTransaction: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -422,9 +456,29 @@ private fun RecentSection(
         } else {
             Column {
                 transactions.forEach { txn ->
-                    TransactionRow(txn = txn)
+                    TransactionRow(txn = txn, onClick = { onOpenTransaction(txn.id) })
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AddTile(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(96.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -444,10 +498,11 @@ private fun RangeChip(
 }
 
 @Composable
-private fun TransactionRow(txn: Transaction) {
+private fun TransactionRow(txn: Transaction, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

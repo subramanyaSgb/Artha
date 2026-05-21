@@ -124,21 +124,31 @@ private fun MainApp(
     val userName by settingsPreferences.userName.collectAsState(initial = initialName)
     var showMoreSheet by remember { mutableStateOf(false) }
 
+    // Show the global greeting top-bar only on the five bottom-nav destinations.
+    // Sub-routes (Settings/Categories/Tags/About/details) bring their own TopAppBar
+    // with a back button; stacking two would leave a giant gap above their title.
+    val isBottomNavRoute = currentDestination != null
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        topBar = { ArthaTopBar(userName = userName) },
+        topBar = { if (isBottomNavRoute) ArthaTopBar(userName = userName) },
         bottomBar = {
             ArthaBottomBar(
                 currentDestination = currentDestination,
                 onItemSelected = { destination ->
                     if (destination == ArthaDestination.More) {
                         showMoreSheet = true
-                    } else if (destination != currentDestination) {
-                        val startDestId = navController.graph.findStartDestination().id
+                    } else {
+                        // Always navigate (don't skip when "already selected") — that lets the
+                        // user tap Dashboard from anywhere to come home cleanly. Skipping
+                        // saveState/restoreState avoids the bug where revisiting Cards (or any
+                        // tab whose stack contained a sub-route at exit time) re-restores the
+                        // sub-route and makes the bottom-nav pill flicker off.
                         navController.navigate(destination.route) {
-                            popUpTo(startDestId) { saveState = true }
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = false
+                            }
                             launchSingleTop = true
-                            restoreState = true
                         }
                     }
                 },

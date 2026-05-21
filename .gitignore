@@ -99,3 +99,7 @@ desktop.ini
 
 # Output / artifact directories
 out/
+
+# Personal documents that occasionally land in docs/ during testing
+docs/*.zip
+docs/*.pdf

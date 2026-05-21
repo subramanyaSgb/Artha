@@ -88,9 +88,23 @@ fun ArthaNavHost(
             DashboardScreen(
                 onOpenTransactions = {
                     navController.navigate(ArthaDestination.Transactions.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        popUpTo(navController.graph.findStartDestination().id)
                         launchSingleTop = true
-                        restoreState = true
+                    }
+                },
+                onOpenAccount = { id -> navController.navigate(SubRoutes.accountDetail(id)) },
+                onOpenCard = { id -> navController.navigate(SubRoutes.cardDetail(id)) },
+                onOpenTransaction = { id -> navController.navigate(SubRoutes.transactionDetail(id)) },
+                onAddAccount = {
+                    navController.navigate(ArthaDestination.Accounts.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                    }
+                },
+                onAddCard = {
+                    navController.navigate(ArthaDestination.Cards.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
                     }
                 },
             )
@@ -115,14 +129,22 @@ fun ArthaNavHost(
             arguments = listOf(navArgument(SubRoutes.ACCOUNT_DETAIL_ARG_ID) { type = NavType.StringType }),
         ) { entry ->
             val id = entry.arguments?.getString(SubRoutes.ACCOUNT_DETAIL_ARG_ID).orEmpty()
-            AccountDetailScreen(accountId = id, onBack = { navController.popBackStack() })
+            AccountDetailScreen(
+                accountId = id,
+                onBack = { navController.popBackStack() },
+                onOpenTransaction = { txnId -> navController.navigate(SubRoutes.transactionDetail(txnId)) },
+            )
         }
         composable(
             route = SubRoutes.CARD_DETAIL_PATTERN,
             arguments = listOf(navArgument(SubRoutes.CARD_DETAIL_ARG_ID) { type = NavType.StringType }),
         ) { entry ->
             val id = entry.arguments?.getString(SubRoutes.CARD_DETAIL_ARG_ID).orEmpty()
-            CardDetailScreen(cardId = id, onBack = { navController.popBackStack() })
+            CardDetailScreen(
+                cardId = id,
+                onBack = { navController.popBackStack() },
+                onOpenTransaction = { txnId -> navController.navigate(SubRoutes.transactionDetail(txnId)) },
+            )
         }
         composable(
             route = SubRoutes.TRANSACTION_DETAIL_PATTERN,

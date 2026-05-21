@@ -1,6 +1,7 @@
 package com.subramanya.artha.ui.accounts
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +66,7 @@ import com.subramanya.artha.utils.IndianNumberFormat
 fun AccountDetailScreen(
     accountId: String,
     onBack: () -> Unit,
+    onOpenTransaction: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -136,6 +138,7 @@ fun AccountDetailScreen(
                 AccountDetailBody(
                     account = account,
                     state = state,
+                    onOpenTransaction = onOpenTransaction,
                     modifier = Modifier.padding(padding).fillMaxSize(),
                 )
             }
@@ -193,6 +196,7 @@ fun AccountDetailScreen(
 private fun AccountDetailBody(
     account: Account,
     state: AccountDetailUiState,
+    onOpenTransaction: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(modifier = modifier) {
@@ -214,7 +218,9 @@ private fun AccountDetailBody(
                 )
             }
         } else {
-            items(state.transactions, key = { it.id }) { txn -> TxnRow(txn) }
+            items(state.transactions, key = { it.id }) { txn ->
+                TxnRow(txn, onClick = { onOpenTransaction(txn.id) })
+            }
         }
         item("bottomSpacer") { Spacer(modifier = Modifier.height(24.dp)) }
     }
@@ -332,9 +338,11 @@ private fun ChartSection(state: AccountDetailUiState) {
 }
 
 @Composable
-private fun TxnRow(txn: Transaction) {
+private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
     ListItem(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         leadingContent = {
             Icon(
                 imageVector = iconForType(txn.type),

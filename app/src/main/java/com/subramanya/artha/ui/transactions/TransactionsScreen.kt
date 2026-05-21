@@ -1,6 +1,8 @@
 package com.subramanya.artha.ui.transactions
 
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -245,9 +247,12 @@ private fun SearchField(query: String, onQueryChanged: (String) -> Unit) {
 
 @Composable
 private fun FilterRow(state: TransactionsUiState, viewModel: TransactionsViewModel) {
+    // Horizontal scroll so long chip labels (e.g. "Religious & Spiritual" category) can't
+    // squeeze siblings or wrap to a second line on narrow screens.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
