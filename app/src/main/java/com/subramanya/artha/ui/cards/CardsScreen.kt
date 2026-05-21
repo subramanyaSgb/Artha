@@ -1,12 +1,444 @@
 package com.subramanya.artha.ui.cards
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
-import com.subramanya.artha.ui.common.StubScreen
+import com.subramanya.artha.data.entity.enums.CardType
+import com.subramanya.artha.domain.model.Card
+import com.subramanya.artha.domain.model.CardWithBalance
+import com.subramanya.artha.ui.common.EmptyState
+import com.subramanya.artha.ui.theme.ArthaAmountStyles
+import com.subramanya.artha.utils.IndianNumberFormat
+import com.subramanya.artha.utils.computeNextDue
+
+private const val DUE_HIGHLIGHT_THRESHOLD_DAYS: Int = 10
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CardsScreen(
+    modifier: Modifier = Modifier,
+    onOpenCard: (String) -> Unit = {},
+) {
+    val context = LocalContext.current
+    val app = context.applicationContext as ArthaApplication
+    val vm: CardsViewModel = viewModel(factory = CardsViewModelFactory(app.cardRepository))
+    val state by vm.state.collectAsStateWithLifecycle()
+    var overflowOpen by remember { mutableStateOf(false) }
+    var formMode: FormMode? by remember { mutableStateOf(null) }
+    var pendingDelete: Card? by remember { mutableStateOf(null) }
+
+    Surface(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            when {
+                                state.isReorderMode -> stringResource(R.string.cards_reorder_hint)
+                                state.view == CardsView.ARCHIVED -> stringResource(R.string.cards_section_archived)
+                                else -> stringResource(R.string.cards_title)
+                            },
+                        )
+                    },
+                    actions = {
+                        if (state.isReorderMode) {
+                            TextButton(onClick = vm::exitReorderMode) {
+                                Icon(Icons.Filled.Done, contentDescription = null)
+                                Text(
+                                    text = stringResource(R.string.accounts_reorder_done),
+                                    modifier = Modifier.padding(start = 4.dp),
+                                )
+                            }
+                        } else {
+                            Box {
+                                IconButton(onClick = { overflowOpen = true }) {
+                                    Icon(Icons.Filled.MoreVert, contentDescription = null)
+                                }
+                                DropdownMenu(expanded = overflowOpen, onDismissRequest = { overflowOpen = false }) {
+                                    if (state.view == CardsView.ACTIVE) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.cards_menu_show_archived)) },
+                                            onClick = { vm.showArchived(); overflowOpen = false },
+                                        )
+                                    } else {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.cards_menu_back_active)) },
+                                            onClick = { vm.showActive(); overflowOpen = false },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+            },
+            floatingActionButton = {
+                if (state.view == CardsView.ACTIVE && !state.isReorderMode) {
+                    FloatingActionButton(onClick = { formMode = FormMode.Add }) {
+                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.cards_fab_add))
+                    }
+                }
+            },
+        ) { padding ->
+            val rows = state.shownRows
+            if (rows.isEmpty()) {
+                Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                    EmptyState(
+                        icon = Icons.Filled.CreditCard,
+                        title = stringResource(
+                            if (state.view == CardsView.ACTIVE) R.string.cards_empty_active
+                            else R.string.cards_empty_archived,
+                        ),
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
+                    items(rows, key = { it.card.id }) { row ->
+                        if (state.view == CardsView.ACTIVE) {
+                            ActiveCardRow(
+                                row = row,
+                                reorderMode = state.isReorderMode,
+                                canMoveUp = rows.first() != row,
+                                canMoveDown = rows.last() != row,
+                                onTap = { if (!state.isReorderMode) onOpenCard(row.card.id) },
+                                onLongPress = vm::enterReorderMode,
+                                onMoveUp = { vm.moveUp(row.card) },
+                                onMoveDown = { vm.moveDown(row.card) },
+                                onEdit = { formMode = FormMode.Edit(row.card) },
+                                onArchive = { vm.archive(row.card) },
+                                onDelete = { pendingDelete = row.card },
+                            )
+                        } else {
+                            ArchivedCardRow(
+                                row = row,
+                                onRestore = { vm.restore(row.card) },
+                                onDelete = { pendingDelete = row.card },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val mode = formMode
+    if (mode != null) {
+        CardFormSheet(
+            editing = (mode as? FormMode.Edit)?.card,
+            onDismiss = { formMode = null },
+        )
+    }
+
+    val toDelete = pendingDelete
+    if (toDelete != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text(stringResource(R.string.card_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.card_delete_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.delete(toDelete)
+                    pendingDelete = null
+                }) {
+                    Text(
+                        text = stringResource(R.string.card_delete_confirm_yes),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+}
+
+private sealed interface FormMode {
+    data object Add : FormMode
+    data class Edit(val card: Card) : FormMode
+}
+
+// ---------------- rows ----------------
+
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun ActiveCardRow(
+    row: CardWithBalance,
+    reorderMode: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onTap: () -> Unit,
+    onLongPress: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onEdit: () -> Unit,
+    onArchive: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    ListItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onTap, onLongClick = onLongPress),
+        leadingContent = { CardAvatar(color = row.card.color) },
+        headlineContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(row.card.name, maxLines = 1)
+                Spacer(Modifier.size(8.dp))
+                NetworkBadge(row.card.network.name)
+            }
+        },
+        supportingContent = { CardRowSupport(row = row) },
+        trailingContent = {
+            if (reorderMode) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onMoveUp, enabled = canMoveUp) {
+                        Icon(Icons.Filled.ArrowUpward, contentDescription = stringResource(R.string.accounts_action_move_up))
+                    }
+                    IconButton(onClick = onMoveDown, enabled = canMoveDown) {
+                        Icon(Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.accounts_action_move_down))
+                    }
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (row.card.type == CardType.CREDIT) {
+                        Text(
+                            text = IndianNumberFormat.format(row.currentOutstanding),
+                            style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
+                        )
+                    }
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = null)
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.card_detail_action_edit)) },
+                                onClick = { menuOpen = false; onEdit() },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.card_detail_action_archive)) },
+                                onClick = { menuOpen = false; onArchive() },
+                                leadingIcon = { Icon(Icons.Filled.Archive, contentDescription = null) },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.card_action_delete),
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                onClick = { menuOpen = false; onDelete() },
+                                leadingIcon = {
+                                    Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    )
+}
 
 @Composable
-fun CardsScreen(modifier: Modifier = Modifier) {
-    StubScreen(label = stringResource(R.string.screen_cards_stub), modifier = modifier)
+private fun ArchivedCardRow(
+    row: CardWithBalance,
+    onRestore: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    ListItem(
+        modifier = Modifier.fillMaxWidth(),
+        leadingContent = { CardAvatar(color = row.card.color) },
+        headlineContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(row.card.name, maxLines = 1)
+                Spacer(Modifier.size(8.dp))
+                NetworkBadge(row.card.network.name)
+            }
+        },
+        supportingContent = { CardRowSupport(row = row, showDueChip = false, showUtilization = false) },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onRestore) {
+                    Icon(Icons.Filled.Unarchive, contentDescription = null)
+                    Text(
+                        text = stringResource(R.string.accounts_action_restore),
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+                }
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = null)
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.card_action_delete),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            onClick = { menuOpen = false; onDelete() },
+                            leadingIcon = {
+                                Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CardRowSupport(
+    row: CardWithBalance,
+    showDueChip: Boolean = true,
+    showUtilization: Boolean = true,
+) {
+    Column {
+        val subtitle = formatSubtitle(row.card)
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (showUtilization && row.card.type == CardType.CREDIT) {
+            val limit = row.card.creditLimit
+            if (limit != null && limit > 0.0) {
+                val utilFraction = (row.currentOutstanding / limit).coerceIn(0.0, 1.0).toFloat()
+                Spacer(Modifier.height(6.dp))
+                LinearProgressIndicator(
+                    progress = { utilFraction },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.cards_utilization_label, (utilFraction * 100).toInt()),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        }
+        if (showDueChip && row.card.type == CardType.CREDIT) {
+            val dueDay = row.card.dueDayOfMonth
+            if (dueDay != null) {
+                val due = computeNextDue(dueDay)
+                if (due != null && due.daysUntil in 0..DUE_HIGHLIGHT_THRESHOLD_DAYS) {
+                    Spacer(Modifier.height(4.dp))
+                    val label = when (due.daysUntil) {
+                        0 -> stringResource(R.string.cards_due_today)
+                        1 -> stringResource(R.string.cards_due_tomorrow)
+                        else -> stringResource(R.string.cards_due_in_days, due.daysUntil)
+                    }
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(label) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            labelColor = MaterialTheme.colorScheme.onErrorContainer,
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CardAvatar(color: Long) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Color(color)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(Icons.Filled.CreditCard, contentDescription = null, tint = Color.White)
+    }
+}
+
+@Composable
+private fun NetworkBadge(networkName: String) {
+    Text(
+        text = networkName,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+            )
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
+}
+
+private fun formatSubtitle(card: Card): String? {
+    val pieces = buildList {
+        if (!card.issuer.isNullOrBlank()) add(card.issuer!!)
+        if (!card.cardNumberLast4.isNullOrBlank()) add("••${card.cardNumberLast4}")
+    }
+    return pieces.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }

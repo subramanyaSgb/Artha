@@ -81,6 +81,26 @@ class AddTransactionViewModel(
     val tags: StateFlow<List<Tag>> =
         tagRepository.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    // ---------- prefill ----------
+
+    /**
+     * Card Detail "Pay Bill" flow: pre-fill the sheet as a Transfer to the supplied
+     * credit card. The user still picks the source account and amount. Idempotent —
+     * safe to call from LaunchedEffect.
+     */
+    fun applyPayBillPrefill(toCard: FundsEndpoint) {
+        _state.update {
+            it.copy(
+                tab = TransactionTab.TRANSFER,
+                destination = toCard,
+                categoryId = null,
+                categoryDisplay = null,
+                subCategoryId = null,
+                subCategoryDisplay = null,
+            )
+        }
+    }
+
     // ---------- field setters ----------
 
     fun onTabChanged(tab: TransactionTab) {

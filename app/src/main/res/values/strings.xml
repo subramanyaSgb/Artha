@@ -272,4 +272,72 @@
     <string name="account_delete_confirm_title">Delete this account?</string>
     <string name="account_delete_confirm_body">This permanently removes the account. Existing transactions that referenced it are kept for history but their account will appear blank. Use Archive instead if you might want it back.</string>
     <string name="account_delete_confirm_yes">Delete permanently</string>
+
+    <!-- Cards screen -->
+    <string name="cards_title">Cards</string>
+    <string name="cards_fab_add">Add card</string>
+    <string name="cards_menu_show_archived">Archived cards</string>
+    <string name="cards_menu_back_active">Back to active</string>
+    <string name="cards_section_archived">Archived</string>
+    <string name="cards_empty_active">No cards yet. Tap + to add one.</string>
+    <string name="cards_empty_archived">No archived cards.</string>
+    <string name="cards_reorder_hint">Long-press a row to reorder</string>
+    <string name="cards_due_today">Due today</string>
+    <string name="cards_due_tomorrow">Due tomorrow</string>
+    <string name="cards_due_in_days">Due in %1$d days</string>
+    <string name="cards_utilization_label">%1$d%% used</string>
+
+    <!-- Card form (add/edit) -->
+    <string name="card_form_add_title">Add card</string>
+    <string name="card_form_edit_title">Edit card</string>
+    <string name="card_form_name_label">Card name</string>
+    <string name="card_form_name_placeholder">e.g. Jupiter Edge Rupay</string>
+    <string name="card_form_type_label">Type</string>
+    <string name="card_form_type_credit">Credit</string>
+    <string name="card_form_type_debit">Debit</string>
+    <string name="card_form_type_prepaid">Prepaid</string>
+    <string name="card_form_network_label">Network</string>
+    <string name="card_form_network_visa">Visa</string>
+    <string name="card_form_network_mastercard">Mastercard</string>
+    <string name="card_form_network_rupay">RuPay</string>
+    <string name="card_form_network_amex">Amex</string>
+    <string name="card_form_network_diners">Diners</string>
+    <string name="card_form_issuer_label">Issuer (optional)</string>
+    <string name="card_form_issuer_placeholder">e.g. ICICI Bank</string>
+    <string name="card_form_last4_label">Last 4 digits (optional)</string>
+    <string name="card_form_credit_limit_label">Credit limit</string>
+    <string name="card_form_statement_day_label">Statement day of month</string>
+    <string name="card_form_due_day_label">Due day of month</string>
+    <string name="card_form_linked_account_label">Linked account</string>
+    <string name="card_form_linked_account_none">No linked account selected</string>
+    <string name="card_form_color_label">Color</string>
+    <string name="card_form_save">Save</string>
+    <string name="card_form_validation_name">Name is required</string>
+    <string name="card_form_validation_credit_limit">Credit limit must be greater than 0</string>
+    <string name="card_form_validation_statement_day">Day must be 1-31</string>
+    <string name="card_form_validation_due_day">Day must be 1-31</string>
+
+    <!-- Card detail -->
+    <string name="card_detail_back">Back</string>
+    <string name="card_detail_action_edit">Edit</string>
+    <string name="card_detail_action_archive">Archive</string>
+    <string name="card_detail_action_restore">Restore</string>
+    <string name="card_detail_action_pay_bill">Pay bill</string>
+    <string name="card_detail_hero_outstanding">Outstanding</string>
+    <string name="card_detail_hero_credit_limit">Credit limit</string>
+    <string name="card_detail_hero_available">Available limit</string>
+    <string name="card_detail_hero_utilization">Utilization</string>
+    <string name="card_detail_hero_statement_day">Statement day</string>
+    <string name="card_detail_hero_due_day">Due day</string>
+    <string name="card_detail_chart_title">Last 30 days</string>
+    <string name="card_detail_chart_empty">No movement in the last 30 days.</string>
+    <string name="card_detail_txns_title">Transactions</string>
+    <string name="card_detail_txns_empty">No transactions yet for this card.</string>
+    <string name="card_detail_archive_confirm_title">Archive this card?</string>
+    <string name="card_detail_archive_confirm_body">Archived cards are hidden from the main list but their transactions remain. You can restore them from the Archived menu.</string>
+    <string name="card_detail_archive_confirm_yes">Archive</string>
+    <string name="card_action_delete">Delete</string>
+    <string name="card_delete_confirm_title">Delete this card?</string>
+    <string name="card_delete_confirm_body">This permanently removes the card. Existing transactions that referenced it are kept for history but their card will appear blank. Use Archive instead if you might want it back.</string>
+    <string name="card_delete_confirm_yes">Delete permanently</string>
 </resources>

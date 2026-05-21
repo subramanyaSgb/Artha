@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.subramanya.artha.ui.accounts.AccountDetailScreen
 import com.subramanya.artha.ui.accounts.AccountsScreen
+import com.subramanya.artha.ui.cards.CardDetailScreen
 import com.subramanya.artha.ui.cards.CardsScreen
 import com.subramanya.artha.ui.dashboard.DashboardScreen
 import com.subramanya.artha.ui.transactions.TransactionsScreen
@@ -20,6 +21,12 @@ object SubRoutes {
     const val ACCOUNT_DETAIL_PATTERN = "$ACCOUNT_DETAIL_BASE/{$ACCOUNT_DETAIL_ARG_ID}"
 
     fun accountDetail(accountId: String): String = "$ACCOUNT_DETAIL_BASE/$accountId"
+
+    private const val CARD_DETAIL_BASE = "card_detail"
+    const val CARD_DETAIL_ARG_ID = "cardId"
+    const val CARD_DETAIL_PATTERN = "$CARD_DETAIL_BASE/{$CARD_DETAIL_ARG_ID}"
+
+    fun cardDetail(cardId: String): String = "$CARD_DETAIL_BASE/$cardId"
 }
 
 @Composable
@@ -39,7 +46,11 @@ fun ArthaNavHost(
                 onOpenAccount = { id -> navController.navigate(SubRoutes.accountDetail(id)) },
             )
         }
-        composable(ArthaDestination.Cards.route) { CardsScreen() }
+        composable(ArthaDestination.Cards.route) {
+            CardsScreen(
+                onOpenCard = { id -> navController.navigate(SubRoutes.cardDetail(id)) },
+            )
+        }
         composable(
             route = SubRoutes.ACCOUNT_DETAIL_PATTERN,
             arguments = listOf(navArgument(SubRoutes.ACCOUNT_DETAIL_ARG_ID) { type = NavType.StringType }),
@@ -47,6 +58,16 @@ fun ArthaNavHost(
             val accountId = entry.arguments?.getString(SubRoutes.ACCOUNT_DETAIL_ARG_ID).orEmpty()
             AccountDetailScreen(
                 accountId = accountId,
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = SubRoutes.CARD_DETAIL_PATTERN,
+            arguments = listOf(navArgument(SubRoutes.CARD_DETAIL_ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val cardId = entry.arguments?.getString(SubRoutes.CARD_DETAIL_ARG_ID).orEmpty()
+            CardDetailScreen(
+                cardId = cardId,
                 onBack = { navController.popBackStack() },
             )
         }
