@@ -18,6 +18,8 @@ import com.subramanya.artha.ui.cards.CardDetailScreen
 import com.subramanya.artha.ui.cards.CardsScreen
 import com.subramanya.artha.ui.categories.CategoriesScreen
 import com.subramanya.artha.ui.dashboard.DashboardScreen
+import com.subramanya.artha.ui.investments.InvestmentDetailScreen
+import com.subramanya.artha.ui.investments.InvestmentsScreen
 import com.subramanya.artha.ui.settings.AboutScreen
 import com.subramanya.artha.ui.settings.SettingsScreen
 import com.subramanya.artha.ui.tags.TagsScreen
@@ -45,6 +47,14 @@ object SubRoutes {
     const val TAGS = "tags"
     const val SETTINGS = "settings"
     const val ABOUT = "about"
+
+    // Phase 2
+    const val INVESTMENTS = "investments"
+
+    private const val INVESTMENT_DETAIL_BASE = "investment_detail"
+    const val INVESTMENT_DETAIL_ARG_ID = "investmentId"
+    const val INVESTMENT_DETAIL_PATTERN = "$INVESTMENT_DETAIL_BASE/{$INVESTMENT_DETAIL_ARG_ID}"
+    fun investmentDetail(id: String): String = "$INVESTMENT_DETAIL_BASE/$id"
 }
 
 private const val NAV_ANIM_MS: Int = 220
@@ -167,6 +177,23 @@ fun ArthaNavHost(
         }
         composable(SubRoutes.ABOUT) {
             AboutScreen(onBack = { navController.popBackStack() })
+        }
+        composable(SubRoutes.INVESTMENTS) {
+            InvestmentsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenInvestment = { id -> navController.navigate(SubRoutes.investmentDetail(id)) },
+            )
+        }
+        composable(
+            route = SubRoutes.INVESTMENT_DETAIL_PATTERN,
+            arguments = listOf(navArgument(SubRoutes.INVESTMENT_DETAIL_ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(SubRoutes.INVESTMENT_DETAIL_ARG_ID).orEmpty()
+            InvestmentDetailScreen(
+                investmentId = id,
+                onBack = { navController.popBackStack() },
+                onOpenTransaction = { txnId -> navController.navigate(SubRoutes.transactionDetail(txnId)) },
+            )
         }
         // No `more` route on purpose — that tap opens a sheet, not a destination.
     }

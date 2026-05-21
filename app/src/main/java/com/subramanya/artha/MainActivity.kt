@@ -192,6 +192,7 @@ private fun navigateForMoreAction(navController: NavHostController, action: More
         MoreAction.Tags -> SubRoutes.TAGS
         MoreAction.Settings -> SubRoutes.SETTINGS
         MoreAction.About -> SubRoutes.ABOUT
+        MoreAction.Investments -> SubRoutes.INVESTMENTS
     }
     navController.navigate(route) { launchSingleTop = true }
 }

@@ -486,6 +486,66 @@
     <!-- Dashboard -->
     <string name="dashboard_section_cards_empty">Add a credit/debit card from More → Cards.</string>
 
+    <!-- Investments screen -->
+    <string name="investments_title">Investments</string>
+    <string name="investments_fab_add">Add investment</string>
+    <string name="investments_empty">No investments yet. Tap + to add one.</string>
+    <string name="investments_view_all">All</string>
+    <string name="investments_view_by_type">By type</string>
+    <string name="investments_hero_current">Current value</string>
+    <string name="investments_hero_invested">Invested</string>
+
+    <!-- Investment types -->
+    <string name="investment_type_fd">FD</string>
+    <string name="investment_type_rd">RD</string>
+    <string name="investment_type_sip">SIP</string>
+    <string name="investment_type_mutual_fund">Mutual Fund</string>
+    <string name="investment_type_equity">Stocks</string>
+    <string name="investment_type_gold_physical">Gold (physical)</string>
+    <string name="investment_type_gold_digital">Gold (digital)</string>
+    <string name="investment_type_bonds">Bonds</string>
+    <string name="investment_type_ppf">PPF</string>
+    <string name="investment_type_epf">EPF</string>
+    <string name="investment_type_nps">NPS</string>
+    <string name="investment_type_ulip">ULIP</string>
+    <string name="investment_type_other">Other</string>
+
+    <!-- Investment form -->
+    <string name="investment_form_add_title">Add investment</string>
+    <string name="investment_form_edit_title">Edit investment</string>
+    <string name="investment_form_name_label">Name</string>
+    <string name="investment_form_name_placeholder">e.g. HDFC Top 100, SBI FD #12345</string>
+    <string name="investment_form_type_label">Type</string>
+    <string name="investment_form_institution_label">Institution / AMC (optional)</string>
+    <string name="investment_form_institution_placeholder">e.g. Zerodha, HDFC AMC</string>
+    <string name="investment_form_current_value_label">Current value</string>
+    <string name="investment_form_units_label">Units</string>
+    <string name="investment_form_nav_label">NAV / Price per unit</string>
+    <string name="investment_form_start_date_label">Start date</string>
+    <string name="investment_form_maturity_date_label">Maturity date (optional)</string>
+    <string name="investment_form_clear_maturity">Clear maturity date</string>
+    <string name="investment_form_tax_section_label">Tax section (optional)</string>
+    <string name="investment_form_tax_section_placeholder">e.g. 80C, 80CCD(1B)</string>
+    <string name="investment_form_color_label">Color</string>
+    <string name="investment_form_save">Save</string>
+    <string name="investment_form_pick_date">Pick a date</string>
+    <string name="investment_form_validation_name">Name is required</string>
+    <string name="investment_form_validation_amount">Enter a valid amount</string>
+
+    <!-- Investment detail -->
+    <string name="investment_detail_txns_title">Transactions</string>
+    <string name="investment_detail_txns_empty">No transactions yet for this investment.</string>
+    <string name="investment_detail_meta_start">Started</string>
+    <string name="investment_detail_meta_maturity">Matures</string>
+    <string name="investment_detail_meta_units">Units</string>
+    <string name="investment_detail_meta_nav">NAV</string>
+    <string name="investment_detail_meta_tax_section">Tax section</string>
+
+    <!-- Investment delete -->
+    <string name="investment_delete_confirm_title">Delete this investment?</string>
+    <string name="investment_delete_confirm_body">This permanently removes the investment. Transactions that referenced it stay in the log for history but will no longer roll up here.</string>
+    <string name="investment_delete_confirm_yes">Delete permanently</string>
+
     <!-- Settings: import bundled bank data (APK asset) -->
     <string name="settings_data_import_bundled">Import bundled bank data</string>
     <string name="settings_data_import_bundled_subtitle">One-tap seed of ~3.9k Federal Bank + ICICI transactions baked into this build. Safe to retry — already-imported rows are skipped.</string>

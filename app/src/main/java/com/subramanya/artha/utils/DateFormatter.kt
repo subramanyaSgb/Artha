@@ -25,6 +25,21 @@ object DateFormatter {
         return "$day, ${date.dayOfMonth} $month"
     }
 
+    /** Convenience: format an epoch-millis instant in the system zone as "Thu, 21 May". */
+    fun shortDate(epochMillis: Long, timeZone: TimeZone = TimeZone.currentSystemDefault()): String {
+        val date = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMillis)
+            .toLocalDateTime(timeZone).date
+        return shortDate(date)
+    }
+
+    /** Formats an epoch-millis instant as "21 May 2025" — includes the year for
+     *  long-lived dates (e.g. FD maturities) where the weekday adds noise. */
+    fun longDate(epochMillis: Long, timeZone: TimeZone = TimeZone.currentSystemDefault()): String {
+        val date = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMillis)
+            .toLocalDateTime(timeZone).date
+        return "${date.dayOfMonth} ${date.month.shortName} ${date.year}"
+    }
+
     private val kotlinx.datetime.DayOfWeek.shortName: String
         get() = when (this) {
             kotlinx.datetime.DayOfWeek.MONDAY -> "Mon"

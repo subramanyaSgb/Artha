@@ -36,7 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.subramanya.artha.R
 
-enum class MoreAction { Categories, Tags, Settings, About }
+enum class MoreAction { Categories, Tags, Settings, About, Investments }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +80,11 @@ fun MoreSheet(
                 onClick = { onActionSelected(MoreAction.About) },
             )
 
-            DisabledTile(Icons.AutoMirrored.Filled.TrendingUp, R.string.more_investments, R.string.more_coming_phase_2)
+            MoreTile(
+                icon = Icons.AutoMirrored.Filled.TrendingUp,
+                titleRes = R.string.more_investments,
+                onClick = { onActionSelected(MoreAction.Investments) },
+            )
             DisabledTile(Icons.Filled.Shield, R.string.more_insurance, R.string.more_coming_phase_2)
             DisabledTile(Icons.Filled.AccountBalanceWallet, R.string.more_budgets, R.string.more_coming_phase_4)
             DisabledTile(Icons.Filled.Flag, R.string.more_goals, R.string.more_coming_phase_4)
