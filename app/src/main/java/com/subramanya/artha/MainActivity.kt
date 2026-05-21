@@ -18,15 +18,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.subramanya.artha.data.preferences.SettingsPreferences
+import com.subramanya.artha.data.preferences.ThemeMode
 import com.subramanya.artha.ui.common.ArthaBottomBar
 import com.subramanya.artha.ui.common.ArthaTopBar
 import com.subramanya.artha.ui.more.MoreAction
 import com.subramanya.artha.ui.more.MoreSheet
 import com.subramanya.artha.ui.navigation.ArthaDestination
 import com.subramanya.artha.ui.navigation.ArthaNavHost
+import com.subramanya.artha.ui.navigation.SubRoutes
 import com.subramanya.artha.ui.onboarding.OnboardingFlow
 import com.subramanya.artha.ui.onboarding.OnboardingViewModel
 import com.subramanya.artha.ui.onboarding.OnboardingViewModelFactory
@@ -41,11 +44,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent {
-            ArthaTheme {
-                ArthaRoot()
-            }
-        }
+        setContent { ArthaRoot() }
     }
 }
 
@@ -53,6 +52,9 @@ class MainActivity : ComponentActivity() {
  * Top-level state machine: Splash gates first launch on a real DB init (forces
  * Room schema + CategorySeeder to run) and on reading `userName` from DataStore.
  * Once ready, we show either Onboarding (first run) or MainApp (returning user).
+ *
+ * Theme mode + dynamic-color come from SettingsPreferences so Settings → Appearance
+ * changes recompose immediately.
  */
 private sealed interface StartupState {
     data object Loading : StartupState
@@ -67,43 +69,46 @@ private fun ArthaRoot() {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
 
-    // Triggers DB init + reads userName once; emits a Ready/NeedsOnboarding terminal state.
-    val startup by produceState<StartupState>(initialValue = StartupState.Loading, app) {
-        value = withContext(Dispatchers.IO) {
-            val started = System.currentTimeMillis()
-            // Touch the DB so Room creates the schema and CategorySeederCallback fires.
-            app.database.categoryDao().count()
-            val name = app.settingsPreferences.userName.first()
-            val elapsed = System.currentTimeMillis() - started
-            if (elapsed < MIN_SPLASH_MILLIS) delay(MIN_SPLASH_MILLIS - elapsed)
-            if (name.isBlank()) StartupState.NeedsOnboarding else StartupState.Ready(name)
-        }
-    }
+    val themeMode by app.settingsPreferences.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+    val useDynamicColor by app.settingsPreferences.useDynamicColor.collectAsState(initial = true)
 
-    // Local override so completing onboarding can transition us into MainApp without
-    // re-running the produceState block.
-    var override: StartupState? by remember { mutableStateOf(null) }
-    val current = override ?: startup
+    ArthaTheme(themeMode = themeMode, useDynamicColor = useDynamicColor) {
+        // Triggers DB init + reads userName once; emits a Ready/NeedsOnboarding terminal state.
+        val startup by produceState<StartupState>(initialValue = StartupState.Loading, app) {
+            value = withContext(Dispatchers.IO) {
+                val started = System.currentTimeMillis()
+                app.database.categoryDao().count()
+                val name = app.settingsPreferences.userName.first()
+                val elapsed = System.currentTimeMillis() - started
+                if (elapsed < MIN_SPLASH_MILLIS) delay(MIN_SPLASH_MILLIS - elapsed)
+                if (name.isBlank()) StartupState.NeedsOnboarding else StartupState.Ready(name)
+            }
+        }
 
-    when (val state = current) {
-        StartupState.Loading -> SplashScreen()
-        StartupState.NeedsOnboarding -> {
-            val vm: OnboardingViewModel = viewModel(
-                factory = OnboardingViewModelFactory(app.accountRepository, app.settingsPreferences),
-            )
-            OnboardingFlow(
-                viewModel = vm,
-                onCompleted = {
-                    // VM has just persisted userName; rebuild the displayed state from that.
-                    val saved = vm.state.value.name.trim()
-                    override = StartupState.Ready(saved)
-                },
+        // Local override so completing onboarding can transition us into MainApp without
+        // re-running the produceState block.
+        var override: StartupState? by remember { mutableStateOf(null) }
+        val current = override ?: startup
+
+        when (val state = current) {
+            StartupState.Loading -> SplashScreen()
+            StartupState.NeedsOnboarding -> {
+                val vm: OnboardingViewModel = viewModel(
+                    factory = OnboardingViewModelFactory(app.accountRepository, app.settingsPreferences),
+                )
+                OnboardingFlow(
+                    viewModel = vm,
+                    onCompleted = {
+                        val saved = vm.state.value.name.trim()
+                        override = StartupState.Ready(saved)
+                    },
+                )
+            }
+            is StartupState.Ready -> MainApp(
+                settingsPreferences = app.settingsPreferences,
+                initialName = state.userName,
             )
         }
-        is StartupState.Ready -> MainApp(
-            settingsPreferences = app.settingsPreferences,
-            initialName = state.userName,
-        )
     }
 }
 
@@ -116,9 +121,7 @@ private fun MainApp(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = ArthaDestination.fromRoute(backStackEntry?.destination?.route)
 
-    // Live-update if the user later edits their name in Settings (Session 9).
     val userName by settingsPreferences.userName.collectAsState(initial = initialName)
-
     var showMoreSheet by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -153,13 +156,18 @@ private fun MainApp(
             onDismiss = { showMoreSheet = false },
             onActionSelected = { action ->
                 showMoreSheet = false
-                when (action) {
-                    MoreAction.Categories,
-                    MoreAction.Settings,
-                    MoreAction.About,
-                    -> Unit // Destinations land in Sessions 9 + 10.
-                }
+                navigateForMoreAction(navController, action)
             },
         )
     }
+}
+
+/** Maps a More-drawer tile selection to a navigation push. */
+private fun navigateForMoreAction(navController: NavHostController, action: MoreAction) {
+    val route = when (action) {
+        MoreAction.Categories -> SubRoutes.CATEGORIES
+        MoreAction.Settings -> SubRoutes.SETTINGS
+        MoreAction.About -> SubRoutes.ABOUT
+    }
+    navController.navigate(route) { launchSingleTop = true }
 }

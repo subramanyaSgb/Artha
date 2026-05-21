@@ -1,0 +1,360 @@
+package com.subramanya.artha.ui.categories
+
+import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.subramanya.artha.ArthaApplication
+import com.subramanya.artha.R
+import com.subramanya.artha.data.entity.enums.CategoryType
+import com.subramanya.artha.domain.model.Category
+import com.subramanya.artha.ui.common.EmptyState
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CategoriesScreen(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val app = context.applicationContext as ArthaApplication
+    val vm: CategoriesViewModel = viewModel(factory = CategoriesViewModelFactory(app.categoryRepository))
+    val state by vm.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+
+    var formMode: FormMode? by remember { mutableStateOf(null) }
+    var pendingDelete: Category? by remember { mutableStateOf(null) }
+    /** A pending toast for "blocked delete" cases (in-use or system). */
+    var blockedDeleteMessage: String? by remember { mutableStateOf(null) }
+
+    LaunchedEffect(blockedDeleteMessage) {
+        blockedDeleteMessage?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            blockedDeleteMessage = null
+        }
+    }
+
+    Surface(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.categories_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.about_back))
+                        }
+                    },
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = { formMode = FormMode.Add }) {
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.categories_fab_add))
+                }
+            },
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                TypeTabs(current = state.type, onSelect = vm::onTypeSelected)
+                if (state.parents.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        EmptyState(
+                            icon = Icons.Filled.Category,
+                            title = stringResource(R.string.categories_empty),
+                        )
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        state.parents.forEach { parent ->
+                            val children = state.childrenByParent[parent.id].orEmpty()
+                            val expanded = parent.id in state.expandedParentIds
+                            item(key = "p-${parent.id}") {
+                                ParentRow(
+                                    parent = parent,
+                                    hasChildren = children.isNotEmpty(),
+                                    expanded = expanded,
+                                    onToggle = { vm.toggleExpanded(parent.id) },
+                                    onEdit = { formMode = FormMode.Edit(parent) },
+                                    onDelete = {
+                                        scope.launch {
+                                            when {
+                                                parent.isSystem -> blockedDeleteMessage =
+                                                    context.getString(R.string.categories_system_delete_toast)
+                                                vm.usageCount(parent.id) > 0 -> blockedDeleteMessage =
+                                                    context.getString(R.string.categories_in_use_toast, vm.usageCount(parent.id))
+                                                else -> pendingDelete = parent
+                                            }
+                                        }
+                                    },
+                                )
+                            }
+                            if (expanded) {
+                                items(children, key = { "c-${it.id}" }) { child ->
+                                    ChildRow(
+                                        child = child,
+                                        onEdit = { formMode = FormMode.Edit(child) },
+                                        onDelete = {
+                                            scope.launch {
+                                                when {
+                                                    child.isSystem -> blockedDeleteMessage =
+                                                        context.getString(R.string.categories_system_delete_toast)
+                                                    vm.usageCount(child.id) > 0 -> blockedDeleteMessage =
+                                                        context.getString(R.string.categories_in_use_toast, vm.usageCount(child.id))
+                                                    else -> pendingDelete = child
+                                                }
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val mode = formMode
+    if (mode != null) {
+        CategoryFormSheet(
+            editing = (mode as? FormMode.Edit)?.category,
+            defaultType = state.type,
+            parentCandidates = state.parents,
+            onSave = { saved ->
+                vm.upsert(saved)
+                formMode = null
+            },
+            onDismiss = { formMode = null },
+        )
+    }
+
+    val toDelete = pendingDelete
+    if (toDelete != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text(stringResource(R.string.categories_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.categories_delete_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.delete(toDelete)
+                    pendingDelete = null
+                }) {
+                    Text(
+                        text = stringResource(R.string.categories_delete_confirm_yes),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.common_cancel)) }
+            },
+        )
+    }
+}
+
+private sealed interface FormMode {
+    data object Add : FormMode
+    data class Edit(val category: Category) : FormMode
+}
+
+// ---------------- type tabs ----------------
+
+@Composable
+private fun TypeTabs(current: CategoryType, onSelect: (CategoryType) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TypeChip(current, CategoryType.EXPENSE, R.string.categories_filter_expense, onSelect)
+        TypeChip(current, CategoryType.INCOME, R.string.categories_filter_income, onSelect)
+        TypeChip(current, CategoryType.TRANSFER, R.string.categories_filter_transfer, onSelect)
+        TypeChip(current, CategoryType.INVESTMENT, R.string.categories_filter_investment, onSelect)
+    }
+}
+
+@Composable
+private fun TypeChip(current: CategoryType, target: CategoryType, labelRes: Int, onSelect: (CategoryType) -> Unit) {
+    FilterChip(
+        selected = current == target,
+        onClick = { onSelect(target) },
+        label = { Text(stringResource(labelRes)) },
+    )
+}
+
+// ---------------- rows ----------------
+
+@Composable
+private fun ParentRow(
+    parent: Category,
+    hasChildren: Boolean,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    ListItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { if (hasChildren) it.clickable(onClick = onToggle) else it },
+        colors = ListItemDefaults.colors(),
+        leadingContent = { CategoryAvatar(color = parent.color) },
+        headlineContent = { Text(parent.name) },
+        supportingContent = {
+            if (parent.isSystem) {
+                Text(
+                    text = "System",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (hasChildren) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = null,
+                    )
+                }
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.categories_action_edit))
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.categories_action_edit)) },
+                            onClick = { menuOpen = false; onEdit() },
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.categories_action_delete),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            onClick = { menuOpen = false; onDelete() },
+                            leadingIcon = {
+                                Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) {
+    var menuOpen by remember { mutableStateOf(false) }
+    ListItem(
+        modifier = Modifier.fillMaxWidth(),
+        leadingContent = {
+            Spacer(modifier = Modifier.size(20.dp))
+            CategoryAvatar(color = child.color, small = true)
+        },
+        headlineContent = {
+            Text(
+                text = child.name,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(start = 16.dp),
+            )
+        },
+        trailingContent = {
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.categories_action_edit))
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.categories_action_edit)) },
+                        onClick = { menuOpen = false; onEdit() },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.categories_action_delete),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                        onClick = { menuOpen = false; onDelete() },
+                        leadingIcon = {
+                            Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        },
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun CategoryAvatar(color: Long, small: Boolean = false) {
+    val dim = if (small) 28.dp else 36.dp
+    Box(
+        modifier = Modifier
+            .size(dim)
+            .clip(CircleShape)
+            .background(Color(color)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Category,
+            contentDescription = null,
+            tint = Color.White,
+        )
+    }
+}

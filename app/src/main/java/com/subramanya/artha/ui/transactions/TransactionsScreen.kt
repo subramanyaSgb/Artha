@@ -73,7 +73,10 @@ import com.subramanya.artha.utils.TimeRange
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-fun TransactionsScreen(modifier: Modifier = Modifier) {
+fun TransactionsScreen(
+    modifier: Modifier = Modifier,
+    onOpenTransaction: (String) -> Unit = {},
+) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
 
@@ -133,7 +136,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier) {
                                     selectionMode = state.isSelectionMode,
                                     onTap = {
                                         if (state.isSelectionMode) vm.toggleSelected(txn.id)
-                                        // Otherwise: navigate to detail — Session 9.
+                                        else onOpenTransaction(txn.id)
                                     },
                                     onLongPress = { vm.toggleSelected(txn.id) },
                                 )

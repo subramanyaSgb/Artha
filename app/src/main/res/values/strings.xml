@@ -340,4 +340,104 @@
     <string name="card_delete_confirm_title">Delete this card?</string>
     <string name="card_delete_confirm_body">This permanently removes the card. Existing transactions that referenced it are kept for history but their card will appear blank. Use Archive instead if you might want it back.</string>
     <string name="card_delete_confirm_yes">Delete permanently</string>
+
+    <!-- Categories screen -->
+    <string name="categories_title">Categories</string>
+    <string name="categories_fab_add">Add category</string>
+    <string name="categories_filter_expense">Expense</string>
+    <string name="categories_filter_income">Income</string>
+    <string name="categories_filter_transfer">Transfer</string>
+    <string name="categories_filter_investment">Investment</string>
+    <string name="categories_in_use_toast">Category is in use by %1$d transaction(s)</string>
+    <string name="categories_system_delete_toast">System categories can be renamed but not deleted</string>
+    <string name="categories_empty">No categories yet for this type.</string>
+    <string name="categories_action_edit">Edit</string>
+    <string name="categories_action_delete">Delete</string>
+    <string name="categories_delete_confirm_title">Delete this category?</string>
+    <string name="categories_delete_confirm_body">This permanently removes the category. Its children become top-level. This cannot be undone.</string>
+    <string name="categories_delete_confirm_yes">Delete</string>
+
+    <!-- Category form -->
+    <string name="category_form_add_title">Add category</string>
+    <string name="category_form_edit_title">Edit category</string>
+    <string name="category_form_name_label">Name</string>
+    <string name="category_form_name_placeholder">e.g. Office Lunch</string>
+    <string name="category_form_type_label">Type</string>
+    <string name="category_form_parent_label">Parent (optional)</string>
+    <string name="category_form_parent_none">None — top-level</string>
+    <string name="category_form_icon_label">Icon</string>
+    <string name="category_form_color_label">Color</string>
+    <string name="category_form_save">Save</string>
+    <string name="category_form_validation_name">Name is required</string>
+    <string name="category_form_system_locked_hint">System category — name and color are editable, type stays fixed.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_profile">Profile</string>
+    <string name="settings_profile_name">Your name</string>
+    <string name="settings_profile_currency">Currency</string>
+    <string name="settings_profile_currency_locked">₹ INR (locked for v1)</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_appearance_theme">Theme</string>
+    <string name="settings_appearance_theme_system">System</string>
+    <string name="settings_appearance_theme_light">Light</string>
+    <string name="settings_appearance_theme_dark">Dark</string>
+    <string name="settings_appearance_dynamic">Material You dynamic color</string>
+    <string name="settings_appearance_dynamic_body">Tint the UI with your wallpaper palette on Android 12+.</string>
+    <string name="settings_section_behavior">Behavior</string>
+    <string name="settings_behavior_spouse">Spouse transaction default</string>
+    <string name="settings_behavior_spouse_ask">Ask each time</string>
+    <string name="settings_behavior_spouse_transfer">Always Transfer</string>
+    <string name="settings_behavior_spouse_expense">Always Expense</string>
+    <string name="settings_behavior_spouse_reset">Reset spouse prompt</string>
+    <string name="settings_behavior_spouse_reset_done">Spouse prompt will ask again next time</string>
+    <string name="settings_section_data">Data</string>
+    <string name="settings_data_export">Export all data</string>
+    <string name="settings_data_export_subtitle">Save a JSON snapshot of accounts, cards, categories, people, tags and transactions</string>
+    <string name="settings_data_reset">Reset all data</string>
+    <string name="settings_data_reset_subtitle">Wipe every record permanently — used for starting over</string>
+    <string name="settings_data_reset_confirm_title">Reset all data?</string>
+    <string name="settings_data_reset_confirm_body">This deletes everything on this device — accounts, cards, transactions, custom categories. The pre-seeded categories will be re-added. Continue?</string>
+    <string name="settings_data_reset_confirm_yes">Continue</string>
+    <string name="settings_data_reset_final_title">Are you absolutely sure?</string>
+    <string name="settings_data_reset_final_body">Last chance — once you tap Wipe, the data is gone. There is no backup.</string>
+    <string name="settings_data_reset_final_yes">Wipe everything</string>
+    <string name="settings_data_reset_done">All data wiped</string>
+    <string name="settings_data_export_done">Export ready — pick a target</string>
+    <string name="settings_data_export_share_chooser">Share Artha export</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_open">Open About</string>
+
+    <!-- About screen -->
+    <string name="about_title">About</string>
+    <string name="about_version">Version</string>
+    <string name="about_built_with">Built with Claude Code</string>
+    <string name="about_back">Back</string>
+
+    <!-- Transaction Detail -->
+    <string name="txn_detail_title">Transaction</string>
+    <string name="txn_detail_back">Back</string>
+    <string name="txn_detail_action_edit">Edit</string>
+    <string name="txn_detail_action_duplicate">Duplicate</string>
+    <string name="txn_detail_action_delete">Delete</string>
+    <string name="txn_detail_field_amount">Amount</string>
+    <string name="txn_detail_field_type">Type</string>
+    <string name="txn_detail_field_date">Date</string>
+    <string name="txn_detail_field_description">Description</string>
+    <string name="txn_detail_field_source">From</string>
+    <string name="txn_detail_field_destination">To</string>
+    <string name="txn_detail_field_category">Category</string>
+    <string name="txn_detail_field_subcategory">Sub-category</string>
+    <string name="txn_detail_field_payment_app">Payment app</string>
+    <string name="txn_detail_field_people">People</string>
+    <string name="txn_detail_field_place">Place</string>
+    <string name="txn_detail_field_tags">Tags</string>
+    <string name="txn_detail_field_notes">Notes</string>
+    <string name="txn_detail_field_receipt">Receipt attached</string>
+    <string name="txn_detail_audit_created">Created %1$s</string>
+    <string name="txn_detail_audit_updated">Updated %1$s</string>
+    <string name="txn_detail_audit_source">Source: %1$s</string>
+    <string name="txn_detail_delete_confirm_title">Delete this transaction?</string>
+    <string name="txn_detail_delete_confirm_body">This permanently removes the transaction and adjusts your balances. This cannot be undone.</string>
+    <string name="txn_detail_delete_confirm_yes">Delete</string>
 </resources>

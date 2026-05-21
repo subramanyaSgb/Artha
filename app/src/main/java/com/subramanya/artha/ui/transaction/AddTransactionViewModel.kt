@@ -101,6 +101,58 @@ class AddTransactionViewModel(
         }
     }
 
+    /**
+     * Transaction Detail "Edit" flow: hydrate every field from an existing transaction.
+     * Caller is responsible for resolving [source] / [destination] FundsEndpoints from
+     * the live catalogue (because that data lives in flows the caller already has).
+     *
+     * The VM remembers the existing id and createdAt timestamp so save() upserts the
+     * same row rather than minting a new one.
+     */
+    fun applyEditPrefill(
+        transaction: com.subramanya.artha.domain.model.Transaction,
+        source: FundsEndpoint?,
+        destination: FundsEndpoint?,
+        categoryDisplay: String?,
+        subCategoryDisplay: String?,
+    ) {
+        editingTransactionId = transaction.id
+        editingCreatedAt = transaction.createdAt
+        _state.update {
+            it.copy(
+                tab = transaction.type.toTab(),
+                amountText = transaction.amount.toPlainString(),
+                dateTimeMillis = transaction.date,
+                source = source,
+                destination = destination,
+                categoryId = transaction.categoryId,
+                categoryDisplay = categoryDisplay,
+                subCategoryId = transaction.subCategoryId,
+                subCategoryDisplay = subCategoryDisplay,
+                description = transaction.description,
+                paymentApp = transaction.paymentApp,
+                peopleIds = transaction.peopleIds.toSet(),
+                place = transaction.place.orEmpty(),
+                tagIds = transaction.tagIds.toSet(),
+                receiptUri = transaction.receiptUri,
+                notes = transaction.notes.orEmpty(),
+            )
+        }
+    }
+
+    private var editingTransactionId: String? = null
+    private var editingCreatedAt: Long? = null
+
+    private fun com.subramanya.artha.data.entity.enums.TransactionType.toTab(): TransactionTab = when (this) {
+        com.subramanya.artha.data.entity.enums.TransactionType.INCOME -> TransactionTab.INCOME
+        com.subramanya.artha.data.entity.enums.TransactionType.TRANSFER,
+        com.subramanya.artha.data.entity.enums.TransactionType.CARD_PAYMENT -> TransactionTab.TRANSFER
+        else -> TransactionTab.EXPENSE
+    }
+
+    private fun Double.toPlainString(): String =
+        if (this == this.toLong().toDouble()) this.toLong().toString() else this.toString()
+
     // ---------- field setters ----------
 
     fun onTabChanged(tab: TransactionTab) {
@@ -252,8 +304,10 @@ class AddTransactionViewModel(
         _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val now = clock()
+            val id = editingTransactionId ?: UUID.randomUUID().toString()
+            val created = editingCreatedAt ?: now
             val txn = Transaction(
-                id = UUID.randomUUID().toString(),
+                id = id,
                 type = snapshot.effectiveType,
                 amount = snapshot.parsedAmount ?: 0.0,
                 currency = "INR",
@@ -278,7 +332,7 @@ class AddTransactionViewModel(
                 isSplit = false,
                 splitGroupId = null,
                 source = TransactionSource.MANUAL,
-                createdAt = now,
+                createdAt = created,
                 updatedAt = now,
             )
             transactionRepository.save(txn)
