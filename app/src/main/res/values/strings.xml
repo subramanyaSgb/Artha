@@ -266,4 +266,10 @@
     <string name="account_detail_archive_confirm_title">Archive this account?</string>
     <string name="account_detail_archive_confirm_body">Archived accounts are hidden from the main list but their transactions remain. You can restore them from the Archived menu.</string>
     <string name="account_detail_archive_confirm_yes">Archive</string>
+
+    <!-- Account delete -->
+    <string name="account_action_delete">Delete</string>
+    <string name="account_delete_confirm_title">Delete this account?</string>
+    <string name="account_delete_confirm_body">This permanently removes the account. Existing transactions that referenced it are kept for history but their account will appear blank. Use Archive instead if you might want it back.</string>
+    <string name="account_delete_confirm_yes">Delete permanently</string>
 </resources>

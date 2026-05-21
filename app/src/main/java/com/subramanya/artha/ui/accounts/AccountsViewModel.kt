@@ -72,6 +72,15 @@ class AccountsViewModel(
         viewModelScope.launch { accountRepository.restore(account) }
     }
 
+    /**
+     * Hard delete. Existing transactions that reference this account are *not* touched
+     * (there is no FK to cascade through — sourceId/destinationId are polymorphic).
+     * Orphaned transactions remain in the log; their "source" simply won't resolve.
+     */
+    fun delete(account: Account) {
+        viewModelScope.launch { accountRepository.delete(account) }
+    }
+
     // ---------- reorder ----------
 
     /**

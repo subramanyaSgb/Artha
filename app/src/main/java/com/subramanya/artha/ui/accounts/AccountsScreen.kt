@@ -18,9 +18,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -74,6 +76,9 @@ fun AccountsScreen(
 
     /** Null = sheet closed. The Account value or sentinel decides Add vs Edit mode. */
     var formMode: FormMode? by remember { mutableStateOf(null) }
+
+    /** Non-null when a delete confirmation dialog is pending for this account. */
+    var pendingDelete: Account? by remember { mutableStateOf(null) }
 
     Surface(modifier = modifier.fillMaxSize()) {
         Scaffold(
@@ -167,11 +172,13 @@ fun AccountsScreen(
                                 onMoveDown = { vm.moveDown(row.account) },
                                 onEdit = { formMode = FormMode.Edit(row.account) },
                                 onArchive = { vm.archive(row.account) },
+                                onDelete = { pendingDelete = row.account },
                             )
                         } else {
                             ArchivedAccountRow(
                                 row = row,
                                 onRestore = { vm.restore(row.account) },
+                                onDelete = { pendingDelete = row.account },
                             )
                         }
                     }
@@ -185,6 +192,28 @@ fun AccountsScreen(
         AccountFormSheet(
             editing = (mode as? FormMode.Edit)?.account,
             onDismiss = { formMode = null },
+        )
+    }
+
+    val toDelete = pendingDelete
+    if (toDelete != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text(stringResource(R.string.account_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.account_delete_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.delete(toDelete)
+                    pendingDelete = null
+                }) {
+                    Text(stringResource(R.string.account_delete_confirm_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
         )
     }
 }
@@ -209,6 +238,7 @@ private fun ActiveAccountRow(
     onMoveDown: () -> Unit,
     onEdit: () -> Unit,
     onArchive: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     ListItem(
@@ -264,6 +294,22 @@ private fun ActiveAccountRow(
                                 onClick = { menuOpen = false; onArchive() },
                                 leadingIcon = { Icon(Icons.Filled.Archive, contentDescription = null) },
                             )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.account_action_delete),
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                onClick = { menuOpen = false; onDelete() },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Filled.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                            )
                         }
                     }
                 }
@@ -276,7 +322,9 @@ private fun ActiveAccountRow(
 private fun ArchivedAccountRow(
     row: AccountWithBalance,
     onRestore: () -> Unit,
+    onDelete: () -> Unit,
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
     ListItem(
         modifier = Modifier.fillMaxWidth(),
         leadingContent = { AccountAvatar(color = row.account.color) },
@@ -292,12 +340,37 @@ private fun ArchivedAccountRow(
             }
         },
         trailingContent = {
-            TextButton(onClick = onRestore) {
-                Icon(Icons.Filled.Unarchive, contentDescription = null)
-                Text(
-                    text = stringResource(R.string.accounts_action_restore),
-                    modifier = Modifier.padding(start = 6.dp),
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onRestore) {
+                    Icon(Icons.Filled.Unarchive, contentDescription = null)
+                    Text(
+                        text = stringResource(R.string.accounts_action_restore),
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+                }
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = null)
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.account_action_delete),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            onClick = { menuOpen = false; onDelete() },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                        )
+                    }
+                }
             }
         },
     )

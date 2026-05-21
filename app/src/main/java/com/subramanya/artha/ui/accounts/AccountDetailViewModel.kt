@@ -38,6 +38,7 @@ data class AccountDetailUiState(
     /** End-of-day balance for the last [CHART_DAYS] days, oldest → newest. */
     val chartPoints: List<Double> = emptyList(),
     val showArchiveConfirm: Boolean = false,
+    val showDeleteConfirm: Boolean = false,
 )
 
 class AccountDetailViewModel(
@@ -49,13 +50,20 @@ class AccountDetailViewModel(
 ) : ViewModel() {
 
     private val showArchiveConfirm = MutableStateFlow(false)
+    private val showDeleteConfirm = MutableStateFlow(false)
 
     val state: StateFlow<AccountDetailUiState> = combine(
         accountRepository.observeById(accountId),
         transactionRepository.observeForAccountOrCard(accountId),
         showArchiveConfirm.asStateFlow(),
-    ) { account, transactions, confirm ->
-        if (account == null) return@combine AccountDetailUiState(showArchiveConfirm = confirm)
+        showDeleteConfirm.asStateFlow(),
+    ) { account, transactions, archiveConfirm, deleteConfirm ->
+        if (account == null) {
+            return@combine AccountDetailUiState(
+                showArchiveConfirm = archiveConfirm,
+                showDeleteConfirm = deleteConfirm,
+            )
+        }
         val entities = transactions.map { it.toEntity() }
         val balance = BalanceCalculator.computeAccountBalance(
             openingBalance = account.openingBalance,
@@ -71,7 +79,8 @@ class AccountDetailViewModel(
             totalOut = outSum,
             transactions = transactions,
             chartPoints = chart,
-            showArchiveConfirm = confirm,
+            showArchiveConfirm = archiveConfirm,
+            showDeleteConfirm = deleteConfirm,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountDetailUiState())
 
@@ -95,6 +104,21 @@ class AccountDetailViewModel(
         viewModelScope.launch {
             accountRepository.restore(current)
             onRestored()
+        }
+    }
+
+    fun requestDelete() {
+        if (state.value.account != null) showDeleteConfirm.update { true }
+    }
+
+    fun dismissDeleteConfirm() = showDeleteConfirm.update { false }
+
+    fun confirmDelete(onDeleted: () -> Unit) {
+        val current = state.value.account ?: return
+        viewModelScope.launch {
+            accountRepository.delete(current)
+            showDeleteConfirm.update { false }
+            onDeleted()
         }
     }
 

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Unarchive
@@ -116,6 +117,13 @@ fun AccountDetailScreen(
                                     )
                                 }
                             }
+                            IconButton(onClick = vm::requestDelete) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = stringResource(R.string.account_action_delete),
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            }
                         }
                     },
                 )
@@ -146,6 +154,27 @@ fun AccountDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = vm::dismissArchiveConfirm) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+
+    if (state.showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = vm::dismissDeleteConfirm,
+            title = { Text(stringResource(R.string.account_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.account_delete_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = { vm.confirmDelete(onDeleted = onBack) }) {
+                    Text(
+                        text = stringResource(R.string.account_delete_confirm_yes),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = vm::dismissDeleteConfirm) {
                     Text(stringResource(R.string.common_cancel))
                 }
             },
