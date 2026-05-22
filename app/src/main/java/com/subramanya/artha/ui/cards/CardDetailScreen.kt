@@ -139,7 +139,9 @@ fun CardDetailScreen(
                 },
             )
             if (card == null) {
-                Box(modifier = Modifier.fillMaxSize())
+                com.subramanya.artha.ui.common.LoadingPlaceholder(
+                    modifier = Modifier.fillMaxSize(),
+                )
             } else {
                 CardDetailBody(
                     card = card,

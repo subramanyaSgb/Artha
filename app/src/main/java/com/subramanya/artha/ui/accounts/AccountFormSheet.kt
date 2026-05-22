@@ -117,6 +117,8 @@ fun AccountFormSheet(
                     onValueChange = { name = it },
                     placeholder = "HDFC Savings",
                     isError = showErrors && name.isBlank(),
+                    supportingText = if (showErrors && name.isBlank())
+                        stringResource(R.string.account_form_validation_name) else null,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Next,
@@ -152,6 +154,8 @@ fun AccountFormSheet(
                     onValueChange = { v -> last4 = v.filter { it.isDigit() }.take(4) },
                     placeholder = "7421",
                     isError = showErrors && !last4Valid,
+                    supportingText = if (showErrors && !last4Valid)
+                        stringResource(R.string.account_form_validation_last4) else null,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number,
                         imeAction = ImeAction.Next,
@@ -170,6 +174,8 @@ fun AccountFormSheet(
                     placeholder = "0",
                     suffix = "₹",
                     isError = showErrors && parsedBalance == null,
+                    supportingText = if (showErrors && parsedBalance == null)
+                        stringResource(R.string.account_form_validation_balance) else null,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Done,

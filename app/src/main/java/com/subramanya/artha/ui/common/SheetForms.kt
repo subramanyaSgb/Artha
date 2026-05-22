@@ -271,13 +271,17 @@ fun ArthaTextField(
     suffix: String? = null,
     singleLine: Boolean = true,
     isError: Boolean = false,
+    /** Optional helper text shown below the field. When non-null and isError
+     *  is true, it renders in Danger; otherwise in Text3. */
+    supportingText: String? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     large: Boolean = false,
 ) {
     val height = if (large) 56.dp else 48.dp
     val border = if (isError) com.subramanya.artha.ui.theme.Danger else Line1
+    Column(modifier = modifier.fillMaxWidth()) {
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .height(height)
             .clip(RoundedCornerShape(10.dp))
@@ -328,6 +332,16 @@ fun ArthaTextField(
                     color = Text3,
                     fontFeatureSettings = "tnum, lnum",
                 ),
+            )
+        }
+    }
+        if (supportingText != null) {
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = supportingText,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                color = if (isError) com.subramanya.artha.ui.theme.Danger else Text3,
+                modifier = Modifier.padding(start = 4.dp),
             )
         }
     }

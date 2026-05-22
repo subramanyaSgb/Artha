@@ -128,8 +128,13 @@ fun InvestmentDetailScreen(
                     }
                 },
             )
+            if (inv == null) {
+                com.subramanya.artha.ui.common.LoadingPlaceholder(
+                    modifier = Modifier.fillMaxSize(),
+                )
+                return@Column
+            }
             Column(modifier = Modifier.fillMaxSize()) {
-                if (inv == null) return@Column
                 HeroBlock(
                     investment = inv,
                     invested = state.investedAmount,

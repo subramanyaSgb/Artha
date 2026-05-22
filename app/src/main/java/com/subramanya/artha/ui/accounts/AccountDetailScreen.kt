@@ -129,7 +129,9 @@ fun AccountDetailScreen(
                 },
             )
             if (account == null) {
-                Box(modifier = Modifier.fillMaxSize()) // loading; brief
+                com.subramanya.artha.ui.common.LoadingPlaceholder(
+                    modifier = Modifier.fillMaxSize(),
+                )
             } else {
                 AccountDetailBody(
                     account = account,

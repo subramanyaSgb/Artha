@@ -386,6 +386,29 @@ fun ArthaSheetHandle() {
     }
 }
 
+/**
+ * Loading placeholder used by detail screens while the underlying entity is
+ * still being resolved from Room. Replaces the bare blank `Box(fillMaxSize())`
+ * that gave users nothing to look at on a slow open. Centred, dim, deliberately
+ * understated — the data usually arrives within ~200 ms so this should rarely
+ * be on screen for long.
+ */
+@Composable
+fun LoadingPlaceholder(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.fillMaxWidth().padding(48.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.material3.CircularProgressIndicator(
+            color = Teal300,
+            strokeWidth = 2.dp,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
 @Suppress("unused")
 private fun previewKeep() {
     // Keep an unused reference so Teal700 doesn't get flagged as unused import.
