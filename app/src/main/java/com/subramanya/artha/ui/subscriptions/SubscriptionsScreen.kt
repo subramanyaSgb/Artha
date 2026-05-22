@@ -1,19 +1,24 @@
 package com.subramanya.artha.ui.subscriptions
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,11 +30,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -47,12 +53,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
@@ -61,6 +70,20 @@ import com.subramanya.artha.data.entity.enums.SubscriptionStatus
 import com.subramanya.artha.domain.model.Subscription
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
+import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.IbmPlexMono
+import com.subramanya.artha.ui.theme.InstrumentSerif
+import com.subramanya.artha.ui.theme.Line1
+import com.subramanya.artha.ui.theme.LineTeal
+import com.subramanya.artha.ui.theme.Surface1
+import com.subramanya.artha.ui.theme.Surface2
+import com.subramanya.artha.ui.theme.Surface4
+import com.subramanya.artha.ui.theme.Teal300
+import com.subramanya.artha.ui.theme.Teal500
+import com.subramanya.artha.ui.theme.Teal700
+import com.subramanya.artha.ui.theme.Text1
+import com.subramanya.artha.ui.theme.Text2
+import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.coroutines.launch
@@ -84,10 +107,16 @@ fun SubscriptionsScreen(
     val monthlyAverage = app.subscriptionRepository.annualisedMonthlyAverage(active)
     val yearly = monthlyAverage * 12.0
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
         Scaffold(
+            containerColor = Surface1,
             topBar = {
                 TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Surface1,
+                        titleContentColor = Text1,
+                        navigationIconContentColor = Text2,
+                    ),
                     title = { Text(stringResource(R.string.subscriptions_title)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -97,53 +126,62 @@ fun SubscriptionsScreen(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { formMode = FormMode.Add }) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.subscriptions_fab_add))
-                }
+                ExtendedFloatingActionButton(
+                    onClick = { formMode = FormMode.Add },
+                    containerColor = Teal700,
+                    contentColor = Text1,
+                    shape = RoundedCornerShape(16.dp),
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.subscriptions_fab_add)) },
+                )
             },
         ) { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.padding(padding).fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                item {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.subscriptions_eyebrow).uppercase(),
+                            style = EyebrowStyle,
+                            color = Teal300,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.subscriptions_title),
+                            style = TextStyle(
+                                fontFamily = InstrumentSerif,
+                                fontSize = 26.sp,
+                                lineHeight = 30.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Text1,
+                            ),
+                        )
+                    }
+                }
                 if (active.isNotEmpty()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Text(
-                                text = stringResource(R.string.subscriptions_hero_monthly),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                            Text(
-                                text = IndianNumberFormat.format(monthlyAverage),
-                                style = ArthaAmountStyles.title,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                            Text(
-                                text = stringResource(R.string.subscriptions_hero_yearly,
-                                    IndianNumberFormat.format(yearly)),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
+                    item {
+                        SubscriptionsHero(monthly = monthlyAverage, yearly = yearly)
                     }
                 }
                 if (all.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        EmptyState(
-                            icon = Icons.Filled.Subscriptions,
-                            title = stringResource(R.string.subscriptions_empty),
-                        )
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(all, key = { it.id }) { sub ->
-                            SubscriptionRow(
-                                sub = sub,
-                                onTap = { formMode = FormMode.Edit(sub) },
-                                onDelete = { pendingDelete = sub },
+                    item {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            EmptyState(
+                                icon = Icons.Filled.Subscriptions,
+                                title = stringResource(R.string.subscriptions_empty),
                             )
                         }
+                    }
+                } else {
+                    items(all, key = { it.id }) { sub ->
+                        SubscriptionRow(
+                            sub = sub,
+                            onTap = { formMode = FormMode.Edit(sub) },
+                            onDelete = { pendingDelete = sub },
+                        )
                     }
                 }
             }
@@ -182,36 +220,131 @@ private sealed interface FormMode {
     data class Edit(val subscription: Subscription) : FormMode
 }
 
+/** HANDOFF §3.7 — "Monthly outgo (annualised)" hero card with editorial number. */
+@Composable
+private fun SubscriptionsHero(monthly: Double, yearly: Double) {
+    Surface(
+        color = Surface2,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, LineTeal, RoundedCornerShape(18.dp)),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
+            Text(
+                text = stringResource(R.string.subscriptions_hero_monthly).uppercase(),
+                style = EyebrowStyle,
+                color = Text3,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = IndianNumberFormat.format(monthly),
+                style = TextStyle(
+                    fontFamily = InstrumentSerif,
+                    fontSize = 40.sp,
+                    lineHeight = 46.sp,
+                    color = Text1,
+                    fontFeatureSettings = "tnum, lnum",
+                ),
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.subscriptions_hero_yearly, IndianNumberFormat.format(yearly)),
+                style = TextStyle(
+                    fontFamily = IbmPlexMono,
+                    fontSize = 12.sp,
+                    color = Text3,
+                    fontFeatureSettings = "tnum, lnum",
+                ),
+            )
+        }
+    }
+}
+
 @Composable
 private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -> Unit) {
-    ListItem(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onTap),
-        headlineContent = { Text(sub.name) },
-        supportingContent = {
-            val pieces = buildList {
-                sub.provider?.let { add(it) }
-                add(sub.frequency.label())
-                add(stringResource(R.string.subscriptions_row_due, DateFormatter.longDate(sub.nextDueDate)))
-                if (sub.status != SubscriptionStatus.ACTIVE) add(sub.status.name)
-            }
-            Text(
-                text = pieces.joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+    val isPaused = sub.status != SubscriptionStatus.ACTIVE
+    Surface(
+        color = Surface2,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                1.dp,
+                if (isPaused) Line1 else LineTeal.copy(alpha = 0.4f),
+                RoundedCornerShape(16.dp),
             )
-        },
-        trailingContent = {
+            .clickable(onClick = onTap),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = IndianNumberFormat.format(sub.amount),
-                    style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Surface4),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Subscriptions,
+                        contentDescription = null,
+                        tint = if (isPaused) Text3 else Teal300,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Spacer(Modifier.size(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = sub.name,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = if (isPaused) Text2 else Text1,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    val pieces = buildList {
+                        sub.provider?.takeIf { it.isNotBlank() }?.let { add(it) }
+                        add(sub.frequency.label())
+                        add(stringResource(R.string.subscriptions_row_due, DateFormatter.longDate(sub.nextDueDate)))
+                    }
+                    Text(
+                        text = pieces.joinToString(" · "),
+                        style = TextStyle(
+                            fontFamily = IbmPlexMono,
+                            fontSize = 11.sp,
+                            color = Text3,
+                            fontFeatureSettings = "tnum, lnum",
+                        ),
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = IndianNumberFormat.format(sub.amount),
+                        style = TextStyle(
+                            fontFamily = InstrumentSerif,
+                            fontSize = 18.sp,
+                            color = if (isPaused) Text3 else Text1,
+                            fontFeatureSettings = "tnum, lnum",
+                        ),
+                    )
+                    if (isPaused) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = stringResource(R.string.subscriptions_paused).uppercase(),
+                            style = EyebrowStyle,
+                            color = Text3,
+                        )
+                    }
+                }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = null,
+                        tint = Text3,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable

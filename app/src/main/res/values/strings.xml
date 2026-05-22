@@ -861,6 +861,9 @@
     <string name="subscriptions_delete_confirm_title">Delete this subscription?</string>
     <string name="subscriptions_delete_confirm_body">Removes the subscription. Past transactions are kept.</string>
     <string name="subscriptions_delete_confirm_yes">Delete</string>
+    <string name="subscriptions_eyebrow">Renewals</string>
+    <string name="subscriptions_per_month">/mo</string>
+    <string name="subscriptions_paused">Paused</string>
 
     <!-- Phase 4: Recurring -->
     <string name="recurring_title">Recurring</string>
