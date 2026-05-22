@@ -160,6 +160,12 @@ private fun MainApp(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        // Insets are handled by each screen's own chrome — ArthaTopBar uses
+        // statusBarsPadding, ArthaBottomBar uses navigationBarsPadding, and
+        // sub-screens with their own Scaffold/TopAppBar inset there. Setting
+        // this to WindowInsets(0) avoids double-padding when a sub-screen's
+        // inner Scaffold inserts its own status-bar inset on top of ours.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         topBar = { if (isBottomNavRoute) ArthaTopBar(userName = userName) },
         bottomBar = {
             ArthaBottomBar(

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -53,6 +54,9 @@ fun ArthaTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // Edge-to-edge: keep the greeting bar clear of the system status bar
+            // (clock + signal + battery) instead of letting it overlap.
+            .statusBarsPadding()
             .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
