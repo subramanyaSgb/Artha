@@ -1,5 +1,8 @@
 package com.subramanya.artha.ui.budgets
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,12 +11,15 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,11 +52,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
@@ -60,6 +71,17 @@ import com.subramanya.artha.domain.model.Budget
 import com.subramanya.artha.domain.model.BudgetWithProgress
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
+import com.subramanya.artha.ui.theme.Expense
+import com.subramanya.artha.ui.theme.IbmPlexMono
+import com.subramanya.artha.ui.theme.Income
+import com.subramanya.artha.ui.theme.Line1
+import com.subramanya.artha.ui.theme.LineTeal
+import com.subramanya.artha.ui.theme.Ochre
+import com.subramanya.artha.ui.theme.Surface2
+import com.subramanya.artha.ui.theme.Surface4
+import com.subramanya.artha.ui.theme.Teal300
+import com.subramanya.artha.ui.theme.Text1
+import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -154,48 +176,178 @@ private sealed interface FormMode {
     data class Edit(val budget: Budget) : FormMode
 }
 
+/**
+ * HANDOFF §3.7 — Budget row: Surface2 card with hairline border, header row
+ * (36dp Surface4 icon + name + scope/period meta + quiet delete), then the
+ * stripe-overflow progress bar. When `spent > cap` the bar fills 100% and
+ * an additional diagonally-striped extension shows the overage amount.
+ */
 @Composable
 private fun BudgetRow(
     row: BudgetWithProgress,
     onTap: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val ratio = if (row.budget.amount == 0.0) 0f else (row.spent / row.budget.amount).toFloat()
-    val color = when {
-        ratio >= 1.0f -> MaterialTheme.colorScheme.error
-        ratio >= (row.budget.alertThresholdPercent / 100f) -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
+    val cap = row.budget.amount
+    val spent = row.spent
+    val ratio = if (cap <= 0.0) 0f else (spent / cap).toFloat()
+    val overspent = ratio > 1f
+    val warnAt = (row.budget.alertThresholdPercent / 100f).coerceIn(0f, 1f)
+    val barColor = when {
+        overspent -> com.subramanya.artha.ui.theme.Expense
+        ratio >= warnAt -> com.subramanya.artha.ui.theme.Ochre
+        else -> com.subramanya.artha.ui.theme.Income
     }
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clickable(onClick = onTap),
+    Surface(
+        color = Surface2,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .border(
+                width = 1.dp,
+                color = if (overspent) LineTeal else Line1,
+                shape = RoundedCornerShape(16.dp),
+            )
+            .clickable(onClick = onTap),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Surface4),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = Teal300,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Spacer(Modifier.size(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(row.budget.name, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = row.budget.name,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = Text1,
+                    )
+                    Spacer(Modifier.height(2.dp))
                     Text(
                         text = row.budget.scope.label() + " · " + row.budget.period.label() +
                             " · " + stringResource(R.string.budgets_days_left, row.daysRemainingInPeriod),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontFeatureSettings = "tnum, lnum",
+                        ),
+                        color = Text3,
                     )
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = null,
+                        tint = Text3,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { ratio.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth(),
-                color = color,
+            Spacer(Modifier.height(10.dp))
+            StripeOverflowBar(
+                fraction = ratio,
+                baseColor = barColor,
+                overflowColor = Expense,
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = IndianNumberFormat.format(row.spent) + " / " + IndianNumberFormat.format(row.budget.amount),
-                style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.Medium),
-                color = color,
+            Spacer(Modifier.height(6.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = IndianNumberFormat.format(spent) + " / " + IndianNumberFormat.format(cap),
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 12.sp,
+                        color = Text1,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
+                Text(
+                    text = (ratio * 100).toInt().toString() + "%",
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 12.sp,
+                        color = barColor,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * HANDOFF §3.7 Budgets — progress bar with diagonal stripe overflow.
+ * - fraction <= 1: a single filled bar of [baseColor] up to `fraction`
+ * - fraction > 1: bar fills 100% in [baseColor], plus a diagonally striped
+ *   extension of width `(fraction - 1)` clamped to <= 1 in [overflowColor]
+ *   that visually overflows the cap.
+ *
+ * The bar is implemented as a Canvas so we can paint the diagonal stripes
+ * explicitly without resorting to a tiled BrushPaint hack.
+ */
+@Composable
+private fun StripeOverflowBar(
+    fraction: Float,
+    baseColor: Color,
+    overflowColor: Color,
+) {
+    val barHeightDp = 10.dp
+    val cornerDp = 999.dp
+    val capped = fraction.coerceAtLeast(0f)
+    val baseFraction = capped.coerceAtMost(1f)
+    val overflowFraction = (capped - 1f).coerceAtLeast(0f).coerceAtMost(1f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(barHeightDp)
+            .clip(RoundedCornerShape(cornerDp))
+            .background(Surface4),
+    ) {
+        // Filled base segment.
+        if (baseFraction > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(baseFraction)
+                    .background(baseColor),
             )
+        }
+        // Striped overflow segment. We compute its width inside the *remaining*
+        // space after the base so the overall bar still represents 100% of cap+overflow.
+        if (overflowFraction > 0f) {
+            val remainingFraction = (1f - baseFraction).coerceAtLeast(0.01f)
+            Canvas(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(overflowFraction / remainingFraction),
+            ) {
+                val w = size.width
+                val h = size.height
+                drawRect(color = overflowColor.copy(alpha = 0.35f))
+                val stripeSpacing = 8.dp.toPx()
+                val stripeWidth = 2.dp.toPx()
+                var x = -h
+                while (x < w + h) {
+                    drawLine(
+                        color = overflowColor,
+                        start = Offset(x, 0f),
+                        end = Offset(x + h, h),
+                        strokeWidth = stripeWidth,
+                    )
+                    x += stripeSpacing
+                }
+            }
         }
     }
 }

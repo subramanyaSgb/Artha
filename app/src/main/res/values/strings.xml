@@ -708,6 +708,12 @@
     <string name="rules_empty">No rules yet. The 10 pre-seeded rules from the manual should appear here automatically.</string>
     <string name="rules_row_subtitle">%1$d condition(s), %2$d action(s)</string>
     <string name="rules_row_system_tag">system</string>
+    <string name="rules_eyebrow">If this · then that</string>
+    <string name="rules_when">When</string>
+    <string name="rules_then">Then</string>
+    <string name="rules_logic_all">All match</string>
+    <string name="rules_logic_any">Any match</string>
+    <string name="rules_no_conditions">Always</string>
     <string name="rules_delete_confirm_title">Delete this rule?</string>
     <string name="rules_delete_confirm_body">Removes the rule. Already-saved transactions are unaffected.</string>
     <string name="rules_delete_system_warning">This is a system rule. Deleting it means it won\'t come back unless you reset all data. Toggling it off is usually safer.</string>
