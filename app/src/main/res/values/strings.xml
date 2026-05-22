@@ -450,6 +450,14 @@
     <string name="about_version">Version</string>
     <string name="about_built_with">Built with Claude Code</string>
     <string name="about_back">Back</string>
+    <string name="about_eyebrow">Philosophy</string>
+    <string name="about_devanagari">अर्थ</string>
+    <string name="about_artha_caption">अर्थ · artha</string>
+    <string name="about_one_of_four">one of the four puruṣārthas</string>
+    <string name="about_essay">Artha is wealth — the means, not the end. This is a personal ledger built for clarity over cleverness: see where your money is, where it goes, and whether the next decision serves the life you want.</string>
+    <string name="about_credit_title">Crafted by</string>
+    <string name="about_credit_value">Subramanya G B</string>
+    <string name="about_version_eyebrow">Version</string>
 
     <!-- Transaction Detail -->
     <string name="txn_detail_title">Transaction</string>
