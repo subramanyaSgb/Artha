@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.investments
+﻿package com.subramanya.artha.ui.investments
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -119,6 +119,7 @@ fun InvestmentFormSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = com.subramanya.artha.ui.theme.Surface3,
+        contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
         Column(

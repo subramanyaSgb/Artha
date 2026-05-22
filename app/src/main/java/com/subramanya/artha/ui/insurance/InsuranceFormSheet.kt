@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.insurance
+﻿package com.subramanya.artha.ui.insurance
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -124,6 +124,7 @@ fun InsuranceFormSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = com.subramanya.artha.ui.theme.Surface3,
+        contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
         Column(

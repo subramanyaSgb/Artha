@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.people
+﻿package com.subramanya.artha.ui.people
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -334,6 +334,7 @@ private fun PersonFormSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = com.subramanya.artha.ui.theme.Surface3,
+        contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {

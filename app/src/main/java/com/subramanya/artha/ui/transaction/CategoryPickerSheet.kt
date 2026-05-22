@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.transaction
+﻿package com.subramanya.artha.ui.transaction
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -53,6 +53,7 @@ fun CategoryPickerSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = com.subramanya.artha.ui.theme.Surface3,
+        contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
         Column(

@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.ai
+﻿package com.subramanya.artha.ui.ai
 
 import android.app.Activity
 import android.content.Intent
@@ -134,6 +134,7 @@ fun AiQuickEntrySheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = Surface3,
+        contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {
         Column(

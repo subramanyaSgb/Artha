@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.transaction
+﻿package com.subramanya.artha.ui.transaction
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -141,6 +141,7 @@ fun AddTransactionSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = Surface3,
+        contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {
         SheetBody(

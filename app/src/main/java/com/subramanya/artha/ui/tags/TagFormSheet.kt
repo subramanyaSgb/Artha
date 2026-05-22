@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.tags
+﻿package com.subramanya.artha.ui.tags
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,6 +55,7 @@ fun TagFormSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = com.subramanya.artha.ui.theme.Surface3,
+        contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
         Column(

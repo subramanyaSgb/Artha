@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.more
+﻿package com.subramanya.artha.ui.more
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -134,6 +134,7 @@ fun MoreSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = Surface3,
+        contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {
         Column(
