@@ -1,14 +1,22 @@
 package com.subramanya.artha.ui.people
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,11 +26,12 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -40,11 +49,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
@@ -54,6 +66,21 @@ import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.Person
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
+import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.Expense
+import com.subramanya.artha.ui.theme.IbmPlexMono
+import com.subramanya.artha.ui.theme.Income
+import com.subramanya.artha.ui.theme.InstrumentSerif
+import com.subramanya.artha.ui.theme.Line1
+import com.subramanya.artha.ui.theme.Surface1
+import com.subramanya.artha.ui.theme.Surface2
+import com.subramanya.artha.ui.theme.Surface4
+import com.subramanya.artha.ui.theme.Teal300
+import com.subramanya.artha.ui.theme.Teal700
+import com.subramanya.artha.ui.theme.Teal900
+import com.subramanya.artha.ui.theme.Text1
+import com.subramanya.artha.ui.theme.Text2
+import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -73,10 +100,16 @@ fun PeopleScreen(
     var formMode: PersonFormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Person? by remember { mutableStateOf(null) }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
         Scaffold(
+            containerColor = Surface1,
             topBar = {
                 TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Surface1,
+                        titleContentColor = Text1,
+                        navigationIconContentColor = Text2,
+                    ),
                     title = { Text(stringResource(R.string.people_title)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -86,20 +119,51 @@ fun PeopleScreen(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { formMode = PersonFormMode.Add }) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.people_fab_add))
-                }
+                ExtendedFloatingActionButton(
+                    onClick = { formMode = PersonFormMode.Add },
+                    containerColor = Teal700,
+                    contentColor = Text1,
+                    shape = RoundedCornerShape(16.dp),
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.people_fab_add)) },
+                )
             },
         ) { padding ->
-            if (people.isEmpty()) {
-                Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                    EmptyState(
-                        icon = Icons.Filled.Group,
-                        title = stringResource(R.string.people_empty),
-                    )
+            LazyColumn(
+                modifier = Modifier.padding(padding).fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                item {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.people_eyebrow).uppercase(),
+                            style = EyebrowStyle,
+                            color = Teal300,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.people_title),
+                            style = TextStyle(
+                                fontFamily = InstrumentSerif,
+                                fontSize = 26.sp,
+                                lineHeight = 30.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Text1,
+                            ),
+                        )
+                    }
                 }
-            } else {
-                LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
+                if (people.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            EmptyState(
+                                icon = Icons.Filled.Group,
+                                title = stringResource(R.string.people_empty),
+                            )
+                        }
+                    }
+                } else {
                     items(people, key = { it.id }) { person ->
                         val net = computeNetBalance(person, transactions)
                         PersonRow(
@@ -158,31 +222,87 @@ private fun PersonRow(
     onDelete: () -> Unit,
 ) {
     val positive = netBalance >= 0.0
-    ListItem(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onEdit),
-        headlineContent = { Text(person.name) },
-        supportingContent = {
-            Text(
-                text = person.relation.label() + (person.contact?.let { " · $it" } ?: "") + " · " +
-                    statusLabel(netBalance),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+    val amountColor = when {
+        netBalance == 0.0 -> Text3
+        positive -> Income
+        else -> Expense
+    }
+    Surface(
+        color = Surface2,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Line1, RoundedCornerShape(16.dp))
+            .clickable(onClick = onEdit),
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PersonAvatar(name = person.name)
+            Spacer(Modifier.size(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = IndianNumberFormat.format(kotlin.math.abs(netBalance)),
-                    style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (positive) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.error,
+                    text = person.name,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = Text1,
                 )
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                }
+                Spacer(Modifier.height(2.dp))
+                val meta = buildList {
+                    add(person.relation.label())
+                    person.contact?.takeIf { it.isNotBlank() }?.let { add(it) }
+                    add(statusLabel(netBalance))
+                }.joinToString(" · ")
+                Text(
+                    text = meta,
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 11.sp,
+                        color = Text3,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
             }
-        },
-    )
+            Text(
+                text = IndianNumberFormat.format(kotlin.math.abs(netBalance)),
+                style = TextStyle(
+                    fontFamily = InstrumentSerif,
+                    fontSize = 18.sp,
+                    color = amountColor,
+                    fontFeatureSettings = "tnum, lnum",
+                ),
+            )
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = null,
+                    tint = Text3,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Small monogram tile derived from the person's name initials. */
+@Composable
+private fun PersonAvatar(name: String) {
+    val initial = name.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Teal900),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = initial,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+            ),
+            color = Teal300,
+        )
+    }
 }
 
 /**

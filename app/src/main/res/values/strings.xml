@@ -628,6 +628,7 @@
 
     <!-- Insurance screen -->
     <string name="insurance_title">Insurance</string>
+    <string name="insurance_eyebrow">Cover</string>
     <string name="insurance_fab_add">Add policy</string>
     <string name="insurance_empty">No policies yet. Tap + to add one.</string>
     <string name="insurance_hero_annual_premium">Premiums per year</string>
@@ -791,6 +792,7 @@
 
     <!-- Phase 4: People screen -->
     <string name="people_title">People</string>
+    <string name="people_eyebrow">Lending &amp; shared</string>
     <string name="people_fab_add">Add person</string>
     <string name="people_empty">No people yet. Add friends, family, or business contacts to track who owes whom.</string>
     <string name="people_settled">Settled</string>
