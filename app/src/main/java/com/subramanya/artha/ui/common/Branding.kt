@@ -2,9 +2,19 @@ package com.subramanya.artha.ui.common
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -199,6 +209,50 @@ fun Sparkline(
         }
         // End dot
         drawCircle(color = color, radius = 2.dp.toPx(), center = pts.last())
+    }
+}
+
+/**
+ * Editorial header for sub-routes (Investments, Insurance, etc.) — back arrow
+ * on the left, eyebrow + Instrument-Serif title in the centre, optional
+ * trailing slot for an overflow / action icon.
+ */
+@Composable
+fun EditorialSubScreenHeader(
+    eyebrow: String,
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailing: @Composable RowScope.() -> Unit = {},
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, end = 12.dp, top = 4.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start,
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = eyebrow.uppercase(), style = EyebrowStyle, color = com.subramanya.artha.ui.theme.Text3)
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = TextStyle(
+                    fontFamily = com.subramanya.artha.ui.theme.InstrumentSerif,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 26.sp,
+                    lineHeight = 30.sp,
+                ),
+            )
+        }
+        trailing()
     }
 }
 

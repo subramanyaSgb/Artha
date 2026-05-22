@@ -60,6 +60,7 @@ import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.InvestmentType
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.domain.model.InvestmentWithMetrics
+import com.subramanya.artha.ui.common.EditorialSubScreenHeader
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.utils.IndianNumberFormat
@@ -86,20 +87,23 @@ fun InvestmentsScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Investment? by remember { mutableStateOf(null) }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.investments_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.about_back))
-                        }
-                    },
+                EditorialSubScreenHeader(
+                    eyebrow = "STOCKS, FUNDS, FDS",
+                    title = stringResource(R.string.investments_title),
+                    onBack = onBack,
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { formMode = FormMode.Add }) {
+                FloatingActionButton(
+                    onClick = { formMode = FormMode.Add },
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                    containerColor = com.subramanya.artha.ui.theme.Teal700,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
+                ) {
                     Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.investments_fab_add))
                 }
             },
