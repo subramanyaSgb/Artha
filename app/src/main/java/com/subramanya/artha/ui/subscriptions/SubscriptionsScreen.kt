@@ -235,7 +235,12 @@ private fun SubscriptionFormSheet(
     var freq by remember(editing) { mutableStateOf(editing?.frequency ?: SubscriptionFrequency.MONTHLY) }
     var status by remember(editing) { mutableStateOf(editing?.status ?: SubscriptionStatus.ACTIVE) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
+    ) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Text(
                 text = stringResource(

@@ -49,7 +49,12 @@ fun CategoryPickerSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by remember { mutableStateOf("") }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

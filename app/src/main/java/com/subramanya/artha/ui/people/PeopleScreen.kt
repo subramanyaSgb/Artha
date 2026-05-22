@@ -238,7 +238,12 @@ private fun PersonFormSheet(
     var relation by remember(editing) { mutableStateOf(editing?.relation ?: PersonRelation.FRIEND) }
     var contact by remember(editing) { mutableStateOf(editing?.contact.orEmpty()) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
+    ) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Text(
                 text = stringResource(

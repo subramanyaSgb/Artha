@@ -83,7 +83,12 @@ fun AccountFormSheet(
     val last4Valid = last4.isEmpty() || (last4.length == 4 && last4.all { it.isDigit() })
     val isValid = name.isNotBlank() && parsedBalance != null && last4Valid
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

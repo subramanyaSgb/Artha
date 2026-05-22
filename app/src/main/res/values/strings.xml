@@ -526,6 +526,15 @@
     <string name="ai_quick_entry_preview_payment_app">Payment app</string>
     <string name="ai_quick_entry_preview_date">Date</string>
     <string name="ai_quick_entry_preview_place">Place</string>
+    <string name="ai_quick_entry_eyebrow">AI Assist</string>
+    <string name="ai_quick_entry_input_placeholder">Tip ₹150 dosa at MTR near temple…</string>
+    <string name="ai_quick_entry_examples_label">Try</string>
+    <string name="ai_quick_entry_example_1">₹150 dosa at MTR</string>
+    <string name="ai_quick_entry_example_2">Spent ₹30 on tea via GPay</string>
+    <string name="ai_quick_entry_example_3">Salary credited ₹85,000</string>
+    <string name="ai_quick_entry_parsing_label">Reading your entry…</string>
+    <string name="ai_quick_entry_cancel">Cancel</string>
+    <string name="ai_quick_entry_save_confirm">Save transaction</string>
 
     <!-- Investments screen -->
     <string name="investments_title">Investments</string>

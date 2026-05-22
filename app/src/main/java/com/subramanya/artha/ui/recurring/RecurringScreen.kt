@@ -197,7 +197,12 @@ private fun RecurringFormSheet(
     var dayText by remember(editing) { mutableStateOf((editing?.dayOfPeriod ?: 1).toString()) }
     var autoConfirm by remember(editing) { mutableStateOf(editing?.autoConfirm ?: false) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
+    ) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Text(
                 text = stringResource(
