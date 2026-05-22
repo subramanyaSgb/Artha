@@ -3,6 +3,7 @@ package com.subramanya.artha.ui.cards
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -49,12 +51,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
@@ -213,6 +218,20 @@ private fun ActiveCardRow(
     onArchive: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    // Credit cards get the full editorial tile (chhatri + jaali + DUE pill).
+    // Debit / prepaid keep the compact ListItem since they have no outstanding /
+    // utilization to display.
+    if (row.card.type == CardType.CREDIT && !reorderMode) {
+        CreditCardTile(
+            row = row,
+            onClick = onTap,
+            onLongPress = onLongPress,
+            onEdit = onEdit,
+            onArchive = onArchive,
+            onDelete = onDelete,
+        )
+        return
+    }
     var menuOpen by remember { mutableStateOf(false) }
     ListItem(
         modifier = Modifier
@@ -277,6 +296,211 @@ private fun ActiveCardRow(
             }
         },
     )
+}
+
+/**
+ * Editorial credit-card tile per HANDOFF §3.4 — 190dp tall, gradient
+ * (card.color → 55% mix with black), jaali overlay at 0.15 white, chhatri
+ * silhouette in the top-right corner at 0.10 opacity. Two layered rows:
+ * NETWORK eyebrow + card name + "DUE IN Nd" pill on top, outstanding +
+ * mono last-4 + utilization bar + footer on the bottom.
+ */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun CreditCardTile(
+    row: CardWithBalance,
+    onClick: () -> Unit,
+    onLongPress: () -> Unit,
+    onEdit: () -> Unit,
+    onArchive: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    val tone = androidx.compose.ui.graphics.Color(row.card.color)
+    val toneDeep = androidx.compose.ui.graphics.Color(
+        red = tone.red * 0.45f,
+        green = tone.green * 0.45f,
+        blue = tone.blue * 0.45f,
+        alpha = 1f,
+    )
+    val limit = row.card.creditLimit ?: 0.0
+    val utilPct = if (limit > 0) (row.currentOutstanding / limit * 100).toInt() else 0
+    val available = (limit - row.currentOutstanding).coerceAtLeast(0.0)
+    val due = row.card.dueDayOfMonth
+    val daysToDue: Int? = due?.let {
+        com.subramanya.artha.utils.computeNextDue(it)?.daysUntil
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(190.dp)
+            .padding(bottom = 14.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+            .background(
+                brush = androidx.compose.ui.graphics.Brush.linearGradient(listOf(tone, toneDeep)),
+            )
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress),
+    ) {
+        // Jaali lattice — 0.15 white per the spec
+        com.subramanya.artha.ui.common.JaaliOverlay(
+            modifier = Modifier.matchParentSize(),
+            tint = androidx.compose.ui.graphics.Color.White,
+            alpha = 0.15f,
+        )
+        // Chhatri silhouette top-right, offset -10/-10dp
+        com.subramanya.artha.ui.common.Chhatri(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 10.dp, y = (-10).dp)
+                .size(120.dp)
+                .alpha(0.10f),
+            tint = androidx.compose.ui.graphics.Color.White,
+        )
+        // Top row: network + name + DUE pill
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
+                .padding(start = 22.dp, top = 20.dp, end = 22.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = row.card.network.name.uppercase(),
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
+                    style = com.subramanya.artha.ui.theme.EyebrowStyle,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = row.card.name,
+                    color = androidx.compose.ui.graphics.Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 17.sp,
+                    maxLines = 1,
+                )
+            }
+            if (daysToDue != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
+                        .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.14f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = "DUE IN ${daysToDue}d",
+                        color = androidx.compose.ui.graphics.Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        letterSpacing = 0.05.em,
+                    )
+                }
+            }
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(
+                        Icons.Filled.MoreVert,
+                        contentDescription = null,
+                        tint = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.card_detail_action_edit)) },
+                        onClick = { menuOpen = false; onEdit() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.card_detail_action_archive)) },
+                        onClick = { menuOpen = false; onArchive() },
+                        leadingIcon = { Icon(Icons.Filled.Archive, contentDescription = null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.card_action_delete), color = MaterialTheme.colorScheme.error) },
+                        onClick = { menuOpen = false; onDelete() },
+                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    )
+                }
+            }
+        }
+        // Bottom row: outstanding + last4, utilization bar, footer
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(start = 22.dp, end = 22.dp, bottom = 20.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Column {
+                    Text(
+                        text = "OUTSTANDING",
+                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f),
+                        style = com.subramanya.artha.ui.theme.EyebrowStyle,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = IndianNumberFormat.format(row.currentOutstanding),
+                        color = androidx.compose.ui.graphics.Color.White,
+                        style = androidx.compose.ui.text.TextStyle(
+                            fontFamily = com.subramanya.artha.ui.theme.InstrumentSerif,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 28.sp,
+                            letterSpacing = (-0.01).em,
+                            fontFeatureSettings = "tnum",
+                        ),
+                    )
+                }
+                row.card.cardNumberLast4?.let {
+                    Text(
+                        text = "•••• $it",
+                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+                        style = androidx.compose.ui.text.TextStyle(
+                            fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                            fontSize = 11.sp,
+                            fontFeatureSettings = "tnum",
+                        ),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { (utilPct / 100f).coerceIn(0f, 1f) },
+                color = androidx.compose.ui.graphics.Color.White,
+                trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp)),
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "$utilPct% of " + IndianNumberFormat.formatCompact(limit),
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                        fontSize = 10.sp,
+                        fontFeatureSettings = "tnum",
+                    ),
+                )
+                Text(
+                    text = "Available " + IndianNumberFormat.formatCompact(available),
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                        fontSize = 10.sp,
+                        fontFeatureSettings = "tnum",
+                    ),
+                )
+            }
+        }
+    }
 }
 
 @Composable

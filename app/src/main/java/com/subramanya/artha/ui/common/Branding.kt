@@ -129,6 +129,93 @@ fun BlockPrintOverlay(
 }
 
 /**
+ * Jaali — temple-lattice tile: 5 overlapping stroke-only circles per the
+ * design tokens (`p-jaali` pattern in patterns.jsx). Sits behind the
+ * Net Position hero and the credit-card tile.
+ */
+@Composable
+fun JaaliOverlay(
+    modifier: Modifier = Modifier,
+    tint: Color = Teal300,
+    alpha: Float = 0.06f,
+) {
+    Canvas(modifier = modifier) {
+        val tile = 32.dp.toPx()
+        val r = 14.dp.toPx()
+        val ink = tint.copy(alpha = alpha)
+        val stroke = androidx.compose.ui.graphics.drawscope.Stroke(width = 0.5.dp.toPx())
+        val cols = (size.width / tile).toInt() + 2
+        val rows = (size.height / tile).toInt() + 2
+        for (i in 0..cols) {
+            for (j in 0..rows) {
+                val cx = i * tile
+                val cy = j * tile
+                drawCircle(
+                    color = ink,
+                    radius = r,
+                    center = androidx.compose.ui.geometry.Offset(cx, cy),
+                    style = stroke,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Chhatri silhouette — temple-pavilion outline used as a corner ornament on
+ * credit cards + goal cards. Replicates Chhatri() from patterns.jsx exactly.
+ */
+@Composable
+fun Chhatri(modifier: Modifier = Modifier, tint: Color = Color.White) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        // base platform
+        drawRect(
+            color = tint.copy(alpha = 0.8f),
+            topLeft = androidx.compose.ui.geometry.Offset(w * 6f / 64f, h * 52f / 64f),
+            size = androidx.compose.ui.geometry.Size(w * 52f / 64f, h * 3f / 64f),
+        )
+        // four columns
+        listOf(10f, 20f, 42f, 52f).forEach { x ->
+            drawRect(
+                color = tint.copy(alpha = 0.6f),
+                topLeft = androidx.compose.ui.geometry.Offset(w * x / 64f, h * 32f / 64f),
+                size = androidx.compose.ui.geometry.Size(w * 2f / 64f, h * 20f / 64f),
+            )
+        }
+        // lintel
+        drawRect(
+            color = tint.copy(alpha = 0.8f),
+            topLeft = androidx.compose.ui.geometry.Offset(w * 6f / 64f, h * 29f / 64f),
+            size = androidx.compose.ui.geometry.Size(w * 52f / 64f, h * 3f / 64f),
+        )
+        // dome — quadratic curve from (10, 29) through (32, 4) to (54, 29)
+        val dome = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 10f / 64f, h * 29f / 64f)
+            quadraticBezierTo(
+                w * 32f / 64f, h * 4f / 64f,
+                w * 54f / 64f, h * 29f / 64f,
+            )
+            close()
+        }
+        drawPath(dome, color = tint.copy(alpha = 0.85f))
+        // finial
+        drawLine(
+            color = tint,
+            start = androidx.compose.ui.geometry.Offset(w * 32f / 64f, h * 2f / 64f),
+            end = androidx.compose.ui.geometry.Offset(w * 32f / 64f, h * 8f / 64f),
+            strokeWidth = 1.5.dp.toPx(),
+        )
+        drawCircle(
+            color = tint,
+            radius = 1.2.dp.toPx(),
+            center = androidx.compose.ui.geometry.Offset(w * 32f / 64f, h * 2f / 64f),
+        )
+    }
+}
+
+/**
  * Bandhani dot rosette — used as texture on the gradient account cards.
  * Tinted white at low alpha; the gradient under it does the heavy lifting.
  */

@@ -296,7 +296,61 @@ private fun NetPositionHero(state: DashboardUiState) {
                 style = ArthaAmountStyles.hero,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            // (Sparkline placeholder reserved; deferred until VM computes daily net.)
+
+            // Change row: ↑ ₹delta · +x.x% · this month
+            Spacer(Modifier.height(10.dp))
+            val change = state.netChangeThisMonth
+            val pct = if (state.netPosition - change != 0.0) {
+                change / (state.netPosition - change) * 100.0
+            } else 0.0
+            val positive = change >= 0
+            val changeTint = if (positive) Income else Expense
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (positive) Icons.AutoMirrored.Filled.TrendingUp
+                                  else Icons.AutoMirrored.Filled.TrendingDown,
+                    contentDescription = null,
+                    tint = changeTint,
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = IndianNumberFormat.format(kotlin.math.abs(change)),
+                    color = changeTint,
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontFeatureSettings = "tnum",
+                    ),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("•", color = Text3, fontSize = 13.sp)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = (if (pct >= 0) "+" else "") + "%.1f%%".format(pct),
+                    color = changeTint,
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 13.sp,
+                        fontFeatureSettings = "tnum",
+                    ),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("this month", color = Text3, style = MaterialTheme.typography.bodySmall)
+            }
+
+            // Sparkline — 30 days of end-of-day net position. Hidden if no history.
+            if (state.netPositionSpark.size >= 2) {
+                Spacer(Modifier.height(14.dp))
+                com.subramanya.artha.ui.common.Sparkline(
+                    points = state.netPositionSpark,
+                    color = com.subramanya.artha.ui.theme.Teal500,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
+                )
+            }
             Spacer(Modifier.height(14.dp))
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier

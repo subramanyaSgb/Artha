@@ -24,4 +24,10 @@ data class DashboardUiState(
     /** Net investment value across all active investments — joins Net Position
      *  hero so the displayed "Net" includes paper wealth, not just liquid cash. */
     val investmentTotalValue: Double = 0.0,
+    /** End-of-day net position for the last 30 days, oldest -> newest. Drives
+     *  the hero sparkline. Empty when there's nothing to chart yet. */
+    val netPositionSpark: List<Double> = emptyList(),
+    /** Change in net position this calendar month (income - expense - card-payment net
+     *  applied to liquid + invest movements). Used for the "↑ ₹12,400 · +2.6%" row. */
+    val netChangeThisMonth: Double = 0.0,
 )

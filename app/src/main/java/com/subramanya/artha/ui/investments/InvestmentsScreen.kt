@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -53,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
@@ -113,6 +116,10 @@ fun InvestmentsScreen(
                     invested = state.totalInvested,
                     currentValue = state.totalCurrentValue,
                 )
+
+                if (state.rows.isNotEmpty()) {
+                    AllocationBar(rows = state.rows)
+                }
 
                 ViewToggleRow(
                     current = state.view,
@@ -255,6 +262,84 @@ private fun HeroCard(invested: Double, currentValue: Double) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
+    }
+}
+
+// ---------------- allocation bar ----------------
+
+/**
+ * Allocation horizontal stacked bar per HANDOFF §3.6 — 8dp tall, each segment
+ * weighted by current value, separated by 1dp `surface-1` gaps. Legend below
+ * shows one chip per unique investment type with a matching colour dot.
+ */
+@Composable
+private fun AllocationBar(rows: List<com.subramanya.artha.domain.model.InvestmentWithMetrics>) {
+    val total = rows.sumOf { it.investment.currentValue }
+    if (total <= 0.0) return
+    val palette = listOf(
+        com.subramanya.artha.ui.theme.AccTeal,
+        com.subramanya.artha.ui.theme.AccIndigo,
+        com.subramanya.artha.ui.theme.AccSaffron,
+        com.subramanya.artha.ui.theme.AccEmerald,
+        com.subramanya.artha.ui.theme.AccMagenta,
+        com.subramanya.artha.ui.theme.AccViolet,
+    )
+    Column(modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
+        Text(
+            text = "ALLOCATION",
+            style = com.subramanya.artha.ui.theme.EyebrowStyle,
+            color = com.subramanya.artha.ui.theme.Text3,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp)),
+        ) {
+            rows.forEachIndexed { i, row ->
+                val weight = (row.investment.currentValue / total).toFloat().coerceAtLeast(0.001f)
+                val tone = palette[i % palette.size]
+                Box(
+                    modifier = Modifier
+                        .weight(weight)
+                        .fillMaxHeight()
+                        .background(tone)
+                        .let { if (i < rows.size - 1) it.then(Modifier.padding(end = 1.dp)) else it },
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        // Legend — group by InvestmentType, show one chip per unique kind.
+        val byType = rows.groupBy { it.investment.type }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            byType.entries.forEachIndexed { idx, (type, items) ->
+                val first = rows.indexOf(items.first())
+                val tone = palette[first % palette.size]
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(tone),
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        text = type.name.lowercase()
+                            .replaceFirstChar { it.titlecase() }
+                            .replace('_', ' '),
+                        color = com.subramanya.artha.ui.theme.Text2,
+                        fontSize = 11.sp,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }
 
