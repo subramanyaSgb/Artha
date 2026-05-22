@@ -2,15 +2,19 @@ package com.subramanya.artha.ui.settings
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -32,6 +36,19 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.InstrumentSerif
+import com.subramanya.artha.ui.theme.Line1
+import com.subramanya.artha.ui.theme.Surface1
+import com.subramanya.artha.ui.theme.Teal300
+import com.subramanya.artha.ui.theme.Teal500
+import com.subramanya.artha.ui.theme.Text1
+import com.subramanya.artha.ui.theme.Text2
+import com.subramanya.artha.ui.theme.Text3
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -85,10 +102,16 @@ fun SettingsScreen(
         vm.acknowledgeExport()
     }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
         Scaffold(
+            containerColor = Surface1,
             topBar = {
                 TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Surface1,
+                        titleContentColor = Text1,
+                        navigationIconContentColor = Text2,
+                    ),
                     title = { Text(stringResource(R.string.settings_title)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -104,6 +127,25 @@ fun SettingsScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState()),
             ) {
+                // Editorial top header per HANDOFF §3.5/§3.7.
+                Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
+                    Text(
+                        text = stringResource(R.string.settings_eyebrow).uppercase(),
+                        style = EyebrowStyle,
+                        color = Teal300,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.settings_title),
+                        style = TextStyle(
+                            fontFamily = InstrumentSerif,
+                            fontSize = 26.sp,
+                            lineHeight = 30.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Text1,
+                        ),
+                    )
+                }
                 SectionHeader(stringResource(R.string.settings_section_profile))
                 ProfileSection(
                     name = state.userName,
@@ -235,14 +277,25 @@ fun SettingsScreen(
 
 // ---------------- sections ----------------
 
+/** §3.5 — eyebrow + 14dp Teal500 hairline on the left, matching SectionHeader spec. */
 @Composable
 private fun SectionHeader(label: String) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 24.dp, top = 16.dp, end = 24.dp, bottom = 4.dp),
-    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(start = 24.dp, top = 18.dp, end = 24.dp, bottom = 6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 14.dp, height = 1.dp)
+                .background(Teal500),
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            text = label.uppercase(),
+            style = EyebrowStyle,
+            color = Text3,
+        )
+    }
 }
 
 @Composable

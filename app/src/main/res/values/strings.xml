@@ -369,6 +369,7 @@
 
     <!-- Categories screen -->
     <string name="categories_title">Categories</string>
+    <string name="categories_eyebrow">Lookup tree</string>
     <string name="categories_fab_add">Add category</string>
     <string name="categories_filter_expense">Expense</string>
     <string name="categories_filter_income">Income</string>
@@ -399,6 +400,7 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_eyebrow">Preferences</string>
     <string name="settings_section_profile">Profile</string>
     <string name="settings_profile_name">Your name</string>
     <string name="settings_profile_currency">Currency</string>
@@ -500,6 +502,7 @@
 
     <!-- Tags screen -->
     <string name="tags_title">Tags</string>
+    <string name="tags_eyebrow">Flexible labels</string>
     <string name="tags_fab_add">Add tag</string>
     <string name="tags_empty">No tags yet. Tap + to add one.</string>
     <string name="tags_action_edit">Edit</string>

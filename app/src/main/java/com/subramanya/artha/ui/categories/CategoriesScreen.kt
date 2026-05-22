@@ -29,8 +29,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -41,6 +41,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.height
+import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.InstrumentSerif
+import com.subramanya.artha.ui.theme.Surface1
+import com.subramanya.artha.ui.theme.Teal300
+import com.subramanya.artha.ui.theme.Teal700
+import com.subramanya.artha.ui.theme.Text1
+import com.subramanya.artha.ui.theme.Text2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,10 +101,16 @@ fun CategoriesScreen(
         }
     }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
         Scaffold(
+            containerColor = Surface1,
             topBar = {
                 TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Surface1,
+                        titleContentColor = Text1,
+                        navigationIconContentColor = Text2,
+                    ),
                     title = { Text(stringResource(R.string.categories_title)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -101,12 +120,35 @@ fun CategoriesScreen(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { formMode = FormMode.Add }) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.categories_fab_add))
-                }
+                ExtendedFloatingActionButton(
+                    onClick = { formMode = FormMode.Add },
+                    containerColor = Teal700,
+                    contentColor = Text1,
+                    shape = RoundedCornerShape(16.dp),
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.categories_fab_add)) },
+                )
             },
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                    Text(
+                        text = stringResource(R.string.categories_eyebrow).uppercase(),
+                        style = EyebrowStyle,
+                        color = Teal300,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.categories_title),
+                        style = TextStyle(
+                            fontFamily = InstrumentSerif,
+                            fontSize = 26.sp,
+                            lineHeight = 30.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Text1,
+                        ),
+                    )
+                }
                 TypeTabs(current = state.type, onSelect = vm::onTypeSelected)
                 if (state.parents.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
