@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -308,11 +309,18 @@ private fun GoalFormSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
     var targetText by remember(editing) { mutableStateOf(editing?.targetAmount?.toPlainString() ?: "") }
-    val pickedAccounts = remember(editing) {
-        mutableStateOf(editing?.linkedAccountIds.orEmpty().toMutableSet())
+    var pickedAccounts by remember(editing) {
+        mutableStateOf(editing?.linkedAccountIds.orEmpty().toSet())
     }
-    val pickedInvestments = remember(editing) {
-        mutableStateOf(editing?.linkedInvestmentIds.orEmpty().toMutableSet())
+    var pickedInvestments by remember(editing) {
+        mutableStateOf(editing?.linkedInvestmentIds.orEmpty().toSet())
+    }
+
+    val accountOptions = accountNames.entries.map {
+        com.subramanya.artha.ui.common.PillOption(it.key, it.value)
+    }
+    val investmentOptions = investmentNames.entries.map {
+        com.subramanya.artha.ui.common.PillOption(it.key, it.value)
     }
 
     ModalBottomSheet(
@@ -322,59 +330,84 @@ private fun GoalFormSheet(
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            Text(
-                text = stringResource(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+        ) {
+            com.subramanya.artha.ui.common.SheetTitle(
+                title = stringResource(
                     if (editing == null) R.string.goals_form_add_title else R.string.goals_form_edit_title,
                 ),
-                style = MaterialTheme.typography.titleLarge,
             )
 
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.goals_form_name_label)) },
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            )
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.goals_form_name_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = "Emergency fund",
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.goals_form_target_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = targetText,
+                    onValueChange = { v ->
+                        targetText = v.filterIndexed { i, c -> c.isDigit() || (c == '.' && v.indexOf('.') == i) }
+                    },
+                    placeholder = "600000",
+                    suffix = "₹",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(
+                label = stringResource(R.string.goals_form_linked_accounts),
+                optional = true,
+                hint = "Funds count toward this goal",
+            ) {
+                if (accountOptions.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.goals_form_no_options),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = com.subramanya.artha.ui.theme.Text3,
+                    )
+                } else {
+                    com.subramanya.artha.ui.common.PillRadioMulti(
+                        values = pickedAccounts,
+                        options = accountOptions,
+                        onToggle = { id ->
+                            pickedAccounts = if (id in pickedAccounts) pickedAccounts - id else pickedAccounts + id
+                        },
+                    )
+                }
+            }
+            com.subramanya.artha.ui.common.FieldRow(
+                label = stringResource(R.string.goals_form_linked_investments),
+                optional = true,
+            ) {
+                if (investmentOptions.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.goals_form_no_options),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = com.subramanya.artha.ui.theme.Text3,
+                    )
+                } else {
+                    com.subramanya.artha.ui.common.PillRadioMulti(
+                        values = pickedInvestments,
+                        options = investmentOptions,
+                        onToggle = { id ->
+                            pickedInvestments = if (id in pickedInvestments) pickedInvestments - id else pickedInvestments + id
+                        },
+                    )
+                }
+            }
 
-            OutlinedTextField(
-                value = targetText,
-                onValueChange = { v ->
-                    targetText = v.filterIndexed { i, c -> c.isDigit() || (c == '.' && v.indexOf('.') == i) }
-                },
-                singleLine = true,
-                prefix = { Text("₹") },
-                label = { Text(stringResource(R.string.goals_form_target_label)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            )
-
-            Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.goals_form_linked_accounts), style = MaterialTheme.typography.labelLarge)
-            MultiSelectChips(
-                options = accountNames,
-                selected = pickedAccounts.value,
-                onToggle = { id ->
-                    pickedAccounts.value =
-                        (if (id in pickedAccounts.value) pickedAccounts.value - id else pickedAccounts.value + id).toMutableSet()
-                },
-            )
-
-            Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.goals_form_linked_investments), style = MaterialTheme.typography.labelLarge)
-            MultiSelectChips(
-                options = investmentNames,
-                selected = pickedInvestments.value,
-                onToggle = { id ->
-                    pickedInvestments.value =
-                        (if (id in pickedInvestments.value) pickedInvestments.value - id else pickedInvestments.value + id).toMutableSet()
-                },
-            )
-
-            Button(
+            Spacer(Modifier.height(28.dp))
+            com.subramanya.artha.ui.common.SavePrimaryButton(
+                label = stringResource(R.string.common_save),
+                enabled = name.isNotBlank() && targetText.toDoubleOrNull() != null,
                 onClick = {
-                    val target = targetText.toDoubleOrNull() ?: return@Button
+                    val target = targetText.toDoubleOrNull() ?: return@SavePrimaryButton
                     val now = System.currentTimeMillis()
                     onSave(
                         Goal(
@@ -382,8 +415,8 @@ private fun GoalFormSheet(
                             name = name.trim().ifBlank { "Goal" },
                             targetAmount = target,
                             targetDate = editing?.targetDate,
-                            linkedAccountIds = pickedAccounts.value.toList(),
-                            linkedInvestmentIds = pickedInvestments.value.toList(),
+                            linkedAccountIds = pickedAccounts.toList(),
+                            linkedInvestmentIds = pickedInvestments.toList(),
                             icon = editing?.icon ?: "flag",
                             color = editing?.color ?: 0xFF0F766EL,
                             isAchieved = editing?.isAchieved ?: false,
@@ -391,37 +424,8 @@ private fun GoalFormSheet(
                         ),
                     )
                 },
-                enabled = name.isNotBlank() && targetText.toDoubleOrNull() != null,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) { Text(stringResource(R.string.common_save)) }
-        }
-    }
-}
-
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-@Composable
-private fun MultiSelectChips(
-    options: Map<String, String>,
-    selected: Set<String>,
-    onToggle: (String) -> Unit,
-) {
-    if (options.isEmpty()) {
-        Text(
-            text = stringResource(R.string.goals_form_no_options),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        return
-    }
-    androidx.compose.foundation.layout.FlowRow(
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-    ) {
-        options.forEach { (id, label) ->
-            androidx.compose.material3.FilterChip(
-                selected = id in selected,
-                onClick = { onToggle(id) },
-                label = { Text(label) },
             )
+            Spacer(Modifier.height(20.dp))
         }
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -318,7 +319,7 @@ private fun PersonRelation.label(): String = when (this) {
     PersonRelation.OTHER -> stringResource(R.string.person_relation_other)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PersonFormSheet(
     editing: Person?,
@@ -330,6 +331,17 @@ private fun PersonFormSheet(
     var relation by remember(editing) { mutableStateOf(editing?.relation ?: PersonRelation.FRIEND) }
     var contact by remember(editing) { mutableStateOf(editing?.contact.orEmpty()) }
 
+    val relationOptions = listOf(
+        com.subramanya.artha.ui.common.PillOption(PersonRelation.SPOUSE, stringResource(R.string.person_relation_spouse)),
+        com.subramanya.artha.ui.common.PillOption(PersonRelation.PARENT, stringResource(R.string.person_relation_parent)),
+        com.subramanya.artha.ui.common.PillOption(PersonRelation.SIBLING, stringResource(R.string.person_relation_sibling)),
+        com.subramanya.artha.ui.common.PillOption(PersonRelation.CHILD, stringResource(R.string.person_relation_child)),
+        com.subramanya.artha.ui.common.PillOption(PersonRelation.FRIEND, stringResource(R.string.person_relation_friend)),
+        com.subramanya.artha.ui.common.PillOption(PersonRelation.COLLEAGUE, stringResource(R.string.person_relation_colleague)),
+        com.subramanya.artha.ui.common.PillOption(PersonRelation.BUSINESS, stringResource(R.string.person_relation_business)),
+        com.subramanya.artha.ui.common.PillOption(PersonRelation.OTHER, stringResource(R.string.person_relation_other)),
+    )
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -337,52 +349,51 @@ private fun PersonFormSheet(
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            Text(
-                text = stringResource(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+        ) {
+            com.subramanya.artha.ui.common.SheetTitle(
+                title = stringResource(
                     if (editing == null) R.string.people_form_add_title else R.string.people_form_edit_title,
                 ),
-                style = MaterialTheme.typography.titleLarge,
             )
 
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.person_picker_name_label)) },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            )
-
-            Text(
-                text = stringResource(R.string.person_picker_relation_label),
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(top = 12.dp),
-            )
-            androidx.compose.foundation.layout.FlowRow(
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 4.dp),
-            ) {
-                PersonRelation.entries.forEach { rel ->
-                    FilterChip(
-                        selected = relation == rel,
-                        onClick = { relation = rel },
-                        label = { Text(rel.label()) },
-                    )
-                }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.person_picker_name_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = "Rahul",
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                )
             }
 
-            OutlinedTextField(
-                value = contact,
-                onValueChange = { contact = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.people_form_contact_label)) },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            )
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.person_picker_relation_label)) {
+                com.subramanya.artha.ui.common.PillRadio(
+                    value = relation,
+                    options = relationOptions,
+                    onChange = { relation = it },
+                )
+            }
 
-            Button(
+            com.subramanya.artha.ui.common.FieldRow(
+                label = stringResource(R.string.people_form_contact_label),
+                optional = true,
+            ) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = contact,
+                    onValueChange = { contact = it },
+                    placeholder = "+91 …",
+                )
+            }
+
+            Spacer(Modifier.height(28.dp))
+            com.subramanya.artha.ui.common.SavePrimaryButton(
+                label = stringResource(R.string.common_save),
+                enabled = name.isNotBlank(),
                 onClick = {
-                    if (name.isBlank()) return@Button
                     val now = System.currentTimeMillis()
                     onSave(
                         Person(
@@ -395,9 +406,8 @@ private fun PersonFormSheet(
                         ),
                     )
                 },
-                enabled = name.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) { Text(stringResource(R.string.common_save)) }
+            )
+            Spacer(Modifier.height(20.dp))
         }
     }
 }

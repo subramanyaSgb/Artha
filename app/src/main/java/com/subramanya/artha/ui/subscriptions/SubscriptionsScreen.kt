@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -326,7 +327,7 @@ private fun SubscriptionFrequency.label(): String = when (this) {
     SubscriptionFrequency.YEARLY -> stringResource(R.string.subscription_freq_yearly)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SubscriptionFormSheet(
     editing: Subscription?,
@@ -340,6 +341,15 @@ private fun SubscriptionFormSheet(
     var freq by remember(editing) { mutableStateOf(editing?.frequency ?: SubscriptionFrequency.MONTHLY) }
     var status by remember(editing) { mutableStateOf(editing?.status ?: SubscriptionStatus.ACTIVE) }
 
+    val freqOptions = listOf(
+        com.subramanya.artha.ui.common.PillOption(SubscriptionFrequency.MONTHLY, stringResource(R.string.subscription_freq_monthly)),
+        com.subramanya.artha.ui.common.PillOption(SubscriptionFrequency.QUARTERLY, stringResource(R.string.subscription_freq_quarterly)),
+        com.subramanya.artha.ui.common.PillOption(SubscriptionFrequency.YEARLY, stringResource(R.string.subscription_freq_yearly)),
+    )
+    val statusOptions = SubscriptionStatus.entries.map {
+        com.subramanya.artha.ui.common.PillOption(it, it.name)
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -347,61 +357,68 @@ private fun SubscriptionFormSheet(
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            Text(
-                text = stringResource(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+        ) {
+            com.subramanya.artha.ui.common.SheetTitle(
+                title = stringResource(
                     if (editing == null) R.string.subscriptions_form_add_title else R.string.subscriptions_form_edit_title,
                 ),
-                style = MaterialTheme.typography.titleLarge,
             )
 
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.subscriptions_form_name_label)) },
-                placeholder = { Text("e.g. Netflix, Spotify Family") },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            )
-            OutlinedTextField(
-                value = provider,
-                onValueChange = { provider = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.subscriptions_form_provider_label)) },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            )
-            OutlinedTextField(
-                value = amountText,
-                onValueChange = { v ->
-                    amountText = v.filterIndexed { i, c -> c.isDigit() || (c == '.' && v.indexOf('.') == i) }
-                },
-                singleLine = true,
-                prefix = { Text("₹") },
-                label = { Text(stringResource(R.string.subscriptions_form_amount_label)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            )
-
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.subscriptions_form_frequency_label), style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SubscriptionFrequency.entries.forEach { opt ->
-                    FilterChip(selected = freq == opt, onClick = { freq = opt }, label = { Text(opt.label()) })
-                }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.subscriptions_form_name_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = "Spotify Family",
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(
+                label = stringResource(R.string.subscriptions_form_provider_label),
+                optional = true,
+            ) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = provider,
+                    onValueChange = { provider = it },
+                    placeholder = "Spotify",
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.subscriptions_form_amount_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = amountText,
+                    onValueChange = { v ->
+                        amountText = v.filterIndexed { i, c -> c.isDigit() || (c == '.' && v.indexOf('.') == i) }
+                    },
+                    placeholder = "179",
+                    suffix = "₹",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.subscriptions_form_frequency_label)) {
+                com.subramanya.artha.ui.common.PillRadio(
+                    value = freq,
+                    options = freqOptions,
+                    onChange = { freq = it },
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.subscriptions_form_status_label)) {
+                com.subramanya.artha.ui.common.PillRadio(
+                    value = status,
+                    options = statusOptions,
+                    onChange = { status = it },
+                )
             }
 
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.subscriptions_form_status_label), style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SubscriptionStatus.entries.forEach { opt ->
-                    FilterChip(selected = status == opt, onClick = { status = opt }, label = { Text(opt.name) })
-                }
-            }
-
-            Button(
+            Spacer(Modifier.height(28.dp))
+            com.subramanya.artha.ui.common.SavePrimaryButton(
+                label = stringResource(R.string.common_save),
+                enabled = amountText.toDoubleOrNull() != null,
                 onClick = {
-                    val amount = amountText.toDoubleOrNull() ?: return@Button
+                    val amount = amountText.toDoubleOrNull() ?: return@SavePrimaryButton
                     val now = System.currentTimeMillis()
                     onSave(
                         Subscription(
@@ -423,9 +440,8 @@ private fun SubscriptionFormSheet(
                         ),
                     )
                 },
-                enabled = amountText.toDoubleOrNull() != null,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) { Text(stringResource(R.string.common_save)) }
+            )
+            Spacer(Modifier.height(20.dp))
         }
     }
 }

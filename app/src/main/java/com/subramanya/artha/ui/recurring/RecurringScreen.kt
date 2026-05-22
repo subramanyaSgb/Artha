@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -348,6 +349,13 @@ private fun RecurringFormSheet(
     var dayText by remember(editing) { mutableStateOf((editing?.dayOfPeriod ?: 1).toString()) }
     var autoConfirm by remember(editing) { mutableStateOf(editing?.autoConfirm ?: false) }
 
+    val freqOptions = listOf(
+        com.subramanya.artha.ui.common.PillOption(RecurringFrequency.DAILY, stringResource(R.string.recurring_freq_daily)),
+        com.subramanya.artha.ui.common.PillOption(RecurringFrequency.WEEKLY, stringResource(R.string.recurring_freq_weekly)),
+        com.subramanya.artha.ui.common.PillOption(RecurringFrequency.MONTHLY, stringResource(R.string.recurring_freq_monthly)),
+        com.subramanya.artha.ui.common.PillOption(RecurringFrequency.YEARLY, stringResource(R.string.recurring_freq_yearly)),
+    )
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -355,77 +363,85 @@ private fun RecurringFormSheet(
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            Text(
-                text = stringResource(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+        ) {
+            com.subramanya.artha.ui.common.SheetTitle(
+                title = stringResource(
                     if (editing == null) R.string.recurring_form_add_title else R.string.recurring_form_edit_title,
                 ),
-                style = MaterialTheme.typography.titleLarge,
-            )
-            Text(
-                text = stringResource(R.string.recurring_form_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
+                sub = stringResource(R.string.recurring_form_hint),
             )
 
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.recurring_form_name_label)) },
-                placeholder = { Text("e.g. Rent on 1st, SIP on 10th") },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            )
-
-            OutlinedTextField(
-                value = template,
-                onValueChange = { template = it },
-                label = { Text(stringResource(R.string.recurring_form_template_label)) },
-                placeholder = { Text("e.g. 50000 rent at Landlord via NEFT") },
-                minLines = 2,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            )
-
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.recurring_form_frequency_label), style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                RecurringFrequency.entries.forEach { opt ->
-                    FilterChip(selected = freq == opt, onClick = { freq = opt }, label = { Text(opt.label()) })
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_name_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = "Rent",
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_template_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = template,
+                    onValueChange = { template = it },
+                    placeholder = "Rent — Bangalore flat",
+                    singleLine = false,
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_frequency_label)) {
+                com.subramanya.artha.ui.common.PillRadio(
+                    value = freq,
+                    options = freqOptions,
+                    onChange = { freq = it },
+                )
+            }
+            if (freq == RecurringFrequency.MONTHLY || freq == RecurringFrequency.WEEKLY) {
+                com.subramanya.artha.ui.common.FieldRow(
+                    label = if (freq == RecurringFrequency.MONTHLY)
+                        stringResource(R.string.recurring_form_day_of_month)
+                    else
+                        stringResource(R.string.recurring_form_day_of_week),
+                ) {
+                    com.subramanya.artha.ui.common.ArthaTextField(
+                        value = dayText,
+                        onValueChange = { v -> dayText = v.filter { it.isDigit() }.take(2) },
+                        placeholder = "1",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
                 }
             }
 
-            if (freq == RecurringFrequency.MONTHLY || freq == RecurringFrequency.WEEKLY) {
-                OutlinedTextField(
-                    value = dayText,
-                    onValueChange = { v -> dayText = v.filter { it.isDigit() }.take(2) },
-                    singleLine = true,
-                    label = {
-                        Text(
-                            if (freq == RecurringFrequency.MONTHLY)
-                                stringResource(R.string.recurring_form_day_of_month)
-                            else
-                                stringResource(R.string.recurring_form_day_of_week),
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                )
-            }
-
+            Spacer(Modifier.height(18.dp))
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(com.subramanya.artha.ui.theme.Surface2, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = stringResource(R.string.recurring_form_auto_confirm),
-                    modifier = Modifier.weight(1f),
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.recurring_form_auto_confirm),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = com.subramanya.artha.ui.theme.Text1,
+                    )
+                    Text(
+                        text = "Fire and forget · for fixed amounts like rent",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = com.subramanya.artha.ui.theme.Text3,
+                    )
+                }
                 Switch(checked = autoConfirm, onCheckedChange = { autoConfirm = it })
             }
 
-            Button(
+            Spacer(Modifier.height(28.dp))
+            com.subramanya.artha.ui.common.SavePrimaryButton(
+                label = stringResource(R.string.common_save),
+                enabled = name.isNotBlank() && template.isNotBlank(),
                 onClick = {
                     val now = System.currentTimeMillis()
                     val day = dayText.toIntOrNull()
@@ -444,9 +460,8 @@ private fun RecurringFormSheet(
                         ),
                     )
                 },
-                enabled = name.isNotBlank() && template.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) { Text(stringResource(R.string.common_save)) }
+            )
+            Spacer(Modifier.height(20.dp))
         }
     }
 }

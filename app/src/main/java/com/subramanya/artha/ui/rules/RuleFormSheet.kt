@@ -101,6 +101,11 @@ fun RuleFormSheet(
     val parsedPriority = priorityText.toIntOrNull()
     val isValid = name.isNotBlank() && parsedPriority != null && actions.isNotEmpty()
 
+    val logicOptions = listOf(
+        com.subramanya.artha.ui.common.PillOption(ConditionLogic.ALL, stringResource(R.string.rules_form_logic_all)),
+        com.subramanya.artha.ui.common.PillOption(ConditionLogic.ANY, stringResource(R.string.rules_form_logic_any)),
+    )
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -113,95 +118,88 @@ fun RuleFormSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .padding(horizontal = 20.dp, vertical = 4.dp),
         ) {
-            Text(
-                text = stringResource(
+            com.subramanya.artha.ui.common.SheetTitle(
+                title = stringResource(
                     if (editing == null) R.string.rules_form_add_title
                     else R.string.rules_form_edit_title,
                 ),
-                style = MaterialTheme.typography.titleLarge,
+                sub = stringResource(R.string.rules_form_priority_hint),
             )
 
-            Spacer(Modifier.height(16.dp))
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.rules_form_name_label)) },
-                placeholder = { Text(stringResource(R.string.rules_form_name_placeholder)) },
-                isError = showErrors && name.isBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = priorityText,
-                onValueChange = { v -> priorityText = v.filter { it.isDigit() } },
-                singleLine = true,
-                label = { Text(stringResource(R.string.rules_form_priority_label)) },
-                supportingText = { Text(stringResource(R.string.rules_form_priority_hint)) },
-                isError = showErrors && parsedPriority == null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(16.dp))
-            Text(stringResource(R.string.rules_form_section_when), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = logic == ConditionLogic.ALL,
-                    onClick = { logic = ConditionLogic.ALL },
-                    label = { Text(stringResource(R.string.rules_form_logic_all)) },
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.rules_form_name_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = stringResource(R.string.rules_form_name_placeholder),
+                    isError = showErrors && name.isBlank(),
                 )
-                FilterChip(
-                    selected = logic == ConditionLogic.ANY,
-                    onClick = { logic = ConditionLogic.ANY },
-                    label = { Text(stringResource(R.string.rules_form_logic_any)) },
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.rules_form_priority_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = priorityText,
+                    onValueChange = { v -> priorityText = v.filter { it.isDigit() } },
+                    placeholder = "100",
+                    isError = showErrors && parsedPriority == null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
-            conditions.forEachIndexed { index, condition ->
-                ConditionRow(
-                    condition = condition,
-                    onChange = { conditions[index] = it },
-                    onRemove = { conditions.removeAt(index) },
-                )
-                Spacer(Modifier.height(4.dp))
+            // ─── WHEN ─────────────────────────────────────────────────────
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.rules_form_section_when)) {
+                Column {
+                    com.subramanya.artha.ui.common.PillRadio(
+                        value = logic,
+                        options = logicOptions,
+                        onChange = { logic = it },
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    conditions.forEachIndexed { index, condition ->
+                        ConditionRow(
+                            condition = condition,
+                            onChange = { conditions[index] = it },
+                            onRemove = { conditions.removeAt(index) },
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    AddConditionButton(onAdd = { conditions.add(it) })
+                }
             }
 
-            AddConditionButton(onAdd = { conditions.add(it) })
+            Spacer(Modifier.height(18.dp))
+            HorizontalDivider(color = com.subramanya.artha.ui.theme.Line1, thickness = androidx.compose.ui.unit.Dp.Hairline)
 
-            Spacer(Modifier.height(20.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(16.dp))
-            Text(stringResource(R.string.rules_form_section_then), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
-            actions.forEachIndexed { index, action ->
-                ActionRow(
-                    action = action,
-                    onChange = { actions[index] = it },
-                    onRemove = { actions.removeAt(index) },
-                )
-                Spacer(Modifier.height(4.dp))
+            // ─── THEN ─────────────────────────────────────────────────────
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.rules_form_section_then)) {
+                Column {
+                    actions.forEachIndexed { index, action ->
+                        ActionRow(
+                            action = action,
+                            onChange = { actions[index] = it },
+                            onRemove = { actions.removeAt(index) },
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    if (showErrors && actions.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.rules_form_validation_no_actions),
+                            color = com.subramanya.artha.ui.theme.Danger,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                    }
+                    AddActionButton(onAdd = { actions.add(it) })
+                }
             }
-            if (showErrors && actions.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.rules_form_validation_no_actions),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            AddActionButton(onAdd = { actions.add(it) })
 
-            Spacer(Modifier.height(24.dp))
-            Button(
+            Spacer(Modifier.height(28.dp))
+            com.subramanya.artha.ui.common.SavePrimaryButton(
+                label = stringResource(R.string.rules_form_save),
                 onClick = {
                     if (!isValid) {
                         showErrors = true
-                        return@Button
+                        return@SavePrimaryButton
                     }
                     val now = System.currentTimeMillis()
                     val rule = TransactionRule(
@@ -219,9 +217,8 @@ fun RuleFormSheet(
                         onDismiss()
                     }
                 },
-                enabled = !showErrors || isValid,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.rules_form_save)) }
+            )
+            Spacer(Modifier.height(20.dp))
         }
     }
 }

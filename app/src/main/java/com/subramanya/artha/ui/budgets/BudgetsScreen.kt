@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -370,7 +371,7 @@ private fun BudgetPeriod.label(): String = when (this) {
     BudgetPeriod.YEARLY -> stringResource(R.string.budget_period_yearly)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BudgetFormSheet(
     editing: Budget?,
@@ -385,6 +386,16 @@ private fun BudgetFormSheet(
     var categoryId by remember(editing) { mutableStateOf(editing?.categoryId.orEmpty()) }
     var threshold by remember(editing) { mutableStateOf((editing?.alertThresholdPercent ?: 80).toString()) }
 
+    val scopeOptions = listOf(
+        com.subramanya.artha.ui.common.PillOption(BudgetScope.OVERALL, stringResource(R.string.budget_scope_overall)),
+        com.subramanya.artha.ui.common.PillOption(BudgetScope.CATEGORY, stringResource(R.string.budget_scope_category)),
+    )
+    val periodOptions = listOf(
+        com.subramanya.artha.ui.common.PillOption(BudgetPeriod.WEEKLY, stringResource(R.string.budget_period_weekly)),
+        com.subramanya.artha.ui.common.PillOption(BudgetPeriod.MONTHLY, stringResource(R.string.budget_period_monthly)),
+        com.subramanya.artha.ui.common.PillOption(BudgetPeriod.YEARLY, stringResource(R.string.budget_period_yearly)),
+    )
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -392,74 +403,75 @@ private fun BudgetFormSheet(
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            Text(
-                text = stringResource(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+        ) {
+            com.subramanya.artha.ui.common.SheetTitle(
+                title = stringResource(
                     if (editing == null) R.string.budgets_form_add_title else R.string.budgets_form_edit_title,
                 ),
-                style = MaterialTheme.typography.titleLarge,
             )
 
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.budgets_form_name_label)) },
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            )
-
-            Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.budgets_form_scope_label), style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                BudgetScope.entries.forEach { opt ->
-                    FilterChip(selected = scope == opt, onClick = { scope = opt }, label = { Text(opt.label()) })
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.budgets_form_name_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = "May groceries",
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.budgets_form_scope_label)) {
+                com.subramanya.artha.ui.common.PillRadio(
+                    value = scope,
+                    options = scopeOptions,
+                    onChange = { scope = it },
+                )
+            }
+            if (scope == BudgetScope.CATEGORY) {
+                com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.budgets_form_category_id_label)) {
+                    com.subramanya.artha.ui.common.ArthaTextField(
+                        value = categoryId,
+                        onValueChange = { categoryId = it },
+                        placeholder = "cat_food_drink",
+                    )
                 }
             }
-
-            if (scope == BudgetScope.CATEGORY) {
-                OutlinedTextField(
-                    value = categoryId,
-                    onValueChange = { categoryId = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.budgets_form_category_id_label)) },
-                    placeholder = { Text("cat_food_drink") },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.budgets_form_period_label)) {
+                com.subramanya.artha.ui.common.PillRadio(
+                    value = period,
+                    options = periodOptions,
+                    onChange = { period = it },
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.budgets_form_amount_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = amountText,
+                    onValueChange = { v ->
+                        amountText = v.filterIndexed { i, c -> c.isDigit() || (c == '.' && v.indexOf('.') == i) }
+                    },
+                    placeholder = "8000",
+                    suffix = "₹",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.budgets_form_threshold_label)) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = threshold,
+                    onValueChange = { v -> threshold = v.filter { it.isDigit() }.take(3) },
+                    placeholder = "80",
+                    suffix = "%",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.budgets_form_period_label), style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                BudgetPeriod.entries.forEach { opt ->
-                    FilterChip(selected = period == opt, onClick = { period = opt }, label = { Text(opt.label()) })
-                }
-            }
-
-            OutlinedTextField(
-                value = amountText,
-                onValueChange = { v ->
-                    amountText = v.filterIndexed { i, c -> c.isDigit() || (c == '.' && v.indexOf('.') == i) }
-                },
-                singleLine = true,
-                label = { Text(stringResource(R.string.budgets_form_amount_label)) },
-                prefix = { Text("₹") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            )
-
-            OutlinedTextField(
-                value = threshold,
-                onValueChange = { v -> threshold = v.filter { it.isDigit() }.take(3) },
-                singleLine = true,
-                label = { Text(stringResource(R.string.budgets_form_threshold_label)) },
-                suffix = { Text("%") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            )
-
-            Button(
+            Spacer(Modifier.height(28.dp))
+            com.subramanya.artha.ui.common.SavePrimaryButton(
+                label = stringResource(R.string.common_save),
+                enabled = amountText.toDoubleOrNull() != null,
                 onClick = {
-                    val amount = amountText.toDoubleOrNull() ?: return@Button
+                    val amount = amountText.toDoubleOrNull() ?: return@SavePrimaryButton
                     val t = threshold.toIntOrNull()?.coerceIn(1, 100) ?: 80
                     val now = System.currentTimeMillis()
                     onSave(
@@ -477,9 +489,8 @@ private fun BudgetFormSheet(
                         ),
                     )
                 },
-                enabled = amountText.toDoubleOrNull() != null,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) { Text(stringResource(R.string.common_save)) }
+            )
+            Spacer(Modifier.height(20.dp))
         }
     }
 }
