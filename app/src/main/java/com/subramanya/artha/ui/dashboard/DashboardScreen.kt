@@ -3,9 +3,6 @@ package com.subramanya.artha.ui.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,13 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -198,10 +189,9 @@ fun DashboardScreen(
 
             FabRow(
                 onTap = { showSheet = true },
-                onLongPress = { showAiSheet = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 20.dp, bottom = 110.dp),
+                    .padding(end = 20.dp, bottom = 20.dp),
             )
         }
     }
@@ -970,47 +960,33 @@ private fun SectionHeader(title: String, action: String?, onAction: () -> Unit) 
 
 // ───────────────────────────── FAB ────────────────────────────────────────────
 
+/**
+ * HANDOFF §2 — Extended FAB on Home only: 56dp tall, "Add" label, plus icon,
+ * Teal700. Long-press → AI Quick Entry was removed because that flow already
+ * has its own dedicated entry point (the AI Entry card on the dashboard);
+ * doubling it up on the FAB was firing both sheets on a single press.
+ */
 @Composable
-private fun FabRow(onTap: () -> Unit, onLongPress: () -> Unit, modifier: Modifier = Modifier) {
-    val haptic = LocalHapticFeedback.current
-    val longPressTimeoutMillis = LocalViewConfiguration.current.longPressTimeoutMillis
-    Box(
-        modifier = modifier.pointerInput(Unit) {
-            awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                try {
-                    withTimeout(longPressTimeoutMillis) {
-                        waitForUpOrCancellation(pass = PointerEventPass.Initial)
-                    }
-                } catch (_: PointerEventTimeoutCancellationException) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongPress()
-                    down.consume()
-                }
-            }
+private fun FabRow(onTap: () -> Unit, modifier: Modifier = Modifier) {
+    ExtendedFloatingActionButton(
+        onClick = onTap,
+        shape = RoundedCornerShape(18.dp),
+        containerColor = Teal700,
+        contentColor = androidx.compose.ui.graphics.Color(0xFFF0EAD6),
+        icon = {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = stringResource(R.string.dashboard_fab_add_a11y),
+            )
         },
-    ) {
-        // HANDOFF §2 — Extended FAB on Home only: 56dp tall, "Add" label,
-        // plus icon, Teal700, 110dp from the bottom edge.
-        ExtendedFloatingActionButton(
-            onClick = onTap,
-            shape = RoundedCornerShape(18.dp),
-            containerColor = Teal700,
-            contentColor = androidx.compose.ui.graphics.Color(0xFFF0EAD6),
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = stringResource(R.string.dashboard_fab_add_a11y),
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(R.string.dashboard_fab_add),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            },
-        )
-    }
+        text = {
+            Text(
+                text = stringResource(R.string.dashboard_fab_add),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        },
+        modifier = modifier,
+    )
 }
 
 // ───────────────────────────── helpers ───────────────────────────────────────
