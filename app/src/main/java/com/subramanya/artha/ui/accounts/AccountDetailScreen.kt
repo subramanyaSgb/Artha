@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.accounts
+﻿package com.subramanya.artha.ui.accounts
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -122,7 +122,7 @@ fun AccountDetailScreen(
                             Icon(
                                 Icons.Filled.Delete,
                                 contentDescription = stringResource(R.string.account_action_delete),
-                                tint = MaterialTheme.colorScheme.error,
+                                tint = com.subramanya.artha.ui.theme.Danger,
                             )
                         }
                     }
@@ -144,41 +144,27 @@ fun AccountDetailScreen(
     }
 
     if (state.showArchiveConfirm) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissArchiveConfirm,
-            title = { Text(stringResource(R.string.account_detail_archive_confirm_title)) },
-            text = { Text(stringResource(R.string.account_detail_archive_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = { vm.confirmArchive(onArchived = onBack) }) {
-                    Text(stringResource(R.string.account_detail_archive_confirm_yes))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::dismissArchiveConfirm) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            },
+            title = stringResource(R.string.account_detail_archive_confirm_title),
+            text = stringResource(R.string.account_detail_archive_confirm_body),
+            confirmLabel = stringResource(R.string.account_detail_archive_confirm_yes),
+            onConfirm = { vm.confirmArchive(onArchived = onBack) },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissArchiveConfirm,
         )
     }
 
     if (state.showDeleteConfirm) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissDeleteConfirm,
-            title = { Text(stringResource(R.string.account_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.account_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = { vm.confirmDelete(onDeleted = onBack) }) {
-                    Text(
-                        text = stringResource(R.string.account_delete_confirm_yes),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::dismissDeleteConfirm) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            },
+            title = stringResource(R.string.account_delete_confirm_title),
+            text = stringResource(R.string.account_delete_confirm_body),
+            confirmLabel = stringResource(R.string.account_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = { vm.confirmDelete(onDeleted = onBack) },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissDeleteConfirm,
         )
     }
 
@@ -374,7 +360,7 @@ private fun amountColor(type: TransactionType): Color = when (type) {
     TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
     -> MaterialTheme.colorScheme.primary
     TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
-    -> MaterialTheme.colorScheme.error
+    -> com.subramanya.artha.ui.theme.Danger
     else -> MaterialTheme.colorScheme.onSurface
 }
 

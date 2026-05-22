@@ -328,10 +328,16 @@ fun InvestmentFormSheet(
         DatePickerDialog(
             onDismissRequest = { pickingStart = false },
             confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { startDate = it }
-                    pickingStart = false
-                }) { Text(stringResource(R.string.common_save)) }
+                // Disable Confirm when no date is selected — used to close
+                // silently with no feedback if the user tapped Save without
+                // picking anything.
+                TextButton(
+                    onClick = {
+                        pickerState.selectedDateMillis?.let { startDate = it }
+                        pickingStart = false
+                    },
+                    enabled = pickerState.selectedDateMillis != null,
+                ) { Text(stringResource(R.string.common_save)) }
             },
             dismissButton = {
                 TextButton(onClick = { pickingStart = false }) { Text(stringResource(R.string.common_cancel)) }
@@ -346,10 +352,13 @@ fun InvestmentFormSheet(
         DatePickerDialog(
             onDismissRequest = { pickingMaturity = false },
             confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { maturityDate = it }
-                    pickingMaturity = false
-                }) { Text(stringResource(R.string.common_save)) }
+                TextButton(
+                    onClick = {
+                        pickerState.selectedDateMillis?.let { maturityDate = it }
+                        pickingMaturity = false
+                    },
+                    enabled = pickerState.selectedDateMillis != null,
+                ) { Text(stringResource(R.string.common_save)) }
             },
             dismissButton = {
                 TextButton(onClick = { pickingMaturity = false }) { Text(stringResource(R.string.common_cancel)) }

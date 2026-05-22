@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.cards
+﻿package com.subramanya.artha.ui.cards
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -132,7 +132,7 @@ fun CardDetailScreen(
                             Icon(
                                 Icons.Filled.Delete,
                                 contentDescription = stringResource(R.string.card_action_delete),
-                                tint = MaterialTheme.colorScheme.error,
+                                tint = com.subramanya.artha.ui.theme.Danger,
                             )
                         }
                     }
@@ -155,37 +155,27 @@ fun CardDetailScreen(
     }
 
     if (state.showArchiveConfirm) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissArchiveConfirm,
-            title = { Text(stringResource(R.string.card_detail_archive_confirm_title)) },
-            text = { Text(stringResource(R.string.card_detail_archive_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = { vm.confirmArchive(onArchived = onBack) }) {
-                    Text(stringResource(R.string.card_detail_archive_confirm_yes))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::dismissArchiveConfirm) { Text(stringResource(R.string.common_cancel)) }
-            },
+            title = stringResource(R.string.card_detail_archive_confirm_title),
+            text = stringResource(R.string.card_detail_archive_confirm_body),
+            confirmLabel = stringResource(R.string.card_detail_archive_confirm_yes),
+            onConfirm = { vm.confirmArchive(onArchived = onBack) },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissArchiveConfirm,
         )
     }
 
     if (state.showDeleteConfirm) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissDeleteConfirm,
-            title = { Text(stringResource(R.string.card_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.card_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = { vm.confirmDelete(onDeleted = onBack) }) {
-                    Text(
-                        text = stringResource(R.string.card_delete_confirm_yes),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::dismissDeleteConfirm) { Text(stringResource(R.string.common_cancel)) }
-            },
+            title = stringResource(R.string.card_delete_confirm_title),
+            text = stringResource(R.string.card_delete_confirm_body),
+            confirmLabel = stringResource(R.string.card_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = { vm.confirmDelete(onDeleted = onBack) },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissDeleteConfirm,
         )
     }
 
@@ -320,9 +310,12 @@ private fun Hero(card: DomainCard, state: CardDetailUiState) {
             if (card.type == com.subramanya.artha.data.entity.enums.CardType.CREDIT && card.creditLimit != null) {
                 Spacer(Modifier.height(12.dp))
                 state.utilizationFraction?.let { fraction ->
-                    LinearProgressIndicator(
-                        progress = { fraction },
-                        modifier = Modifier.fillMaxWidth(),
+                    com.subramanya.artha.ui.common.LinearMeter(
+                        fraction = fraction,
+                        fillColor = if (fraction > 0.3f)
+                            com.subramanya.artha.ui.theme.Ochre
+                        else
+                            com.subramanya.artha.ui.theme.Teal500,
                     )
                     Text(
                         text = stringResource(R.string.cards_utilization_label, (fraction * 100).toInt()),
@@ -460,7 +453,7 @@ private fun amountColor(type: TransactionType): Color = when (type) {
     TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
     -> MaterialTheme.colorScheme.primary
     TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
-    -> MaterialTheme.colorScheme.error
+    -> com.subramanya.artha.ui.theme.Danger
     else -> MaterialTheme.colorScheme.onSurface
 }
 

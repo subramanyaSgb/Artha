@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.cards
+﻿package com.subramanya.artha.ui.cards
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -178,26 +178,18 @@ fun CardsScreen(
 
     val toDelete = pendingDelete
     if (toDelete != null) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.card_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.card_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.delete(toDelete)
-                    pendingDelete = null
-                }) {
-                    Text(
-                        text = stringResource(R.string.card_delete_confirm_yes),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+            title = stringResource(R.string.card_delete_confirm_title),
+            text = stringResource(R.string.card_delete_confirm_body),
+            confirmLabel = stringResource(R.string.card_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = {
+                vm.delete(toDelete)
+                pendingDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = { pendingDelete = null },
         )
     }
 }
@@ -288,12 +280,12 @@ private fun ActiveCardRow(
                                 text = {
                                     Text(
                                         text = stringResource(R.string.card_action_delete),
-                                        color = MaterialTheme.colorScheme.error,
+                                        color = com.subramanya.artha.ui.theme.Danger,
                                     )
                                 },
                                 onClick = { menuOpen = false; onDelete() },
                                 leadingIcon = {
-                                    Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                    Icon(Icons.Filled.Delete, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger)
                                 },
                             )
                         }
@@ -421,9 +413,9 @@ private fun CreditCardTile(
                         leadingIcon = { Icon(Icons.Filled.Archive, contentDescription = null) },
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.card_action_delete), color = MaterialTheme.colorScheme.error) },
+                        text = { Text(stringResource(R.string.card_action_delete), color = com.subramanya.artha.ui.theme.Danger) },
                         onClick = { menuOpen = false; onDelete() },
-                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger) },
                     )
                 }
             }
@@ -472,14 +464,11 @@ private fun CreditCardTile(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            androidx.compose.material3.LinearProgressIndicator(
-                progress = { (utilPct / 100f).coerceIn(0f, 1f) },
-                color = androidx.compose.ui.graphics.Color.White,
+            com.subramanya.artha.ui.common.LinearMeter(
+                fraction = (utilPct / 100f).coerceIn(0f, 1f),
+                fillColor = androidx.compose.ui.graphics.Color.White,
                 trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp)),
+                heightDp = 4,
             )
             Spacer(Modifier.height(6.dp))
             Row(
@@ -545,12 +534,12 @@ private fun ArchivedCardRow(
                             text = {
                                 Text(
                                     text = stringResource(R.string.card_action_delete),
-                                    color = MaterialTheme.colorScheme.error,
+                                    color = com.subramanya.artha.ui.theme.Danger,
                                 )
                             },
                             onClick = { menuOpen = false; onDelete() },
                             leadingIcon = {
-                                Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                Icon(Icons.Filled.Delete, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger)
                             },
                         )
                     }
@@ -581,9 +570,12 @@ private fun CardRowSupport(
             if (limit != null && limit > 0.0) {
                 val utilFraction = (row.currentOutstanding / limit).coerceIn(0.0, 1.0).toFloat()
                 Spacer(Modifier.height(6.dp))
-                LinearProgressIndicator(
-                    progress = { utilFraction },
-                    modifier = Modifier.fillMaxWidth(),
+                com.subramanya.artha.ui.common.LinearMeter(
+                    fraction = utilFraction,
+                    fillColor = if (utilFraction > 0.3f)
+                        com.subramanya.artha.ui.theme.Ochre
+                    else
+                        com.subramanya.artha.ui.theme.Teal500,
                 )
                 Text(
                     text = stringResource(R.string.cards_utilization_label, (utilFraction * 100).toInt()),

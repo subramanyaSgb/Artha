@@ -683,7 +683,7 @@ private fun FundsPickers(
         Text(
             text = stringResource(R.string.txn_validation_source),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
+            color = com.subramanya.artha.ui.theme.Danger,
         )
     }
 
@@ -708,7 +708,7 @@ private fun FundsPickers(
             Text(
                 text = stringResource(R.string.txn_validation_destination),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
+                color = com.subramanya.artha.ui.theme.Danger,
             )
         }
         // Same-source-destination check
@@ -719,7 +719,7 @@ private fun FundsPickers(
             Text(
                 text = stringResource(R.string.txn_validation_same_source_dest),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
+                color = com.subramanya.artha.ui.theme.Danger,
             )
         }
     }
@@ -744,7 +744,7 @@ private fun CategoryField(
             Text(
                 text = stringResource(R.string.txn_validation_category),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
+                color = com.subramanya.artha.ui.theme.Danger,
             )
         }
         if (state.categoryId != null && children.isNotEmpty()) {

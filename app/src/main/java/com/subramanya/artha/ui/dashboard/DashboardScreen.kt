@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.dashboard
+﻿package com.subramanya.artha.ui.dashboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -771,11 +771,11 @@ private fun CardChip(row: CardWithBalance, tone: Color, onClick: () -> Unit) {
                     ),
                 )
                 Spacer(Modifier.height(6.dp))
-                LinearProgressIndicator(
-                    progress = { pct },
-                    color = Color.White,
-                    trackColor = Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
+                com.subramanya.artha.ui.common.LinearMeter(
+                    fraction = pct,
+                    fillColor = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.18f),
+                    heightDp = 3,
                 )
             }
         }

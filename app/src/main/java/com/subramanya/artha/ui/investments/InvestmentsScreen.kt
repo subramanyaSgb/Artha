@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.investments
+﻿package com.subramanya.artha.ui.investments
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -179,24 +179,18 @@ fun InvestmentsScreen(
 
     val toDelete = pendingDelete
     if (toDelete != null) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.investment_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.investment_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.delete(toDelete)
-                    pendingDelete = null
-                }) {
-                    Text(
-                        text = stringResource(R.string.investment_delete_confirm_yes),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+            title = stringResource(R.string.investment_delete_confirm_title),
+            text = stringResource(R.string.investment_delete_confirm_body),
+            confirmLabel = stringResource(R.string.investment_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = {
+                vm.delete(toDelete)
+                pendingDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.common_cancel)) }
-            },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = { pendingDelete = null },
         )
     }
 }
@@ -214,7 +208,7 @@ private fun HeroCard(invested: Double, currentValue: Double) {
     val pct = if (invested == 0.0) Double.NaN else (gain / invested) * 100.0
     val positive = gain >= 0.0
     val gainColor =
-        if (positive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+        if (positive) MaterialTheme.colorScheme.primary else com.subramanya.artha.ui.theme.Danger
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -394,7 +388,7 @@ private fun InvestmentRow(
     var menuOpen by remember { mutableStateOf(false) }
     val positive = row.absoluteGain >= 0.0
     val gainColor =
-        if (positive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+        if (positive) MaterialTheme.colorScheme.primary else com.subramanya.artha.ui.theme.Danger
     ListItem(
         modifier = Modifier
             .fillMaxWidth()
@@ -446,7 +440,7 @@ private fun InvestmentRow(
                             text = {
                                 Text(
                                     text = stringResource(R.string.account_action_delete),
-                                    color = MaterialTheme.colorScheme.error,
+                                    color = com.subramanya.artha.ui.theme.Danger,
                                 )
                             },
                             onClick = { menuOpen = false; onDelete() },
@@ -454,7 +448,7 @@ private fun InvestmentRow(
                                 Icon(
                                     Icons.Filled.Delete,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
+                                    tint = com.subramanya.artha.ui.theme.Danger,
                                 )
                             },
                         )

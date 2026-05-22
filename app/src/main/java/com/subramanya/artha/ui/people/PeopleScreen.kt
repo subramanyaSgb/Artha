@@ -164,20 +164,17 @@ fun PeopleScreen(
 
     val toDelete = pendingDelete
     if (toDelete != null) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.people_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.people_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    scope.launch { app.personRepository.delete(toDelete); pendingDelete = null }
-                }) {
-                    Text(stringResource(R.string.people_delete_confirm_yes), color = MaterialTheme.colorScheme.error)
-                }
+            title = stringResource(R.string.people_delete_confirm_title),
+            text = stringResource(R.string.people_delete_confirm_body),
+            confirmLabel = stringResource(R.string.people_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = {
+                scope.launch { app.personRepository.delete(toDelete); pendingDelete = null }
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.common_cancel)) }
-            },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = { pendingDelete = null },
         )
     }
 }

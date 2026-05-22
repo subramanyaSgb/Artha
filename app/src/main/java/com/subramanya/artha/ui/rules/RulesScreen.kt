@@ -167,31 +167,19 @@ fun RulesScreen(
 
     val toDelete = pendingDelete
     if (toDelete != null) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.rules_delete_confirm_title)) },
-            text = {
-                Text(
-                    if (toDelete.isSystem) stringResource(R.string.rules_delete_system_warning)
-                    else stringResource(R.string.rules_delete_confirm_body),
-                )
+            title = stringResource(R.string.rules_delete_confirm_title),
+            text = if (toDelete.isSystem) stringResource(R.string.rules_delete_system_warning)
+                else stringResource(R.string.rules_delete_confirm_body),
+            confirmLabel = stringResource(R.string.rules_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = {
+                vm.delete(toDelete)
+                pendingDelete = null
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.delete(toDelete)
-                    pendingDelete = null
-                }) {
-                    Text(
-                        text = stringResource(R.string.rules_delete_confirm_yes),
-                        color = Danger,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = { pendingDelete = null },
         )
     }
 }

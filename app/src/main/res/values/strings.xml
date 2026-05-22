@@ -225,6 +225,13 @@
     <string name="search_section_investments">Investments</string>
     <string name="search_section_insurances">Insurance</string>
     <string name="search_tag_subtitle">Tag</string>
+
+    <!-- Biometric lock screen (BiometricLockGate) -->
+    <string name="lock_prompt_title">Unlock Artha</string>
+    <string name="lock_prompt_subtitle">Your money. Your rules.</string>
+    <string name="lock_screen_title">Artha is locked</string>
+    <string name="lock_screen_body">Unlock with biometric or device credential to continue.</string>
+    <string name="lock_screen_retry">Try again</string>
     <string name="transactions_filter_date">Date</string>
     <string name="transactions_filter_type">Type</string>
     <string name="transactions_filter_account">Account</string>

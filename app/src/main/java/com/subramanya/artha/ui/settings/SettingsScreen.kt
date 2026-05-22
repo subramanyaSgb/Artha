@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.settings
+﻿package com.subramanya.artha.ui.settings
 
 import android.content.Intent
 import android.widget.Toast
@@ -198,43 +198,32 @@ fun SettingsScreen(
     }
 
     if (state.showFirstResetDialog) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissFirstReset,
-            title = { Text(stringResource(R.string.settings_data_reset_confirm_title)) },
-            text = { Text(stringResource(R.string.settings_data_reset_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = vm::proceedToFinalReset) {
-                    Text(stringResource(R.string.settings_data_reset_confirm_yes))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::dismissFirstReset) { Text(stringResource(R.string.common_cancel)) }
-            },
+            title = stringResource(R.string.settings_data_reset_confirm_title),
+            text = stringResource(R.string.settings_data_reset_confirm_body),
+            confirmLabel = stringResource(R.string.settings_data_reset_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = vm::proceedToFinalReset,
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissFirstReset,
         )
     }
 
     if (state.showFinalResetDialog) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissFinalReset,
-            title = { Text(stringResource(R.string.settings_data_reset_final_title)) },
-            text = { Text(stringResource(R.string.settings_data_reset_final_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        vm.confirmReset(onDone = {
-                            Toast.makeText(context, R.string.settings_data_reset_done, Toast.LENGTH_LONG).show()
-                        })
-                    },
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_data_reset_final_yes),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+            title = stringResource(R.string.settings_data_reset_final_title),
+            text = stringResource(R.string.settings_data_reset_final_body),
+            confirmLabel = stringResource(R.string.settings_data_reset_final_yes),
+            confirmDestructive = true,
+            onConfirm = {
+                vm.confirmReset(onDone = {
+                    Toast.makeText(context, R.string.settings_data_reset_done, Toast.LENGTH_LONG).show()
+                })
             },
-            dismissButton = {
-                TextButton(onClick = vm::dismissFinalReset) { Text(stringResource(R.string.common_cancel)) }
-            },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissFinalReset,
         )
     }
 
@@ -310,7 +299,7 @@ private fun AppearanceSection(
             headlineContent = { Text(stringResource(R.string.settings_appearance_dynamic)) },
             supportingContent = { Text(stringResource(R.string.settings_appearance_dynamic_body)) },
             trailingContent = {
-                Switch(checked = useDynamicColor, onCheckedChange = onDynamicColorChanged)
+                com.subramanya.artha.ui.common.ArthaSwitch(checked = useDynamicColor, onCheckedChange = onDynamicColorChanged)
             },
         )
     }
@@ -396,7 +385,7 @@ private fun DashboardSwitchRow(label: String, checked: Boolean, onChange: (Boole
     ListItem(
         modifier = Modifier.fillMaxWidth(),
         headlineContent = { Text(label) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = onChange) },
+        trailingContent = { com.subramanya.artha.ui.common.ArthaSwitch(checked = checked, onCheckedChange = onChange) },
     )
 }
 
@@ -412,13 +401,13 @@ private fun SecuritySection(
             modifier = Modifier.fillMaxWidth(),
             headlineContent = { Text(stringResource(R.string.settings_security_biometric)) },
             supportingContent = { Text(stringResource(R.string.settings_security_biometric_body)) },
-            trailingContent = { Switch(checked = biometric, onCheckedChange = onBiometricChanged) },
+            trailingContent = { com.subramanya.artha.ui.common.ArthaSwitch(checked = biometric, onCheckedChange = onBiometricChanged) },
         )
         ListItem(
             modifier = Modifier.fillMaxWidth(),
             headlineContent = { Text(stringResource(R.string.settings_security_sms)) },
             supportingContent = { Text(stringResource(R.string.settings_security_sms_body)) },
-            trailingContent = { Switch(checked = smsImport, onCheckedChange = onSmsImportChanged) },
+            trailingContent = { com.subramanya.artha.ui.common.ArthaSwitch(checked = smsImport, onCheckedChange = onSmsImportChanged) },
         )
     }
 }
@@ -449,11 +438,11 @@ private fun DataSection(onExport: () -> Unit, onEncryptedExport: () -> Unit, onR
             headlineContent = {
                 Text(
                     text = stringResource(R.string.settings_data_reset),
-                    color = MaterialTheme.colorScheme.error,
+                    color = com.subramanya.artha.ui.theme.Danger,
                 )
             },
             supportingContent = { Text(stringResource(R.string.settings_data_reset_subtitle)) },
-            trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger) },
         )
     }
 }

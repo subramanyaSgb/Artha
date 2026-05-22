@@ -447,9 +447,15 @@ private fun DatePickerSheet(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = {
-                pickerState.selectedDateMillis?.let(onConfirm) ?: onDismiss()
-            }) { Text(stringResource(R.string.common_save)) }
+            // Disable Confirm when no date is selected — used to close silently
+            // (falling through to onDismiss) which felt like the dialog was
+            // ignoring the user.
+            TextButton(
+                onClick = {
+                    pickerState.selectedDateMillis?.let(onConfirm) ?: onDismiss()
+                },
+                enabled = pickerState.selectedDateMillis != null,
+            ) { Text(stringResource(R.string.common_save)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }

@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.categories
+﻿package com.subramanya.artha.ui.categories
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -196,24 +196,18 @@ fun CategoriesScreen(
 
     val toDelete = pendingDelete
     if (toDelete != null) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.categories_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.categories_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.delete(toDelete)
-                    pendingDelete = null
-                }) {
-                    Text(
-                        text = stringResource(R.string.categories_delete_confirm_yes),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+            title = stringResource(R.string.categories_delete_confirm_title),
+            text = stringResource(R.string.categories_delete_confirm_body),
+            confirmLabel = stringResource(R.string.categories_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = {
+                vm.delete(toDelete)
+                pendingDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.common_cancel)) }
-            },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = { pendingDelete = null },
         )
     }
 }
@@ -301,12 +295,12 @@ private fun ParentRow(
                             text = {
                                 Text(
                                     text = stringResource(R.string.categories_action_delete),
-                                    color = MaterialTheme.colorScheme.error,
+                                    color = com.subramanya.artha.ui.theme.Danger,
                                 )
                             },
                             onClick = { menuOpen = false; onDelete() },
                             leadingIcon = {
-                                Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                Icon(Icons.Filled.Delete, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger)
                             },
                         )
                     }
@@ -346,12 +340,12 @@ private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) 
                         text = {
                             Text(
                                 text = stringResource(R.string.categories_action_delete),
-                                color = MaterialTheme.colorScheme.error,
+                                color = com.subramanya.artha.ui.theme.Danger,
                             )
                         },
                         onClick = { menuOpen = false; onDelete() },
                         leadingIcon = {
-                            Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Filled.Delete, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger)
                         },
                     )
                 }

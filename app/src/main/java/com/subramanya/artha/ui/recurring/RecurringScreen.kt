@@ -166,18 +166,15 @@ fun RecurringScreen(
 
     val toDelete = pendingDelete
     if (toDelete != null) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.recurring_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.recurring_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = { scope.launch { app.recurringRuleRepository.delete(toDelete); pendingDelete = null } }) {
-                    Text(stringResource(R.string.recurring_delete_confirm_yes), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.common_cancel)) }
-            },
+            title = stringResource(R.string.recurring_delete_confirm_title),
+            text = stringResource(R.string.recurring_delete_confirm_body),
+            confirmLabel = stringResource(R.string.recurring_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = { scope.launch { app.recurringRuleRepository.delete(toDelete); pendingDelete = null } },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = { pendingDelete = null },
         )
     }
 }
@@ -448,7 +445,7 @@ private fun RecurringFormSheet(
                     onSave(
                         RecurringRule(
                             id = editing?.id ?: UUID.randomUUID().toString(),
-                            name = name.trim().ifBlank { "Recurring" },
+                            name = name.trim(),
                             transactionTemplate = template.trim(),
                             frequency = freq,
                             dayOfPeriod = day,

@@ -7,12 +7,22 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.subramanya.artha.ui.theme.Line1
+import com.subramanya.artha.ui.theme.Surface3
+import com.subramanya.artha.ui.theme.Teal300
+import com.subramanya.artha.ui.theme.Teal500
+import com.subramanya.artha.ui.theme.Text1
+import com.subramanya.artha.ui.theme.Text2
+import com.subramanya.artha.ui.theme.Text3
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +58,10 @@ fun SpousePromptDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
+        containerColor = Surface3,
+        titleContentColor = Text1,
+        textContentColor = Text2,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Text(
                 text = stringResource(
@@ -106,10 +120,12 @@ fun SpousePromptDialog(
                     else -> null
                 }
                 onSave(choice, persist)
-            }) { Text(stringResource(R.string.spouse_prompt_save)) }
+            }) { Text(stringResource(R.string.spouse_prompt_save), color = Teal300) }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text(stringResource(R.string.spouse_prompt_cancel)) }
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.spouse_prompt_cancel), color = Text2)
+            }
         },
     )
 }
@@ -130,13 +146,20 @@ private fun ChoiceRow(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        RadioButton(selected = selected, onClick = onSelect)
+        RadioButton(
+            selected = selected,
+            onClick = onSelect,
+            colors = RadioButtonDefaults.colors(
+                selectedColor = Teal500,
+                unselectedColor = Line1,
+            ),
+        )
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(text = title, style = MaterialTheme.typography.bodyLarge, color = Text1)
             Text(
                 text = body,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Text3,
             )
         }
     }
@@ -151,7 +174,14 @@ private fun CheckboxRow(checked: Boolean, onChange: (Boolean) -> Unit, label: St
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Checkbox(checked = checked, onCheckedChange = onChange)
-        Text(text = label, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onChange,
+            colors = CheckboxDefaults.colors(
+                checkedColor = Teal500,
+                uncheckedColor = Line1,
+            ),
+        )
+        Text(text = label, style = MaterialTheme.typography.bodySmall, color = Text2, modifier = Modifier.weight(1f))
     }
 }

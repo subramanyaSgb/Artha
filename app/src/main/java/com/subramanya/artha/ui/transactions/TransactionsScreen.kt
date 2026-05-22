@@ -186,18 +186,15 @@ fun TransactionsScreen(
     }
 
     if (state.showDeleteConfirm) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissDeleteConfirm,
-            title = { Text(stringResource(R.string.transactions_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.transactions_delete_confirm_body, state.selectedIds.size)) },
-            confirmButton = {
-                TextButton(onClick = vm::confirmDelete) {
-                    Text(stringResource(R.string.transactions_delete_confirm_yes))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::dismissDeleteConfirm) { Text(stringResource(R.string.common_cancel)) }
-            },
+            title = stringResource(R.string.transactions_delete_confirm_title),
+            text = stringResource(R.string.transactions_delete_confirm_body, state.selectedIds.size),
+            confirmLabel = stringResource(R.string.transactions_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = vm::confirmDelete,
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissDeleteConfirm,
         )
     }
 }

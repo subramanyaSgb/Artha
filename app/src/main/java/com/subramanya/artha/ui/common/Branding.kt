@@ -409,6 +409,141 @@ fun LoadingPlaceholder(
     }
 }
 
+/**
+ * Skinned wrapper around M3 AlertDialog. Sets the design tokens (Surface3
+ * container, Text1 title, Text2 body, 20dp rounded), and tints the confirm
+ * action Teal300 by default — pass `confirmDestructive = true` for delete /
+ * reset flows so the confirm button goes Danger instead.
+ *
+ * Usage:
+ *
+ *   ArthaAlertDialog(
+ *       onDismissRequest = ::dismiss,
+ *       title = stringResource(R.string.x_title),
+ *       text = stringResource(R.string.x_body),
+ *       confirmLabel = stringResource(R.string.x_yes),
+ *       confirmDestructive = true,
+ *       onConfirm = ::confirm,
+ *   )
+ */
+@Composable
+fun ArthaAlertDialog(
+    onDismissRequest: () -> Unit,
+    title: String,
+    text: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    cancelLabel: String? = null,
+    onCancel: (() -> Unit)? = onDismissRequest,
+    confirmDestructive: Boolean = false,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismissRequest,
+        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        titleContentColor = com.subramanya.artha.ui.theme.Text1,
+        textContentColor = com.subramanya.artha.ui.theme.Text2,
+        shape = RoundedCornerShape(20.dp),
+        title = {
+            androidx.compose.material3.Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
+            )
+        },
+        text = {
+            androidx.compose.material3.Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onConfirm) {
+                androidx.compose.material3.Text(
+                    text = confirmLabel,
+                    color = if (confirmDestructive)
+                        com.subramanya.artha.ui.theme.Danger
+                    else
+                        com.subramanya.artha.ui.theme.Teal300,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                )
+            }
+        },
+        dismissButton = if (cancelLabel != null && onCancel != null) {
+            {
+                androidx.compose.material3.TextButton(onClick = onCancel) {
+                    androidx.compose.material3.Text(
+                        text = cancelLabel,
+                        color = com.subramanya.artha.ui.theme.Text2,
+                    )
+                }
+            }
+        } else null,
+    )
+}
+
+/**
+ * Tealed Material Switch — checked thumb Text1 on Teal700 track, unchecked
+ * thumb Text2 on Surface4 track with Line1 border. Use everywhere instead of
+ * raw `Switch(...)` so the lock/data/etc toggles match the design instead of
+ * showing M3's default green.
+ */
+@Composable
+fun ArthaSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.material3.Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        colors = androidx.compose.material3.SwitchDefaults.colors(
+            checkedThumbColor = com.subramanya.artha.ui.theme.Text1,
+            checkedTrackColor = Teal700,
+            uncheckedThumbColor = com.subramanya.artha.ui.theme.Text2,
+            uncheckedTrackColor = com.subramanya.artha.ui.theme.Surface4,
+            uncheckedBorderColor = com.subramanya.artha.ui.theme.Line1,
+        ),
+    )
+}
+
+/**
+ * Single-segment progress bar matching the rest of the design (rounded pill,
+ * Surface4 / White-on-white-18% track depending on context). Replaces M3
+ * `LinearProgressIndicator` which has its own M3-tinted defaults that fight
+ * the editorial palette.
+ */
+@Composable
+fun LinearMeter(
+    fraction: Float,
+    modifier: Modifier = Modifier,
+    fillColor: androidx.compose.ui.graphics.Color = Teal700,
+    trackColor: androidx.compose.ui.graphics.Color = com.subramanya.artha.ui.theme.Surface4,
+    heightDp: Int = 6,
+) {
+    val safe = fraction.coerceIn(0f, 1f)
+    Box(
+        modifier = modifier
+            .height(heightDp.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(999.dp))
+            .background(trackColor),
+    ) {
+        if (safe > 0f) {
+            Box(
+                modifier = Modifier
+                    .height(heightDp.dp)
+                    .fillMaxWidth(safe)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(fillColor),
+            )
+        }
+    }
+}
+
 @Suppress("unused")
 private fun previewKeep() {
     // Keep an unused reference so Teal700 doesn't get flagged as unused import.

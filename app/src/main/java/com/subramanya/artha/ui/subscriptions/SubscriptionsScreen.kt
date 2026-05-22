@@ -172,18 +172,15 @@ fun SubscriptionsScreen(
 
     val toDelete = pendingDelete
     if (toDelete != null) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.subscriptions_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.subscriptions_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = { scope.launch { app.subscriptionRepository.delete(toDelete); pendingDelete = null } }) {
-                    Text(stringResource(R.string.subscriptions_delete_confirm_yes), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.common_cancel)) }
-            },
+            title = stringResource(R.string.subscriptions_delete_confirm_title),
+            text = stringResource(R.string.subscriptions_delete_confirm_body),
+            confirmLabel = stringResource(R.string.subscriptions_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = { scope.launch { app.subscriptionRepository.delete(toDelete); pendingDelete = null } },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = { pendingDelete = null },
         )
     }
 }
@@ -416,14 +413,16 @@ private fun SubscriptionFormSheet(
             Spacer(Modifier.height(28.dp))
             com.subramanya.artha.ui.common.SavePrimaryButton(
                 label = stringResource(R.string.common_save),
-                enabled = amountText.toDoubleOrNull() != null,
+                // Require name AND amount — used to silently default to
+                // "Subscription".
+                enabled = name.isNotBlank() && amountText.toDoubleOrNull() != null,
                 onClick = {
                     val amount = amountText.toDoubleOrNull() ?: return@SavePrimaryButton
                     val now = System.currentTimeMillis()
                     onSave(
                         Subscription(
                             id = editing?.id ?: UUID.randomUUID().toString(),
-                            name = name.trim().ifBlank { "Subscription" },
+                            name = name.trim(),
                             provider = provider.trim().takeIf { it.isNotBlank() },
                             amount = amount,
                             frequency = freq,

@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.transactions
+﻿package com.subramanya.artha.ui.transactions
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -110,7 +110,7 @@ fun TransactionDetailScreen(
                             Icon(
                                 Icons.Filled.Delete,
                                 contentDescription = stringResource(R.string.txn_detail_action_delete),
-                                tint = MaterialTheme.colorScheme.error,
+                                tint = com.subramanya.artha.ui.theme.Danger,
                             )
                         }
                     }
@@ -138,21 +138,15 @@ fun TransactionDetailScreen(
     }
 
     if (state.showDeleteConfirm) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissDeleteConfirm,
-            title = { Text(stringResource(R.string.txn_detail_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.txn_detail_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = { vm.confirmDelete(onDeleted = onBack) }) {
-                    Text(
-                        text = stringResource(R.string.txn_detail_delete_confirm_yes),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::dismissDeleteConfirm) { Text(stringResource(R.string.common_cancel)) }
-            },
+            title = stringResource(R.string.txn_detail_delete_confirm_title),
+            text = stringResource(R.string.txn_detail_delete_confirm_body),
+            confirmLabel = stringResource(R.string.txn_detail_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = { vm.confirmDelete(onDeleted = onBack) },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissDeleteConfirm,
         )
     }
 

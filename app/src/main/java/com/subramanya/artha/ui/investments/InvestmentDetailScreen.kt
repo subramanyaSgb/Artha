@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.investments
+﻿package com.subramanya.artha.ui.investments
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -122,7 +122,7 @@ fun InvestmentDetailScreen(
                             Icon(
                                 Icons.Filled.Delete,
                                 contentDescription = stringResource(R.string.account_action_delete),
-                                tint = MaterialTheme.colorScheme.error,
+                                tint = com.subramanya.artha.ui.theme.Danger,
                             )
                         }
                     }
@@ -177,21 +177,15 @@ fun InvestmentDetailScreen(
     }
 
     if (state.showDeleteConfirm) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissDeleteConfirm,
-            title = { Text(stringResource(R.string.investment_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.investment_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = { vm.confirmDelete(onDeleted = onBack) }) {
-                    Text(
-                        text = stringResource(R.string.investment_delete_confirm_yes),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::dismissDeleteConfirm) { Text(stringResource(R.string.common_cancel)) }
-            },
+            title = stringResource(R.string.investment_delete_confirm_title),
+            text = stringResource(R.string.investment_delete_confirm_body),
+            confirmLabel = stringResource(R.string.investment_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = { vm.confirmDelete(onDeleted = onBack) },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissDeleteConfirm,
         )
     }
 }
@@ -202,7 +196,7 @@ fun InvestmentDetailScreen(
 private fun HeroBlock(investment: Investment, invested: Double, gain: Double, pctGain: Double) {
     val positive = gain >= 0.0
     val gainColor =
-        if (positive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+        if (positive) MaterialTheme.colorScheme.primary else com.subramanya.artha.ui.theme.Danger
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(16.dp),

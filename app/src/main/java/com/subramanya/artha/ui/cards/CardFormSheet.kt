@@ -96,7 +96,12 @@ fun CardFormSheet(
     val isValid: Boolean = name.isNotBlank() && last4Valid && when (type) {
         CardType.CREDIT -> (parsedLimit != null && parsedLimit > 0.0) &&
             parsedStatement in 1..31 && parsedDue in 1..31
-        CardType.DEBIT, CardType.PREPAID -> true
+        // DEBIT cards must point at a real account — that's how transactions
+        // hit the account balance. Previously this validated as `true` so a
+        // user could save a DEBIT card with no linkedAccountId, which then
+        // floated outside the account ledger.
+        CardType.DEBIT -> linkedAccountId != null
+        CardType.PREPAID -> true
     }
 
     val typeOptions = listOf(

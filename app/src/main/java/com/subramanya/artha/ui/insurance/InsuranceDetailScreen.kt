@@ -1,4 +1,4 @@
-package com.subramanya.artha.ui.insurance
+﻿package com.subramanya.artha.ui.insurance
 
 import android.content.Intent
 import android.net.Uri
@@ -120,7 +120,7 @@ fun InsuranceDetailScreen(
                             Icon(
                                 Icons.Filled.Delete,
                                 contentDescription = stringResource(R.string.account_action_delete),
-                                tint = MaterialTheme.colorScheme.error,
+                                tint = com.subramanya.artha.ui.theme.Danger,
                             )
                         }
                     }
@@ -156,21 +156,15 @@ fun InsuranceDetailScreen(
     }
 
     if (state.showDeleteConfirm) {
-        AlertDialog(
+        com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissDeleteConfirm,
-            title = { Text(stringResource(R.string.insurance_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.insurance_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = { vm.confirmDelete(onDeleted = onBack) }) {
-                    Text(
-                        text = stringResource(R.string.insurance_delete_confirm_yes),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::dismissDeleteConfirm) { Text(stringResource(R.string.common_cancel)) }
-            },
+            title = stringResource(R.string.insurance_delete_confirm_title),
+            text = stringResource(R.string.insurance_delete_confirm_body),
+            confirmLabel = stringResource(R.string.insurance_delete_confirm_yes),
+            confirmDestructive = true,
+            onConfirm = { vm.confirmDelete(onDeleted = onBack) },
+            cancelLabel = stringResource(R.string.common_cancel),
+            onCancel = vm::dismissDeleteConfirm,
         )
     }
 }
