@@ -18,7 +18,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,10 +35,12 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,8 +48,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -60,20 +63,44 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.CategoryType
 import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
+import com.subramanya.artha.ui.common.ArthaSheetHandle
+import com.subramanya.artha.ui.theme.Danger
+import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.Income
+import com.subramanya.artha.ui.theme.Indigo
+import com.subramanya.artha.ui.theme.IndigoDeep
+import com.subramanya.artha.ui.theme.InstrumentSerif
+import com.subramanya.artha.ui.theme.Line1
+import com.subramanya.artha.ui.theme.Surface1
+import com.subramanya.artha.ui.theme.Surface2
+import com.subramanya.artha.ui.theme.Surface3
+import com.subramanya.artha.ui.theme.Surface4
+import com.subramanya.artha.ui.theme.Teal700
+import com.subramanya.artha.ui.theme.Text1
+import com.subramanya.artha.ui.theme.Text2
+import com.subramanya.artha.ui.theme.Text3
+import com.subramanya.artha.ui.theme.Text4
 import com.subramanya.artha.utils.DateFormatter
+import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -110,7 +137,12 @@ fun AddTransactionSheet(
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Surface3,
+        dragHandle = { ArthaSheetHandle() },
+    ) {
         SheetBody(
             state = state,
             funds = funds,
@@ -226,16 +258,11 @@ private fun SheetBody(
             }
         }
 
-        // ----- tabs -----
-        TabRow(selectedTabIndex = state.tab.ordinal) {
-            TransactionTab.entries.forEach { tab ->
-                Tab(
-                    selected = state.tab == tab,
-                    onClick = { viewModel.onTabChanged(tab) },
-                    text = { Text(tab.label()) },
-                )
-            }
-        }
+        // ----- segmented tabs (HANDOFF §3.8: Surface2 track, 4dp inset, Surface4 active pill) -----
+        SegmentedTabs(
+            selected = state.tab,
+            onSelect = viewModel::onTabChanged,
+        )
 
         Column(
             modifier = Modifier
@@ -243,11 +270,12 @@ private fun SheetBody(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            // ----- amount (large, INR-prefixed) -----
-            AmountField(
+            // ----- centered editorial amount input (HANDOFF §3.8) -----
+            AmountInput(
                 value = state.amountText,
                 onValueChange = viewModel::onAmountChanged,
                 showError = state.showValidationErrors && state.parsedAmount == null,
+                tab = state.tab,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -375,44 +403,215 @@ private fun SheetBody(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // ----- save button -----
-        Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth()) {
-            Button(
-                onClick = { viewModel.trySave() },
-                enabled = state.isValid && !state.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
-            ) { Text(stringResource(R.string.txn_save)) }
-        }
+        // ----- tab-tinted save button (HANDOFF §3.8 — "Save expense · ₹420") -----
+        TabTintedSaveButton(
+            tab = state.tab,
+            amount = state.parsedAmount,
+            enabled = state.isValid && !state.isSaving,
+            onClick = { viewModel.trySave() },
+        )
     }
 }
 
 // --------- field composables (kept private to this file for cohesion) ---------
 
+/**
+ * HANDOFF §3.8 — segmented tabs with Surface2 track, 4dp inset, Surface4 active pill,
+ * tab-tinted active label (Text1 expense, Income sage, Indigo transfer).
+ */
 @Composable
-private fun AmountField(value: String, onValueChange: (String) -> Unit, showError: Boolean) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = true,
-        label = { Text(stringResource(R.string.txn_amount_label)) },
-        prefix = { Text("₹", style = MaterialTheme.typography.titleLarge) },
-        textStyle = MaterialTheme.typography.headlineMedium.copy(
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Start,
-            fontFeatureSettings = "tnum",
-        ),
-        isError = showError,
-        supportingText = {
-            if (showError) Text(stringResource(R.string.txn_validation_amount))
-        },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Decimal,
-            imeAction = ImeAction.Next,
-        ),
+private fun SegmentedTabs(
+    selected: TransactionTab,
+    onSelect: (TransactionTab) -> Unit,
+) {
+    Surface(
+        color = Surface2,
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            TransactionTab.entries.forEach { tab ->
+                val isActive = tab == selected
+                val activeTint = when (tab) {
+                    TransactionTab.EXPENSE -> Text1
+                    TransactionTab.INCOME -> Income
+                    TransactionTab.TRANSFER -> Indigo
+                }
+                Surface(
+                    color = if (isActive) Surface4 else Color.Transparent,
+                    contentColor = if (isActive) activeTint else Text2,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                        .clickable { onSelect(tab) },
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text(
+                            text = tab.label(),
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Medium,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * HANDOFF §3.8 — centered editorial amount entry: 32sp ₹ in Text3 +
+ * 64sp Instrument Serif weight-300 amount in tab-tinted color. Tabular numerals,
+ * tight letterspacing (-0.02em). No box, no underline — pure typography.
+ */
+@Composable
+private fun AmountInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    showError: Boolean,
+    tab: TransactionTab,
+) {
+    val tint = when (tab) {
+        TransactionTab.EXPENSE -> Text1
+        TransactionTab.INCOME -> Income
+        TransactionTab.TRANSFER -> Indigo
+    }
+    Column(
         modifier = Modifier.fillMaxWidth(),
-    )
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.txn_amount_eyebrow).uppercase(),
+            style = EyebrowStyle,
+            color = Text3,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = "₹",
+                color = Text3,
+                style = TextStyle(
+                    fontFamily = InstrumentSerif,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 32.sp,
+                    lineHeight = 38.sp,
+                    letterSpacing = (-0.02).em,
+                    fontFeatureSettings = "tnum, lnum",
+                ),
+                modifier = Modifier.padding(end = 6.dp, bottom = 8.dp),
+            )
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                cursorBrush = SolidColor(tint),
+                textStyle = TextStyle(
+                    fontFamily = InstrumentSerif,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 64.sp,
+                    lineHeight = 72.sp,
+                    letterSpacing = (-0.02).em,
+                    color = tint,
+                    textAlign = TextAlign.Center,
+                    fontFeatureSettings = "tnum, lnum",
+                ),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Next,
+                ),
+                decorationBox = { inner ->
+                    Box(contentAlignment = Alignment.Center) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.txn_amount_placeholder),
+                                color = Text4,
+                                style = TextStyle(
+                                    fontFamily = InstrumentSerif,
+                                    fontSize = 64.sp,
+                                    lineHeight = 72.sp,
+                                    letterSpacing = (-0.02).em,
+                                    textAlign = TextAlign.Center,
+                                    fontFeatureSettings = "tnum, lnum",
+                                ),
+                            )
+                        }
+                        inner()
+                    }
+                },
+                modifier = Modifier.widthIn(min = 80.dp, max = 280.dp),
+            )
+        }
+        if (showError) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.txn_validation_amount),
+                color = Danger,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+/**
+ * HANDOFF §3.8 — bottom Save button tinted by tab. Label format:
+ * "Save expense · ₹420" using IndianNumberFormat. Disabled state stays muted.
+ */
+@Composable
+private fun TabTintedSaveButton(
+    tab: TransactionTab,
+    amount: Double?,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val (container, content) = when (tab) {
+        TransactionTab.EXPENSE -> Teal700 to Text1
+        TransactionTab.INCOME -> Income to Color(0xFF06281C)
+        TransactionTab.TRANSFER -> IndigoDeep to Text1
+    }
+    val labelRes = when (tab) {
+        TransactionTab.EXPENSE -> R.string.txn_save_expense_fmt
+        TransactionTab.INCOME -> R.string.txn_save_income_fmt
+        TransactionTab.TRANSFER -> R.string.txn_save_transfer_fmt
+    }
+    val priceText = amount?.let { "₹${IndianNumberFormat.format(it)}" } ?: "₹0"
+    Surface(color = Surface1, modifier = Modifier.fillMaxWidth()) {
+        Column {
+            HorizontalDivider(color = Line1, thickness = Dp.Hairline)
+            Button(
+                onClick = onClick,
+                enabled = enabled,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = container,
+                    contentColor = content,
+                    disabledContainerColor = Surface3,
+                    disabledContentColor = Text3,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .padding(horizontal = 24.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = stringResource(labelRes, priceText),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
+            }
+        }
+    }
 }
 
 @Composable

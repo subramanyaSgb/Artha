@@ -29,12 +29,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.Line2
 import com.subramanya.artha.ui.theme.Surface4
 import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
 import com.subramanya.artha.ui.theme.Teal900
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.TiroDevanagariHindi
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 
 /**
  * The अ brand mark in a tinted rounded box. Used in the top bar, hero cards, etc.
@@ -359,6 +362,28 @@ fun MonoMeta(text: String, modifier: Modifier = Modifier) {
         ),
         modifier = modifier,
     )
+}
+
+/**
+ * HANDOFF §6 — sheet drag handle: 36 dp wide × 4 dp tall, Line2 colour,
+ * 12 dp from the sheet top edge.
+ */
+@Composable
+fun ArthaSheetHandle() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(36.dp)
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(Line2),
+        )
+    }
 }
 
 @Suppress("unused")

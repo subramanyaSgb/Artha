@@ -108,6 +108,10 @@
     <string name="txn_receipt_attached">Receipt attached</string>
     <string name="txn_notes_label">Notes</string>
     <string name="txn_save">Save</string>
+    <string name="txn_save_expense_fmt">Save expense · %1$s</string>
+    <string name="txn_save_income_fmt">Save income · %1$s</string>
+    <string name="txn_save_transfer_fmt">Save transfer · %1$s</string>
+    <string name="txn_amount_eyebrow">Amount</string>
     <string name="txn_cancel">Cancel</string>
     <string name="txn_card_payment_hint">Credit card payment — won\'t count as expense</string>
     <string name="txn_no_accounts">No accounts yet — add one from Accounts</string>
