@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.subramanya.artha.ui.common.GhostButton
+import com.subramanya.artha.ui.common.SavePrimaryButton
+import com.subramanya.artha.ui.theme.Surface1
+import com.subramanya.artha.ui.theme.Surface4
+import com.subramanya.artha.ui.theme.Teal700
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,7 +52,7 @@ fun OnboardingFlow(
         if (state.savedAndReady) onCompleted()
     }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
             HorizontalPager(
                 state = pagerState,
@@ -109,11 +111,7 @@ private fun PageIndicator(pageCount: Int, selected: Int, modifier: Modifier = Mo
         horizontalArrangement = Arrangement.Center,
     ) {
         repeat(pageCount) { index ->
-            val color = if (index == selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            }
+            val color = if (index == selected) Teal700 else Surface4
             Box(
                 modifier = Modifier
                     .padding(horizontal = 4.dp)
@@ -137,26 +135,34 @@ private fun BottomBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (currentPage > 0) {
-            TextButton(onClick = onBack) { Text(stringResource(R.string.onboarding_back)) }
-        } else {
-            // Reserve space so the right button stays right-aligned.
-            Box(modifier = Modifier.size(width = 1.dp, height = 1.dp))
+            Box(modifier = Modifier.weight(1f)) {
+                GhostButton(
+                    label = stringResource(R.string.onboarding_back),
+                    onClick = onBack,
+                )
+            }
         }
-        if (currentPage < PAGE_COUNT - 1) {
-            Button(
-                onClick = onNext,
-                enabled = canAdvance(currentPage, state),
-            ) { Text(stringResource(R.string.onboarding_next)) }
-        } else {
-            Button(
-                onClick = onDone,
-                enabled = state.canFinishOnboarding && !state.isSaving,
-            ) { Text(stringResource(R.string.onboarding_done)) }
+        Box(
+            modifier = if (currentPage > 0) Modifier.weight(2f) else Modifier.weight(1f),
+        ) {
+            if (currentPage < PAGE_COUNT - 1) {
+                SavePrimaryButton(
+                    label = stringResource(R.string.onboarding_next),
+                    enabled = canAdvance(currentPage, state),
+                    onClick = onNext,
+                )
+            } else {
+                SavePrimaryButton(
+                    label = stringResource(R.string.onboarding_done),
+                    enabled = state.canFinishOnboarding && !state.isSaving,
+                    onClick = onDone,
+                )
+            }
         }
     }
 }
