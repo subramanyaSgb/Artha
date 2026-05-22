@@ -286,33 +286,38 @@ fun ArthaTextField(
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(modifier = Modifier.weight(1f)) {
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = singleLine,
-                keyboardOptions = keyboardOptions,
-                cursorBrush = SolidColor(Teal300),
-                textStyle = TextStyle(
-                    fontFamily = PlusJakartaSans,
-                    fontSize = if (large) 16.sp else 14.sp,
-                    color = Text1,
-                ),
-                decorationBox = { inner ->
-                    if (value.isEmpty()) {
-                        Text(
-                            text = placeholder,
-                            style = TextStyle(
-                                fontFamily = PlusJakartaSans,
-                                fontSize = if (large) 16.sp else 14.sp,
-                                color = Text4,
-                            ),
-                        )
-                    }
-                    inner()
-                },
-            )
-        }
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = singleLine,
+            keyboardOptions = keyboardOptions,
+            cursorBrush = SolidColor(Teal300),
+            textStyle = TextStyle(
+                fontFamily = PlusJakartaSans,
+                fontSize = if (large) 16.sp else 14.sp,
+                color = Text1,
+            ),
+            // fillMaxWidth + weight(1f) ensures the tappable + focusable region
+            // covers the whole input — without it, an empty BasicTextField is
+            // 0dp wide so taps on the placeholder land on the parent Row and
+            // nothing happens. (This is what shipped before the fix.)
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            decorationBox = { inner ->
+                if (value.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        style = TextStyle(
+                            fontFamily = PlusJakartaSans,
+                            fontSize = if (large) 16.sp else 14.sp,
+                            color = Text4,
+                        ),
+                    )
+                }
+                inner()
+            },
+        )
         if (suffix != null) {
             Spacer(Modifier.size(10.dp))
             Text(
