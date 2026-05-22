@@ -93,10 +93,20 @@ fun CardDetailScreen(
     var editing: DomainCard? by remember { mutableStateOf(null) }
     var payBill by remember { mutableStateOf(false) }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(
+        color = com.subramanya.artha.ui.theme.Surface1,
+        modifier = modifier.fillMaxSize(),
+    ) {
         Scaffold(
+            containerColor = com.subramanya.artha.ui.theme.Surface1,
             topBar = {
                 TopAppBar(
+                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                        containerColor = com.subramanya.artha.ui.theme.Surface1,
+                        titleContentColor = com.subramanya.artha.ui.theme.Text1,
+                        navigationIconContentColor = com.subramanya.artha.ui.theme.Text2,
+                        actionIconContentColor = com.subramanya.artha.ui.theme.Text2,
+                    ),
                     title = { Text(state.card?.name.orEmpty()) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {

@@ -81,10 +81,20 @@ fun TransactionDetailScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf(false) }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(
+        color = com.subramanya.artha.ui.theme.Surface1,
+        modifier = modifier.fillMaxSize(),
+    ) {
         Scaffold(
+            containerColor = com.subramanya.artha.ui.theme.Surface1,
             topBar = {
                 TopAppBar(
+                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                        containerColor = com.subramanya.artha.ui.theme.Surface1,
+                        titleContentColor = com.subramanya.artha.ui.theme.Text1,
+                        navigationIconContentColor = com.subramanya.artha.ui.theme.Text2,
+                        actionIconContentColor = com.subramanya.artha.ui.theme.Text2,
+                    ),
                     title = { Text(stringResource(R.string.txn_detail_title)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
