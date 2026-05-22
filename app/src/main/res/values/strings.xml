@@ -207,6 +207,24 @@
 
     <!-- Transactions screen -->
     <string name="transactions_search_placeholder">Search transactions</string>
+
+    <!-- Global search (Dashboard search icon) -->
+    <string name="search_back">Back</string>
+    <string name="search_clear">Clear</string>
+    <string name="search_placeholder">Search anything — txns, ₹, accounts…</string>
+    <string name="search_empty_title">What are you looking for?</string>
+    <string name="search_empty_body">Type to search across transactions, accounts, cards, people, categories, investments, and policies.</string>
+    <string name="search_no_results_title">No matches for &#8220;%1$s&#8221;</string>
+    <string name="search_no_results_body">Try a shorter or different word — search is substring-match across descriptions, names, and amounts.</string>
+    <string name="search_section_transactions">Transactions</string>
+    <string name="search_section_accounts">Accounts</string>
+    <string name="search_section_cards">Cards</string>
+    <string name="search_section_people">People</string>
+    <string name="search_section_categories">Categories</string>
+    <string name="search_section_tags">Tags</string>
+    <string name="search_section_investments">Investments</string>
+    <string name="search_section_insurances">Insurance</string>
+    <string name="search_tag_subtitle">Tag</string>
     <string name="transactions_filter_date">Date</string>
     <string name="transactions_filter_type">Type</string>
     <string name="transactions_filter_account">Account</string>

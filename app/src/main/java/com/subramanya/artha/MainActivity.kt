@@ -166,7 +166,14 @@ private fun MainApp(
         // this to WindowInsets(0) avoids double-padding when a sub-screen's
         // inner Scaffold inserts its own status-bar inset on top of ours.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-        topBar = { if (isBottomNavRoute) ArthaTopBar(userName = userName) },
+        topBar = {
+            if (isBottomNavRoute) {
+                ArthaTopBar(
+                    userName = userName,
+                    onSearchClick = { navController.navigate(SubRoutes.SEARCH) },
+                )
+            }
+        },
         bottomBar = {
             ArthaBottomBar(
                 currentDestination = currentDestination,

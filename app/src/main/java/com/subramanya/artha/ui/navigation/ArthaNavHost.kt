@@ -28,6 +28,7 @@ import com.subramanya.artha.ui.people.PeopleScreen
 import com.subramanya.artha.ui.recurring.RecurringScreen
 import com.subramanya.artha.ui.reports.ReportsScreen
 import com.subramanya.artha.ui.rules.RulesScreen
+import com.subramanya.artha.ui.search.SearchScreen
 import com.subramanya.artha.ui.settings.AboutScreen
 import com.subramanya.artha.ui.subscriptions.SubscriptionsScreen
 import com.subramanya.artha.ui.settings.SettingsScreen
@@ -72,6 +73,9 @@ object SubRoutes {
     // Phase 5
     const val REPORTS = "reports"
     const val PENDING_SMS = "pending_sms"
+
+    /** Global search — opened from the Dashboard header search icon. */
+    const val SEARCH = "search"
 
     private const val INVESTMENT_DETAIL_BASE = "investment_detail"
     const val INVESTMENT_DETAIL_ARG_ID = "investmentId"
@@ -260,6 +264,19 @@ fun ArthaNavHost(
         }
         composable(SubRoutes.REPORTS) {
             ReportsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(SubRoutes.SEARCH) {
+            SearchScreen(
+                onBack = { navController.popBackStack() },
+                onOpenTransaction = { id -> navController.navigate(SubRoutes.transactionDetail(id)) },
+                onOpenAccount = { id -> navController.navigate(SubRoutes.accountDetail(id)) },
+                onOpenCard = { id -> navController.navigate(SubRoutes.cardDetail(id)) },
+                onOpenInvestment = { id -> navController.navigate(SubRoutes.investmentDetail(id)) },
+                onOpenInsurance = { id -> navController.navigate(SubRoutes.insuranceDetail(id)) },
+                onOpenPeople = { navController.navigate(SubRoutes.PEOPLE) },
+                onOpenCategories = { navController.navigate(SubRoutes.CATEGORIES) },
+                onOpenTags = { navController.navigate(SubRoutes.TAGS) },
+            )
         }
         // No `more` route on purpose — that tap opens a sheet, not a destination.
     }
