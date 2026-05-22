@@ -115,6 +115,10 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.fragment.ktx)
 
+    // Downloadable Google Fonts — Plus Jakarta Sans, Instrument Serif,
+    // IBM Plex Mono, Tiro Devanagari Hindi.
+    implementation(libs.androidx.compose.ui.text.google.fonts)
+
     // Unit testing
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)

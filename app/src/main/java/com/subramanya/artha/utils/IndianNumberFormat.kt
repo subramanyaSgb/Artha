@@ -26,6 +26,29 @@ object IndianNumberFormat {
     /** Use when you need consistent column widths regardless of whether amount is whole. */
     fun formatWithDecimals(amount: Double): String = format(amount, alwaysShowDecimals = true)
 
+    /**
+     * Compact short form for hero cards & summaries — abbreviates with L/Cr above
+     * 1 lakh, otherwise behaves like [format]. Always shows ₹ prefix and respects
+     * sign. Examples:
+     *   1_000        → ₹1,000
+     *   1_00_000     → ₹1 L
+     *   2_50_000     → ₹2.5 L
+     *   1_00_00_000  → ₹1 Cr
+     *   12_34_56_789 → ₹12 Cr
+     */
+    fun formatCompact(amount: Double): String {
+        if (kotlin.math.abs(amount) < 100_000.0) return format(amount)
+        val isNegative = amount < 0.0
+        val abs = kotlin.math.abs(amount)
+        val (value, suffix) = when {
+            abs >= 1_00_00_000.0 -> abs / 1_00_00_000.0 to "Cr"
+            else -> abs / 1_00_000.0 to "L"
+        }
+        val rendered = if (value >= 10.0) "%.0f".format(value)
+                       else "%.1f".format(value).trimEnd('0').trimEnd('.')
+        return (if (isNegative) "-" else "") + INR_SYMBOL + rendered + " " + suffix
+    }
+
     private fun format(amount: Double, alwaysShowDecimals: Boolean): String {
         val isNegative = amount < 0.0
         val abs = abs(amount)

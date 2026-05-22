@@ -4,12 +4,12 @@
     <string name="scaffold_placeholder">Artha — Phase 1 setup complete</string>
 
     <!-- Top app bar -->
-    <string name="greeting_guest">Hello, Guest 👋</string>
-    <string name="greeting_named">Hello, %1$s 👋</string>
+    <string name="greeting_guest">Namaste</string>
+    <string name="greeting_named">Namaste, %1$s</string>
 
     <!-- Bottom navigation -->
-    <string name="nav_dashboard">Dashboard</string>
-    <string name="nav_transactions">Transactions</string>
+    <string name="nav_dashboard">Home</string>
+    <string name="nav_transactions">Ledger</string>
     <string name="nav_accounts">Accounts</string>
     <string name="nav_cards">Cards</string>
     <string name="nav_more">More</string>

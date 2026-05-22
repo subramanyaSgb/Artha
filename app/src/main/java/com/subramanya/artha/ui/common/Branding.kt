@@ -1,0 +1,227 @@
+package com.subramanya.artha.ui.common
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.Surface4
+import com.subramanya.artha.ui.theme.Teal300
+import com.subramanya.artha.ui.theme.Teal700
+import com.subramanya.artha.ui.theme.Teal900
+import com.subramanya.artha.ui.theme.Text3
+import com.subramanya.artha.ui.theme.TiroDevanagariHindi
+
+/**
+ * The अ brand mark in a tinted rounded box. Used in the top bar, hero cards, etc.
+ * Defaults match the design's "corner mark" style — teal-900 background with
+ * teal-300 glyph. Override for the splash version (teal-700 / white).
+ */
+@Composable
+fun BrandMark(
+    modifier: Modifier = Modifier,
+    size: Dp = 32.dp,
+    background: Color = Teal900,
+    foreground: Color = Teal300,
+    cornerRadiusDp: Dp = (size.value * 0.22f).dp,
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(cornerRadiusDp))
+            .background(background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "अ",
+            color = foreground,
+            textAlign = TextAlign.Center,
+            style = TextStyle(
+                fontFamily = TiroDevanagariHindi,
+                fontWeight = FontWeight.Normal,
+                fontSize = (size.value * 0.6f).sp,
+                lineHeight = (size.value * 0.6f).sp,
+            ),
+        )
+    }
+}
+
+/**
+ * Section eyebrow — tiny all-caps label with a hairline teal tick to its left,
+ * recurring throughout the app per the design's [SectionHeader] component.
+ */
+@Composable
+fun SectionEyebrow(
+    label: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    showTick: Boolean = true,
+) {
+    androidx.compose.foundation.layout.Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+    ) {
+        if (showTick) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .size(width = 14.dp, height = 1.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+            )
+        }
+        Text(text = label.uppercase(), style = EyebrowStyle, color = color)
+    }
+}
+
+/**
+ * Block-print dot grid — extremely subtle background pattern used inside hero
+ * cards. Tints the dots with [tint]; default opacity ~6% matches the design.
+ */
+@Composable
+fun BlockPrintOverlay(
+    modifier: Modifier = Modifier,
+    tint: Color = Teal300,
+    alpha: Float = 0.06f,
+) {
+    Canvas(modifier = modifier) {
+        val step = 12.dp.toPx()
+        val r = 0.7.dp.toPx()
+        val r2 = 0.4.dp.toPx()
+        val cols = (size.width / step).toInt() + 2
+        val rows = (size.height / step).toInt() + 2
+        val tinted = tint.copy(alpha = alpha)
+        val faint = tint.copy(alpha = alpha * 0.5f)
+        for (i in 0 until cols) {
+            for (j in 0 until rows) {
+                val x = i * step
+                val y = j * step
+                // central dot
+                drawCircle(color = tinted, radius = r, center = androidx.compose.ui.geometry.Offset(x + step / 2, y + step / 2))
+                // corner dots (smaller)
+                drawCircle(color = faint, radius = r2, center = androidx.compose.ui.geometry.Offset(x, y))
+            }
+        }
+    }
+}
+
+/**
+ * Bandhani dot rosette — used as texture on the gradient account cards.
+ * Tinted white at low alpha; the gradient under it does the heavy lifting.
+ */
+@Composable
+fun BandhaniOverlay(
+    modifier: Modifier = Modifier,
+    tint: Color = Color.White,
+    alpha: Float = 0.18f,
+) {
+    Canvas(modifier = modifier) {
+        val step = 20.dp.toPx()
+        val rCentre = 1.2.dp.toPx()
+        val rPetal = 0.5.dp.toPx()
+        val cols = (size.width / step).toInt() + 2
+        val rows = (size.height / step).toInt() + 2
+        val ink = tint.copy(alpha = alpha)
+        for (i in 0 until cols) {
+            for (j in 0 until rows) {
+                val cx = i * step + step / 2
+                val cy = j * step + step / 2
+                drawCircle(color = ink, radius = rCentre, center = androidx.compose.ui.geometry.Offset(cx, cy))
+                val o = step * 0.3f
+                drawCircle(color = ink, radius = rPetal, center = androidx.compose.ui.geometry.Offset(cx, cy - o))
+                drawCircle(color = ink, radius = rPetal, center = androidx.compose.ui.geometry.Offset(cx, cy + o))
+                drawCircle(color = ink, radius = rPetal, center = androidx.compose.ui.geometry.Offset(cx - o, cy))
+                drawCircle(color = ink, radius = rPetal, center = androidx.compose.ui.geometry.Offset(cx + o, cy))
+            }
+        }
+    }
+}
+
+/** Compact-form sparkline (no axis, no labels) for hero cards. */
+@Composable
+fun Sparkline(
+    points: List<Double>,
+    modifier: Modifier = Modifier,
+    color: Color = Teal300,
+) {
+    if (points.size < 2) {
+        Box(modifier = modifier.background(Surface4.copy(alpha = 0.4f)))
+        return
+    }
+    val min = points.min()
+    val max = points.max()
+    val range = (max - min).takeIf { it != 0.0 } ?: 1.0
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val pad = 2.dp.toPx()
+        val pts = points.mapIndexed { i, v ->
+            val x = (i.toFloat() / (points.size - 1)) * w
+            val y = (h - pad) - (((v - min) / range).toFloat()) * (h - pad * 2)
+            androidx.compose.ui.geometry.Offset(x, y)
+        }
+        // Gradient fill below the line
+        val areaPath = androidx.compose.ui.graphics.Path().apply {
+            moveTo(0f, h)
+            pts.forEach { lineTo(it.x, it.y) }
+            lineTo(w, h)
+            close()
+        }
+        drawPath(
+            path = areaPath,
+            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                colors = listOf(color.copy(alpha = 0.30f), color.copy(alpha = 0f)),
+                startY = 0f, endY = h,
+            ),
+        )
+        // Stroked line
+        for (i in 0 until pts.size - 1) {
+            drawLine(
+                color = color,
+                start = pts[i],
+                end = pts[i + 1],
+                strokeWidth = 1.4.dp.toPx(),
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+            )
+        }
+        // End dot
+        drawCircle(color = color, radius = 2.dp.toPx(), center = pts.last())
+    }
+}
+
+/** Tiny separator dot used inline between metadata fragments. */
+val SeparatorDot = "·"
+
+/** Helper to format a "secondary numeric" subtitle in monospaced grey. */
+@Composable
+fun MonoMeta(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        color = Text3,
+        style = MaterialTheme.typography.bodySmall.copy(
+            fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+            fontFeatureSettings = "tnum",
+            fontSize = 11.sp,
+        ),
+        modifier = modifier,
+    )
+}
+
+@Suppress("unused")
+private fun previewKeep() {
+    // Keep an unused reference so Teal700 doesn't get flagged as unused import.
+    @Suppress("UNUSED_VARIABLE") val t = Teal700
+}
