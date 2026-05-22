@@ -1,8 +1,9 @@
 package com.subramanya.artha.ui.transactions
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -35,14 +37,12 @@ import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -59,6 +59,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
@@ -68,8 +69,17 @@ import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Transaction
-import com.subramanya.artha.ui.common.EmptyState
+import com.subramanya.artha.ui.common.MonoMeta
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
+import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.Expense
+import com.subramanya.artha.ui.theme.IbmPlexMono
+import com.subramanya.artha.ui.theme.Income
+import com.subramanya.artha.ui.theme.IncomeSoft
+import com.subramanya.artha.ui.theme.InstrumentSerif
+import com.subramanya.artha.ui.theme.Surface2
+import com.subramanya.artha.ui.theme.Surface4
+import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.IndianNumberFormat
 import com.subramanya.artha.utils.TimeRange
 
@@ -93,45 +103,59 @@ fun TransactionsScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     var sortMenuOpen by remember { mutableStateOf(false) }
 
-    Surface(modifier = modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                if (state.isSelectionMode) {
-                    SelectionTopBar(
-                        count = state.selectedIds.size,
-                        onClear = vm::clearSelection,
-                        onDelete = vm::requestDelete,
-                    )
-                } else {
-                    DefaultTopBar(
-                        sort = state.sort,
-                        sortMenuOpen = sortMenuOpen,
-                        onSortMenuToggle = { sortMenuOpen = it },
-                        onSortChanged = vm::onSortChanged,
-                    )
-                }
-            },
-        ) { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-                SearchField(query = state.query, onQueryChanged = vm::onQueryChanged)
-                Spacer(modifier = Modifier.height(8.dp))
-                FilterRow(state = state, viewModel = vm)
-                Spacer(modifier = Modifier.height(8.dp))
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (state.isSelectionMode) {
+                SelectionTopBar(
+                    count = state.selectedIds.size,
+                    onClear = vm::clearSelection,
+                    onDelete = vm::requestDelete,
+                )
+            } else {
+                LedgerHeader(
+                    rangeLabel = rangeDisplay(state.filter.range),
+                    sort = state.sort,
+                    sortMenuOpen = sortMenuOpen,
+                    onSortMenuToggle = { sortMenuOpen = it },
+                    onSortChanged = vm::onSortChanged,
+                )
+            }
 
-                if (state.grouped.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        EmptyState(
-                            icon = Icons.Filled.Inbox,
-                            title = stringResource(R.string.transactions_empty),
+            TotalsStrip(grouped = state.grouped)
+
+            SearchField(query = state.query, onQueryChanged = vm::onQueryChanged)
+            Spacer(Modifier.height(8.dp))
+            FilterRow(state = state, viewModel = vm)
+            Spacer(Modifier.height(4.dp))
+
+            if (state.grouped.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Filled.Inbox, contentDescription = null, tint = Text3, modifier = Modifier.size(28.dp))
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.transactions_empty),
+                            color = Text3,
                         )
                     }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        state.grouped.forEach { group ->
-                            item(key = "header-${group.headerKey}") {
-                                DayHeader(label = group.headerDisplay)
-                            }
-                            items(group.transactions, key = { it.id }) { txn ->
+                }
+                return@Column
+            }
+
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+                state.grouped.forEach { group ->
+                    val daySum = group.transactions.sumOf { signedDelta(it) }
+                    item(key = "header-${group.headerKey}") {
+                        DayHeader(label = group.headerDisplay, sum = daySum)
+                    }
+                    item(key = "card-${group.headerKey}") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Surface2),
+                        ) {
+                            group.transactions.forEachIndexed { i, txn ->
                                 TransactionRow(
                                     txn = txn,
                                     selected = txn.id in state.selectedIds,
@@ -142,10 +166,21 @@ fun TransactionsScreen(
                                     },
                                     onLongPress = { vm.toggleSelected(txn.id) },
                                 )
+                                if (i < group.transactions.size - 1) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(start = 56.dp)
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(MaterialTheme.colorScheme.outlineVariant),
+                                    )
+                                }
                             }
                         }
+                        Spacer(Modifier.height(14.dp))
                     }
                 }
+                item { Spacer(Modifier.height(80.dp)) }
             }
         }
     }
@@ -154,74 +189,137 @@ fun TransactionsScreen(
         AlertDialog(
             onDismissRequest = vm::dismissDeleteConfirm,
             title = { Text(stringResource(R.string.transactions_delete_confirm_title)) },
-            text = {
-                Text(stringResource(R.string.transactions_delete_confirm_body, state.selectedIds.size))
-            },
+            text = { Text(stringResource(R.string.transactions_delete_confirm_body, state.selectedIds.size)) },
             confirmButton = {
                 TextButton(onClick = vm::confirmDelete) {
                     Text(stringResource(R.string.transactions_delete_confirm_yes))
                 }
             },
             dismissButton = {
-                TextButton(onClick = vm::dismissDeleteConfirm) {
-                    Text(stringResource(R.string.common_cancel))
-                }
+                TextButton(onClick = vm::dismissDeleteConfirm) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// ───────────────────────────── Header (Editorial title + sort) ───────────────
+
 @Composable
-private fun DefaultTopBar(
+private fun LedgerHeader(
+    rangeLabel: String,
     sort: TransactionSort,
     sortMenuOpen: Boolean,
     onSortMenuToggle: (Boolean) -> Unit,
     onSortChanged: (TransactionSort) -> Unit,
 ) {
-    TopAppBar(
-        title = { Text(stringResource(R.string.screen_transactions_stub)) },
-        actions = {
-            Box {
-                IconButton(onClick = { onSortMenuToggle(true) }) {
-                    Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.transactions_sort_label))
-                }
-                DropdownMenu(expanded = sortMenuOpen, onDismissRequest = { onSortMenuToggle(false) }) {
-                    TransactionSort.entries.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(option.displayLabel()) },
-                            onClick = {
-                                onSortChanged(option)
-                                onSortMenuToggle(false)
-                            },
-                            leadingIcon = if (sort == option) {
-                                { Icon(Icons.Filled.FilterList, contentDescription = null) }
-                            } else null,
-                        )
-                    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "THE LEDGER",
+                style = EyebrowStyle,
+                color = Text3,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = rangeLabel,
+                fontFamily = InstrumentSerif,
+                fontWeight = FontWeight.Normal,
+                fontSize = 26.sp,
+                lineHeight = 30.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Box {
+            IconButton(onClick = { onSortMenuToggle(true) }) {
+                Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.transactions_sort_label))
+            }
+            DropdownMenu(expanded = sortMenuOpen, onDismissRequest = { onSortMenuToggle(false) }) {
+                TransactionSort.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.displayLabel()) },
+                        onClick = { onSortChanged(option); onSortMenuToggle(false) },
+                        leadingIcon = if (sort == option) {
+                            { Icon(Icons.Filled.FilterList, contentDescription = null) }
+                        } else null,
+                    )
                 }
             }
-        },
+        }
+    }
+}
+
+// ───────────────────────────── In / Out / Net strip ──────────────────────────
+
+@Composable
+private fun TotalsStrip(grouped: List<TransactionsGroup>) {
+    val flat = remember(grouped) { grouped.flatMap { it.transactions } }
+    val inSum = flat.filter { it.type.isIncomeLike() }.sumOf { it.amount }
+    val outSum = flat.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+    val net = inSum - outSum
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Surface2)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TotalCell(label = "IN", value = inSum, color = Income, dot = Income)
+        VerticalSep()
+        TotalCell(label = "OUT", value = outSum, color = MaterialTheme.colorScheme.onSurface, dot = Expense)
+        VerticalSep()
+        TotalCell(label = "NET", value = net, color = MaterialTheme.colorScheme.onSurface, dot = null, sign = true)
+    }
+}
+
+@Composable
+private fun TotalCell(label: String, value: Double, color: Color, dot: Color?, sign: Boolean = false) {
+    Column(modifier = Modifier.padding(vertical = 2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (dot != null) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(dot),
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(label, style = EyebrowStyle, color = Text3)
+        }
+        Spacer(Modifier.height(4.dp))
+        val rendered = if (sign && value >= 0) "+" + IndianNumberFormat.formatCompact(value)
+                       else IndianNumberFormat.formatCompact(value)
+        Text(
+            text = rendered,
+            color = color,
+            fontFamily = InstrumentSerif,
+            fontSize = 20.sp,
+            lineHeight = 24.sp,
+        )
+    }
+}
+
+@Composable
+private fun VerticalSep() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(34.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant),
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SelectionTopBar(count: Int, onClear: () -> Unit, onDelete: () -> Unit) {
-    TopAppBar(
-        title = { Text(stringResource(R.string.transactions_select_count, count)) },
-        navigationIcon = {
-            IconButton(onClick = onClear) {
-                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.transactions_select_clear))
-            }
-        },
-        actions = {
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.transactions_select_delete))
-            }
-        },
-    )
-}
+// ───────────────────────────── Search + Filters ──────────────────────────────
 
 @Composable
 private fun SearchField(query: String, onQueryChanged: (String) -> Unit) {
@@ -229,26 +327,32 @@ private fun SearchField(query: String, onQueryChanged: (String) -> Unit) {
         value = query,
         onValueChange = onQueryChanged,
         singleLine = true,
-        placeholder = { Text(stringResource(R.string.transactions_search_placeholder)) },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        placeholder = { Text(stringResource(R.string.transactions_search_placeholder), color = Text3) },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Text3) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChanged("") }) {
-                    Icon(Icons.Filled.Clear, contentDescription = null)
+                    Icon(Icons.Filled.Clear, contentDescription = null, tint = Text3)
                 }
             }
         },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        shape = RoundedCornerShape(12.dp),
+        colors = TextFieldDefaults.colors(
+            unfocusedContainerColor = Surface2,
+            focusedContainerColor = Surface2,
+            unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+        ),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(50.dp),
     )
 }
 
 @Composable
 private fun FilterRow(state: TransactionsUiState, viewModel: TransactionsViewModel) {
-    // Horizontal scroll so long chip labels (e.g. "Religious & Spiritual" category) can't
-    // squeeze siblings or wrap to a second line on narrow screens.
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -256,7 +360,6 @@ private fun FilterRow(state: TransactionsUiState, viewModel: TransactionsViewMod
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // Date range
         RangeFilterChip(
             current = state.filter.range,
             onPick = { range -> viewModel.onFilterChanged { it.copy(range = range) } },
@@ -288,8 +391,6 @@ private fun FilterRow(state: TransactionsUiState, viewModel: TransactionsViewMod
     }
 }
 
-// ---------------- filter chips with dropdown menus ----------------
-
 @Composable
 private fun RangeFilterChip(current: TimeRange, onPick: (TimeRange) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
@@ -315,7 +416,16 @@ private fun rangeLabel(range: TimeRange): String = when (range) {
     TimeRange.TODAY -> stringResource(R.string.dashboard_section_recent_today)
     TimeRange.THIS_WEEK -> stringResource(R.string.dashboard_section_recent_week)
     TimeRange.THIS_MONTH -> stringResource(R.string.dashboard_section_recent_month)
-    TimeRange.ALL_TIME -> stringResource(R.string.transactions_filter_date) + ": " + stringResource(R.string.transactions_filter_any)
+    TimeRange.ALL_TIME -> stringResource(R.string.transactions_filter_date) + ": " +
+        stringResource(R.string.transactions_filter_any)
+}
+
+@Composable
+private fun rangeDisplay(range: TimeRange): String = when (range) {
+    TimeRange.TODAY -> "Today"
+    TimeRange.THIS_WEEK -> "This week"
+    TimeRange.THIS_MONTH -> "This month"
+    TimeRange.ALL_TIME -> "All time"
 }
 
 @Composable
@@ -325,9 +435,7 @@ private fun TypeFilterChip(current: TransactionType?, onPick: (TransactionType?)
         ElevatedFilterChip(
             selected = current != null,
             onClick = { expanded = true },
-            label = {
-                Text(current?.displayLabel() ?: stringResource(R.string.transactions_filter_type))
-            },
+            label = { Text(current?.displayLabel() ?: stringResource(R.string.transactions_filter_type)) },
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
@@ -407,7 +515,6 @@ private fun CategoryFilterChip(categories: List<Category>, currentId: String?, o
             onClick = { expanded = true },
             label = { Text(currentName ?: stringResource(R.string.transactions_filter_category)) },
         )
-        // Top-level only for the dropdown to stay short. Drill-down available in Session 10.
         val parents = remember(categories) { categories.filter { it.parentId == null } }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
@@ -424,21 +531,27 @@ private fun CategoryFilterChip(categories: List<Category>, currentId: String?, o
     }
 }
 
-// ---------------- list rows ----------------
+// ───────────────────────────── Day Header + Rows ─────────────────────────────
 
 @Composable
-private fun DayHeader(label: String) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun DayHeader(label: String, sum: Double) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp),
-    )
+            .padding(top = 8.dp, bottom = 6.dp, start = 4.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label.uppercase(), style = EyebrowStyle, color = Text3, modifier = Modifier.weight(1f))
+        Text(
+            text = (if (sum >= 0) "+" else "") + IndianNumberFormat.format(sum),
+            color = Text3,
+            fontFamily = IbmPlexMono,
+            fontSize = 11.sp,
+        )
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun TransactionRow(
     txn: Transaction,
@@ -447,45 +560,71 @@ private fun TransactionRow(
     onTap: () -> Unit,
     onLongPress: () -> Unit,
 ) {
-    val container = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface
-    ListItem(
+    val container = if (selected) MaterialTheme.colorScheme.secondaryContainer
+                    else Color.Transparent
+    val isIncome = txn.type.isIncomeLike()
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onTap, onLongClick = onLongPress),
-        colors = ListItemDefaults.colors(containerColor = container),
-        leadingContent = {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = iconForType(txn.type),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+            .background(container)
+            .combinedClickable(onClick = onTap, onLongClick = onLongPress)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(11.dp))
+                .background(if (isIncome) IncomeSoft else Surface4),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = iconForType(txn.type),
+                contentDescription = null,
+                tint = if (isIncome) Income else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(17.dp),
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = txn.description.ifBlank { txn.type.displayLabel() },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
+            Spacer(Modifier.height(2.dp))
+            MonoMeta(text = txn.type.displayLabel())
+        }
+        Text(
+            text = signedAmount(txn),
+            color = if (isIncome) Income else MaterialTheme.colorScheme.onSurface,
+            style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
+        )
+    }
+}
+
+// ───────────────────────────── Selection top bar ─────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionTopBar(count: Int, onClear: () -> Unit, onDelete: () -> Unit) {
+    TopAppBar(
+        title = { Text(stringResource(R.string.transactions_select_count, count)) },
+        navigationIcon = {
+            IconButton(onClick = onClear) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.transactions_select_clear))
             }
         },
-        headlineContent = { Text(txn.description, maxLines = 1) },
-        supportingContent = {
-            Text(
-                text = txn.type.displayLabel(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        trailingContent = {
-            Text(
-                text = signedAmount(txn),
-                style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
-                color = amountColor(txn.type),
-            )
+        actions = {
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.transactions_select_delete))
+            }
         },
     )
 }
 
-// ---------------- helpers ----------------
+// ───────────────────────────── helpers ───────────────────────────────────────
 
 @Composable
 private fun TransactionType.displayLabel(): String = when (this) {
@@ -517,25 +656,27 @@ private fun iconForType(type: TransactionType) = when (type) {
     else -> Icons.Filled.AccountBalance
 }
 
-@Composable
-private fun amountColor(type: TransactionType): Color = when (type) {
+private fun TransactionType.isIncomeLike() = this in setOf(
     TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
     TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
-    -> MaterialTheme.colorScheme.primary
-    TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
-    -> MaterialTheme.colorScheme.error
-    else -> MaterialTheme.colorScheme.onSurface
-}
+)
 
 private fun signedAmount(txn: Transaction): String {
     val abs = IndianNumberFormat.format(txn.amount)
-    return when (txn.type) {
-        TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
-        TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
-        -> "+$abs"
-        TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
-        -> "−$abs"
+    return when {
+        txn.type.isIncomeLike() -> "+$abs"
+        txn.type == TransactionType.EXPENSE ||
+            txn.type == TransactionType.LOAN_GIVEN ||
+            txn.type == TransactionType.GIFT_SENT -> "−$abs"
         else -> abs
     }
 }
 
+/** For day totals: positive for income-like, negative for outflow, zero otherwise. */
+private fun signedDelta(txn: Transaction): Double = when {
+    txn.type.isIncomeLike() -> txn.amount
+    txn.type == TransactionType.EXPENSE ||
+        txn.type == TransactionType.LOAN_GIVEN ||
+        txn.type == TransactionType.GIFT_SENT -> -txn.amount
+    else -> 0.0
+}
