@@ -85,29 +85,26 @@ fun TransactionDetailScreen(
         color = com.subramanya.artha.ui.theme.Surface1,
         modifier = modifier.fillMaxSize(),
     ) {
-        Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = com.subramanya.artha.ui.theme.Surface1,
-                        titleContentColor = com.subramanya.artha.ui.theme.Text1,
-                        navigationIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                        actionIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                    ),
-                    title = { Text(stringResource(R.string.txn_detail_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.txn_detail_back))
-                        }
-                    },
-                    actions = {
-                        val txn = state.transaction ?: return@TopAppBar
+        Column(modifier = Modifier.fillMaxSize()) {
+            val txn = state.transaction
+            com.subramanya.artha.ui.common.InlineTopBar(
+                title = stringResource(R.string.txn_detail_title),
+                onBack = onBack,
+                trailing = {
+                    if (txn != null) {
                         IconButton(onClick = { editing = true }) {
-                            Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.txn_detail_action_edit))
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = stringResource(R.string.txn_detail_action_edit),
+                                tint = com.subramanya.artha.ui.theme.Text2,
+                            )
                         }
                         IconButton(onClick = { vm.duplicate(onDuplicated = onBack) }) {
-                            Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.txn_detail_action_duplicate))
+                            Icon(
+                                Icons.Filled.ContentCopy,
+                                contentDescription = stringResource(R.string.txn_detail_action_duplicate),
+                                tint = com.subramanya.artha.ui.theme.Text2,
+                            )
                         }
                         IconButton(onClick = vm::requestDelete) {
                             Icon(
@@ -116,17 +113,14 @@ fun TransactionDetailScreen(
                                 tint = MaterialTheme.colorScheme.error,
                             )
                         }
-                    },
-                )
-            },
-        ) { padding ->
-            val txn = state.transaction
+                    }
+                },
+            )
             if (txn == null) {
-                Box(modifier = Modifier.padding(padding).fillMaxSize())
+                Box(modifier = Modifier.fillMaxSize())
             } else {
                 Column(
                     modifier = Modifier
-                        .padding(padding)
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState()),
                 ) {

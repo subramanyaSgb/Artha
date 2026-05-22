@@ -97,31 +97,18 @@ fun CardDetailScreen(
         color = com.subramanya.artha.ui.theme.Surface1,
         modifier = modifier.fillMaxSize(),
     ) {
-        Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = com.subramanya.artha.ui.theme.Surface1,
-                        titleContentColor = com.subramanya.artha.ui.theme.Text1,
-                        navigationIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                        actionIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                    ),
-                    title = { Text(state.card?.name.orEmpty()) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.card_detail_back),
-                            )
-                        }
-                    },
-                    actions = {
-                        val card = state.card ?: return@TopAppBar
+        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
+            val card = state.card
+            com.subramanya.artha.ui.common.InlineTopBar(
+                title = card?.name.orEmpty(),
+                onBack = onBack,
+                trailing = {
+                    if (card != null) {
                         IconButton(onClick = { editing = card }) {
                             Icon(
                                 Icons.Filled.Edit,
                                 contentDescription = stringResource(R.string.card_detail_action_edit),
+                                tint = com.subramanya.artha.ui.theme.Text2,
                             )
                         }
                         if (card.isArchived) {
@@ -129,6 +116,7 @@ fun CardDetailScreen(
                                 Icon(
                                     Icons.Filled.Unarchive,
                                     contentDescription = stringResource(R.string.card_detail_action_restore),
+                                    tint = com.subramanya.artha.ui.theme.Text2,
                                 )
                             }
                         } else {
@@ -136,6 +124,7 @@ fun CardDetailScreen(
                                 Icon(
                                     Icons.Filled.Archive,
                                     contentDescription = stringResource(R.string.card_detail_action_archive),
+                                    tint = com.subramanya.artha.ui.theme.Text2,
                                 )
                             }
                         }
@@ -146,20 +135,18 @@ fun CardDetailScreen(
                                 tint = MaterialTheme.colorScheme.error,
                             )
                         }
-                    },
-                )
-            },
-        ) { padding ->
-            val card = state.card
+                    }
+                },
+            )
             if (card == null) {
-                Box(modifier = Modifier.padding(padding).fillMaxSize())
+                Box(modifier = Modifier.fillMaxSize())
             } else {
                 CardDetailBody(
                     card = card,
                     state = state,
                     onPayBill = { payBill = true },
                     onOpenTransaction = onOpenTransaction,
-                    modifier = Modifier.padding(padding).fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }

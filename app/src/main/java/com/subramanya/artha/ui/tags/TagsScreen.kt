@@ -93,21 +93,7 @@ fun TagsScreen(
     Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
         Scaffold(
             containerColor = Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Surface1,
-                        titleContentColor = Text1,
-                        navigationIconContentColor = Text2,
-                    ),
-                    title = { Text(stringResource(R.string.tags_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                        }
-                    },
-                )
-            },
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = TagFormMode.Add },
@@ -120,24 +106,10 @@ fun TagsScreen(
             },
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                    Text(
-                        text = stringResource(R.string.tags_eyebrow).uppercase(),
-                        style = EyebrowStyle,
-                        color = Teal300,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.tags_title),
-                        style = TextStyle(
-                            fontFamily = InstrumentSerif,
-                            fontSize = 26.sp,
-                            lineHeight = 30.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = Text1,
-                        ),
-                    )
-                }
+                com.subramanya.artha.ui.common.InlineTopBar(
+                    title = stringResource(R.string.tags_title),
+                    onBack = onBack,
+                )
                 if (state.tags.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         EmptyState(

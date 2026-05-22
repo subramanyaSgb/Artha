@@ -105,24 +105,7 @@ fun RulesScreen(
     Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
         Scaffold(
             containerColor = Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Surface1,
-                        titleContentColor = Text1,
-                        navigationIconContentColor = Text2,
-                    ),
-                    title = { Text(stringResource(R.string.rules_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.about_back),
-                            )
-                        }
-                    },
-                )
-            },
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = RuleFormMode.Add },
@@ -134,39 +117,40 @@ fun RulesScreen(
                 )
             },
         ) { padding ->
-            if (state.rules.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    EmptyState(
-                        icon = Icons.AutoMirrored.Filled.Rule,
-                        title = stringResource(R.string.rules_empty),
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        horizontal = 20.dp,
-                        vertical = 12.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item {
-                        RulesEditorialHeader()
-                    }
-                    items(state.rules, key = { it.id }) { rule ->
-                        RuleRowCard(
-                            rule = rule,
-                            onTap = { formMode = RuleFormMode.Edit(rule) },
-                            onToggle = { vm.toggleActive(rule, it) },
-                            onDelete = { pendingDelete = rule },
+            Column(
+                modifier = Modifier.padding(padding).fillMaxSize(),
+            ) {
+                com.subramanya.artha.ui.common.InlineTopBar(
+                    title = stringResource(R.string.rules_title),
+                    onBack = onBack,
+                )
+                if (state.rules.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        EmptyState(
+                            icon = Icons.AutoMirrored.Filled.Rule,
+                            title = stringResource(R.string.rules_empty),
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            horizontal = 20.dp,
+                            vertical = 12.dp,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(state.rules, key = { it.id }) { rule ->
+                            RuleRowCard(
+                                rule = rule,
+                                onTap = { formMode = RuleFormMode.Edit(rule) },
+                                onToggle = { vm.toggleActive(rule, it) },
+                                onDelete = { pendingDelete = rule },
+                            )
+                        }
                     }
                 }
             }

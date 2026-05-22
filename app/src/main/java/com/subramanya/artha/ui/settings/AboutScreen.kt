@@ -62,35 +62,17 @@ fun AboutScreen(
     modifier: Modifier = Modifier,
 ) {
     Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
-        Scaffold(
-            containerColor = Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Surface1,
-                        titleContentColor = Text1,
-                        navigationIconContentColor = Text2,
-                    ),
-                    title = { Text(stringResource(R.string.about_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.about_back),
-                            )
-                        }
-                    },
-                )
-            },
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp),
-            ) {
-                Spacer(Modifier.height(16.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            com.subramanya.artha.ui.common.InlineTopBar(
+                title = stringResource(R.string.about_title),
+                onBack = onBack,
+            )
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                Spacer(Modifier.height(8.dp))
 
                 // Eyebrow over the editorial body.
                 Row(verticalAlignment = Alignment.CenterVertically) {

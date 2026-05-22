@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -86,70 +87,55 @@ fun AccountDetailScreen(
         color = com.subramanya.artha.ui.theme.Surface1,
         modifier = modifier.fillMaxSize(),
     ) {
-        Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = com.subramanya.artha.ui.theme.Surface1,
-                        titleContentColor = com.subramanya.artha.ui.theme.Text1,
-                        navigationIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                        actionIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                    ),
-                    title = { Text(state.account?.name.orEmpty()) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            val account = state.account
+            com.subramanya.artha.ui.common.InlineTopBar(
+                title = account?.name.orEmpty(),
+                onBack = onBack,
+                trailing = {
+                    if (account != null) {
+                        IconButton(onClick = { editing = account }) {
                             Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.account_detail_back),
+                                Icons.Filled.Edit,
+                                contentDescription = stringResource(R.string.account_detail_action_edit),
+                                tint = com.subramanya.artha.ui.theme.Text2,
                             )
                         }
-                    },
-                    actions = {
-                        val account = state.account
-                        if (account != null) {
-                            IconButton(onClick = { editing = account }) {
+                        if (account.isArchived) {
+                            IconButton(onClick = { vm.restore(onRestored = onBack) }) {
                                 Icon(
-                                    Icons.Filled.Edit,
-                                    contentDescription = stringResource(R.string.account_detail_action_edit),
+                                    Icons.Filled.Unarchive,
+                                    contentDescription = stringResource(R.string.account_detail_action_restore),
+                                    tint = com.subramanya.artha.ui.theme.Text2,
                                 )
                             }
-                            if (account.isArchived) {
-                                IconButton(onClick = { vm.restore(onRestored = onBack) }) {
-                                    Icon(
-                                        Icons.Filled.Unarchive,
-                                        contentDescription = stringResource(R.string.account_detail_action_restore),
-                                    )
-                                }
-                            } else {
-                                IconButton(onClick = vm::requestArchive) {
-                                    Icon(
-                                        Icons.Filled.Archive,
-                                        contentDescription = stringResource(R.string.account_detail_action_archive),
-                                    )
-                                }
-                            }
-                            IconButton(onClick = vm::requestDelete) {
+                        } else {
+                            IconButton(onClick = vm::requestArchive) {
                                 Icon(
-                                    Icons.Filled.Delete,
-                                    contentDescription = stringResource(R.string.account_action_delete),
-                                    tint = MaterialTheme.colorScheme.error,
+                                    Icons.Filled.Archive,
+                                    contentDescription = stringResource(R.string.account_detail_action_archive),
+                                    tint = com.subramanya.artha.ui.theme.Text2,
                                 )
                             }
                         }
-                    },
-                )
-            },
-        ) { padding ->
-            val account = state.account
+                        IconButton(onClick = vm::requestDelete) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.account_action_delete),
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
+            )
             if (account == null) {
-                Box(modifier = Modifier.padding(padding).fillMaxSize()) // loading; brief
+                Box(modifier = Modifier.fillMaxSize()) // loading; brief
             } else {
                 AccountDetailBody(
                     account = account,
                     state = state,
                     onOpenTransaction = onOpenTransaction,
-                    modifier = Modifier.padding(padding).fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }

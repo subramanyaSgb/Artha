@@ -100,34 +100,20 @@ fun ReportsScreen(
     Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
         Scaffold(
             containerColor = Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Surface1,
-                        titleContentColor = Text1,
-                        navigationIconContentColor = Text2,
-                    ),
-                    title = { Text(stringResource(R.string.reports_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.about_back),
-                            )
-                        }
-                    },
-                )
-            },
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         ) { padding ->
             Column(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp),
+                    .verticalScroll(rememberScrollState()),
             ) {
-                EditorialHeader()
-                Spacer(Modifier.height(12.dp))
+                com.subramanya.artha.ui.common.InlineTopBar(
+                    title = stringResource(R.string.reports_title),
+                    onBack = onBack,
+                )
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                Spacer(Modifier.height(8.dp))
                 RangePicker(state.range, vm::onRangeChanged)
                 Spacer(Modifier.height(16.dp))
                 NetWorthHero(value = state.netWorth)
@@ -147,6 +133,7 @@ fun ReportsScreen(
                 TaxSectionsBlock(rows = state.taxSections)
 
                 Spacer(Modifier.height(32.dp))
+                }
             }
         }
     }

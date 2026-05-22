@@ -104,21 +104,7 @@ fun CategoriesScreen(
     Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
         Scaffold(
             containerColor = Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Surface1,
-                        titleContentColor = Text1,
-                        navigationIconContentColor = Text2,
-                    ),
-                    title = { Text(stringResource(R.string.categories_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.about_back))
-                        }
-                    },
-                )
-            },
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
@@ -131,24 +117,10 @@ fun CategoriesScreen(
             },
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                    Text(
-                        text = stringResource(R.string.categories_eyebrow).uppercase(),
-                        style = EyebrowStyle,
-                        color = Teal300,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.categories_title),
-                        style = TextStyle(
-                            fontFamily = InstrumentSerif,
-                            fontSize = 26.sp,
-                            lineHeight = 30.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = Text1,
-                        ),
-                    )
-                }
+                com.subramanya.artha.ui.common.InlineTopBar(
+                    title = stringResource(R.string.categories_title),
+                    onBack = onBack,
+                )
                 TypeTabs(current = state.type, onSelect = vm::onTypeSelected)
                 if (state.parents.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

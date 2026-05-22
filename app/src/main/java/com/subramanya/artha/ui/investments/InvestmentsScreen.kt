@@ -90,28 +90,26 @@ fun InvestmentsScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Investment? by remember { mutableStateOf(null) }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = modifier.fillMaxSize(), color = com.subramanya.artha.ui.theme.Surface1) {
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
-            topBar = {
-                EditorialSubScreenHeader(
-                    eyebrow = "STOCKS, FUNDS, FDS",
-                    title = stringResource(R.string.investments_title),
-                    onBack = onBack,
-                )
-            },
+            containerColor = com.subramanya.artha.ui.theme.Surface1,
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
-                FloatingActionButton(
+                androidx.compose.material3.ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = androidx.compose.ui.graphics.Color.White,
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.investments_fab_add))
-                }
+                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.investments_fab_add)) },
+                )
             },
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                com.subramanya.artha.ui.common.InlineTopBar(
+                    title = stringResource(R.string.investments_title),
+                    onBack = onBack,
+                )
                 HeroCard(
                     invested = state.totalInvested,
                     currentValue = state.totalCurrentValue,

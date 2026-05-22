@@ -85,65 +85,65 @@ fun InsuranceDetailScreen(
         color = com.subramanya.artha.ui.theme.Surface1,
         modifier = modifier.fillMaxSize(),
     ) {
-        Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = com.subramanya.artha.ui.theme.Surface1,
-                        titleContentColor = com.subramanya.artha.ui.theme.Text1,
-                        navigationIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                        actionIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                    ),
-                    title = { Text(state.insurance?.name.orEmpty()) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.about_back))
+        Column(modifier = Modifier.fillMaxSize()) {
+            val ins = state.insurance
+            com.subramanya.artha.ui.common.InlineTopBar(
+                title = ins?.name.orEmpty(),
+                onBack = onBack,
+                trailing = {
+                    if (ins != null) {
+                        IconButton(onClick = { editing = ins }) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = stringResource(R.string.account_detail_action_edit),
+                                tint = com.subramanya.artha.ui.theme.Text2,
+                            )
                         }
-                    },
-                    actions = {
-                        val ins = state.insurance
-                        if (ins != null) {
-                            IconButton(onClick = { editing = ins }) {
-                                Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.account_detail_action_edit))
-                            }
-                            if (ins.isArchived) {
-                                IconButton(onClick = { vm.restore(onRestored = onBack) }) {
-                                    Icon(Icons.Filled.Unarchive, contentDescription = stringResource(R.string.account_detail_action_restore))
-                                }
-                            } else {
-                                IconButton(onClick = { vm.archive(onArchived = onBack) }) {
-                                    Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.account_detail_action_archive))
-                                }
-                            }
-                            IconButton(onClick = vm::requestDelete) {
+                        if (ins.isArchived) {
+                            IconButton(onClick = { vm.restore(onRestored = onBack) }) {
                                 Icon(
-                                    Icons.Filled.Delete,
-                                    contentDescription = stringResource(R.string.account_action_delete),
-                                    tint = MaterialTheme.colorScheme.error,
+                                    Icons.Filled.Unarchive,
+                                    contentDescription = stringResource(R.string.account_detail_action_restore),
+                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = { vm.archive(onArchived = onBack) }) {
+                                Icon(
+                                    Icons.Filled.Archive,
+                                    contentDescription = stringResource(R.string.account_detail_action_archive),
+                                    tint = com.subramanya.artha.ui.theme.Text2,
                                 )
                             }
                         }
-                    },
-                )
-            },
-        ) { padding ->
-            val ins = state.insurance ?: return@Scaffold
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                HeroBlock(insurance = ins)
-                MetaBlock(insurance = ins)
+                        IconButton(onClick = vm::requestDelete) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.account_action_delete),
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
+            )
+            if (ins == null) {
+                Box(modifier = Modifier.fillMaxSize())
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    HeroBlock(insurance = ins)
+                    MetaBlock(insurance = ins)
 
-                state.linkedInvestment?.let { inv ->
-                    Spacer(Modifier.height(8.dp))
-                    LinkedInvestmentCard(name = inv.name, onClick = { onOpenInvestment(inv.id) })
+                    state.linkedInvestment?.let { inv ->
+                        Spacer(Modifier.height(8.dp))
+                        LinkedInvestmentCard(name = inv.name, onClick = { onOpenInvestment(inv.id) })
+                    }
+
+                    Spacer(Modifier.height(24.dp))
                 }
-
-                Spacer(Modifier.height(24.dp))
             }
         }
     }

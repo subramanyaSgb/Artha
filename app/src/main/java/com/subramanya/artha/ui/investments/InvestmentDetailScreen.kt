@@ -87,54 +87,49 @@ fun InvestmentDetailScreen(
         color = com.subramanya.artha.ui.theme.Surface1,
         modifier = modifier.fillMaxSize(),
     ) {
-        Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = com.subramanya.artha.ui.theme.Surface1,
-                        titleContentColor = com.subramanya.artha.ui.theme.Text1,
-                        navigationIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                        actionIconContentColor = com.subramanya.artha.ui.theme.Text2,
-                    ),
-                    title = { Text(state.investment?.name.orEmpty()) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            val inv = state.investment
+            com.subramanya.artha.ui.common.InlineTopBar(
+                title = inv?.name.orEmpty(),
+                onBack = onBack,
+                trailing = {
+                    if (inv != null) {
+                        IconButton(onClick = { editing = inv }) {
                             Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.about_back),
+                                Icons.Filled.Edit,
+                                contentDescription = stringResource(R.string.account_detail_action_edit),
+                                tint = com.subramanya.artha.ui.theme.Text2,
                             )
                         }
-                    },
-                    actions = {
-                        val inv = state.investment
-                        if (inv != null) {
-                            IconButton(onClick = { editing = inv }) {
-                                Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.account_detail_action_edit))
-                            }
-                            if (inv.isArchived) {
-                                IconButton(onClick = { vm.restore(onRestored = onBack) }) {
-                                    Icon(Icons.Filled.Unarchive, contentDescription = stringResource(R.string.account_detail_action_restore))
-                                }
-                            } else {
-                                IconButton(onClick = { vm.archive(onArchived = onBack) }) {
-                                    Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.account_detail_action_archive))
-                                }
-                            }
-                            IconButton(onClick = vm::requestDelete) {
+                        if (inv.isArchived) {
+                            IconButton(onClick = { vm.restore(onRestored = onBack) }) {
                                 Icon(
-                                    Icons.Filled.Delete,
-                                    contentDescription = stringResource(R.string.account_action_delete),
-                                    tint = MaterialTheme.colorScheme.error,
+                                    Icons.Filled.Unarchive,
+                                    contentDescription = stringResource(R.string.account_detail_action_restore),
+                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = { vm.archive(onArchived = onBack) }) {
+                                Icon(
+                                    Icons.Filled.Archive,
+                                    contentDescription = stringResource(R.string.account_detail_action_archive),
+                                    tint = com.subramanya.artha.ui.theme.Text2,
                                 )
                             }
                         }
-                    },
-                )
-            },
-        ) { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-                val inv = state.investment ?: return@Column
+                        IconButton(onClick = vm::requestDelete) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.account_action_delete),
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
+            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (inv == null) return@Column
                 HeroBlock(
                     investment = inv,
                     invested = state.investedAmount,

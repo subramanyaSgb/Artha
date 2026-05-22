@@ -95,36 +95,39 @@ fun GoalsScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Goal? by remember { mutableStateOf(null) }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(color = com.subramanya.artha.ui.theme.Surface1, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            topBar = {
-                androidx.compose.material3.TopAppBar(
-                    title = { Text(stringResource(R.string.goals_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.about_back))
-                        }
-                    },
+            containerColor = com.subramanya.artha.ui.theme.Surface1,
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+            floatingActionButton = {
+                androidx.compose.material3.ExtendedFloatingActionButton(
+                    onClick = { formMode = FormMode.Add },
+                    containerColor = com.subramanya.artha.ui.theme.Teal700,
+                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.goals_fab_add)) },
                 )
             },
-            floatingActionButton = {
-                FloatingActionButton(onClick = { formMode = FormMode.Add }) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.goals_fab_add))
-                }
-            },
         ) { padding ->
-            if (items.isEmpty()) {
-                Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                    EmptyState(icon = Icons.Filled.Flag, title = stringResource(R.string.goals_empty))
-                }
-            } else {
-                LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
-                    items(items, key = { it.goal.id }) { row ->
-                        GoalRow(
-                            row = row,
-                            onTap = { formMode = FormMode.Edit(row.goal) },
-                            onDelete = { pendingDelete = row.goal },
-                        )
+            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                com.subramanya.artha.ui.common.InlineTopBar(
+                    title = stringResource(R.string.goals_title),
+                    onBack = onBack,
+                )
+                if (items.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        EmptyState(icon = Icons.Filled.Flag, title = stringResource(R.string.goals_empty))
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(items, key = { it.goal.id }) { row ->
+                            GoalRow(
+                                row = row,
+                                onTap = { formMode = FormMode.Edit(row.goal) },
+                                onDelete = { pendingDelete = row.goal },
+                            )
+                        }
                     }
                 }
             }

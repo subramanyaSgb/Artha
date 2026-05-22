@@ -103,50 +103,16 @@ fun SettingsScreen(
     }
 
     Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
-        Scaffold(
-            containerColor = Surface1,
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Surface1,
-                        titleContentColor = Text1,
-                        navigationIconContentColor = Text2,
-                    ),
-                    title = { Text(stringResource(R.string.settings_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.about_back))
-                        }
-                    },
-                )
-            },
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                // Editorial top header per HANDOFF §3.5/§3.7.
-                Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
-                    Text(
-                        text = stringResource(R.string.settings_eyebrow).uppercase(),
-                        style = EyebrowStyle,
-                        color = Teal300,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.settings_title),
-                        style = TextStyle(
-                            fontFamily = InstrumentSerif,
-                            fontSize = 26.sp,
-                            lineHeight = 30.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = Text1,
-                        ),
-                    )
-                }
-                SectionHeader(stringResource(R.string.settings_section_profile))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            com.subramanya.artha.ui.common.InlineTopBar(
+                title = stringResource(R.string.settings_title),
+                onBack = onBack,
+            )
+            SectionHeader(stringResource(R.string.settings_section_profile))
                 ProfileSection(
                     name = state.userName,
                     onNameChanged = vm::onNameChanged,
@@ -227,8 +193,7 @@ fun SettingsScreen(
                     trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
                 )
 
-                Spacer(Modifier.height(32.dp))
-            }
+            Spacer(Modifier.height(32.dp))
         }
     }
 
