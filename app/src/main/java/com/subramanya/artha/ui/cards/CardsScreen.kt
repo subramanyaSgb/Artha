@@ -1,6 +1,7 @@
 package com.subramanya.artha.ui.cards
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,95 +83,75 @@ fun CardsScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Card? by remember { mutableStateOf(null) }
 
-    Surface(modifier = modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            when {
-                                state.isReorderMode -> stringResource(R.string.cards_reorder_hint)
-                                state.view == CardsView.ARCHIVED -> stringResource(R.string.cards_section_archived)
-                                else -> stringResource(R.string.cards_title)
-                            },
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
+                CardsEditorialHeader(
+                    view = state.view,
+                    reorderMode = state.isReorderMode,
+                    overflowOpen = overflowOpen,
+                    onOverflowToggle = { overflowOpen = it },
+                    onShowArchived = vm::showArchived,
+                    onShowActive = vm::showActive,
+                    onExitReorder = vm::exitReorderMode,
+                )
+
+                if (state.view == CardsView.ACTIVE && state.activeCards.isNotEmpty()) {
+                    CardsTotalOutstandingCard(rows = state.activeCards)
+                }
+
+                val rows = state.shownRows
+                if (rows.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        EmptyState(
+                            icon = Icons.Filled.CreditCard,
+                            title = stringResource(
+                                if (state.view == CardsView.ACTIVE) R.string.cards_empty_active
+                                else R.string.cards_empty_archived,
+                            ),
                         )
-                    },
-                    actions = {
-                        if (state.isReorderMode) {
-                            TextButton(onClick = vm::exitReorderMode) {
-                                Icon(Icons.Filled.Done, contentDescription = null)
-                                Text(
-                                    text = stringResource(R.string.accounts_reorder_done),
-                                    modifier = Modifier.padding(start = 4.dp),
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+                        items(rows, key = { it.card.id }) { row ->
+                            if (state.view == CardsView.ACTIVE) {
+                                ActiveCardRow(
+                                    row = row,
+                                    reorderMode = state.isReorderMode,
+                                    canMoveUp = rows.first() != row,
+                                    canMoveDown = rows.last() != row,
+                                    onTap = { if (!state.isReorderMode) onOpenCard(row.card.id) },
+                                    onLongPress = vm::enterReorderMode,
+                                    onMoveUp = { vm.moveUp(row.card) },
+                                    onMoveDown = { vm.moveDown(row.card) },
+                                    onEdit = { formMode = FormMode.Edit(row.card) },
+                                    onArchive = { vm.archive(row.card) },
+                                    onDelete = { pendingDelete = row.card },
+                                )
+                            } else {
+                                ArchivedCardRow(
+                                    row = row,
+                                    onRestore = { vm.restore(row.card) },
+                                    onDelete = { pendingDelete = row.card },
                                 )
                             }
-                        } else {
-                            Box {
-                                IconButton(onClick = { overflowOpen = true }) {
-                                    Icon(Icons.Filled.MoreVert, contentDescription = null)
-                                }
-                                DropdownMenu(expanded = overflowOpen, onDismissRequest = { overflowOpen = false }) {
-                                    if (state.view == CardsView.ACTIVE) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.cards_menu_show_archived)) },
-                                            onClick = { vm.showArchived(); overflowOpen = false },
-                                        )
-                                    } else {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.cards_menu_back_active)) },
-                                            onClick = { vm.showActive(); overflowOpen = false },
-                                        )
-                                    }
-                                }
-                            }
                         }
-                    },
-                )
-            },
-            floatingActionButton = {
-                if (state.view == CardsView.ACTIVE && !state.isReorderMode) {
-                    FloatingActionButton(onClick = { formMode = FormMode.Add }) {
-                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.cards_fab_add))
+                        item { androidx.compose.foundation.layout.Spacer(Modifier.height(100.dp)) }
                     }
                 }
-            },
-        ) { padding ->
-            val rows = state.shownRows
-            if (rows.isEmpty()) {
-                Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                    EmptyState(
-                        icon = Icons.Filled.CreditCard,
-                        title = stringResource(
-                            if (state.view == CardsView.ACTIVE) R.string.cards_empty_active
-                            else R.string.cards_empty_archived,
-                        ),
-                    )
-                }
-            } else {
-                LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
-                    items(rows, key = { it.card.id }) { row ->
-                        if (state.view == CardsView.ACTIVE) {
-                            ActiveCardRow(
-                                row = row,
-                                reorderMode = state.isReorderMode,
-                                canMoveUp = rows.first() != row,
-                                canMoveDown = rows.last() != row,
-                                onTap = { if (!state.isReorderMode) onOpenCard(row.card.id) },
-                                onLongPress = vm::enterReorderMode,
-                                onMoveUp = { vm.moveUp(row.card) },
-                                onMoveDown = { vm.moveDown(row.card) },
-                                onEdit = { formMode = FormMode.Edit(row.card) },
-                                onArchive = { vm.archive(row.card) },
-                                onDelete = { pendingDelete = row.card },
-                            )
-                        } else {
-                            ArchivedCardRow(
-                                row = row,
-                                onRestore = { vm.restore(row.card) },
-                                onDelete = { pendingDelete = row.card },
-                            )
-                        }
-                    }
+            }
+
+            if (state.view == CardsView.ACTIVE && !state.isReorderMode) {
+                FloatingActionButton(
+                    onClick = { formMode = FormMode.Add },
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                    containerColor = com.subramanya.artha.ui.theme.Teal700,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 110.dp),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.cards_fab_add))
                 }
             }
         }
@@ -441,4 +422,136 @@ private fun formatSubtitle(card: Card): String? {
         if (!card.cardNumberLast4.isNullOrBlank()) add("••${card.cardNumberLast4}")
     }
     return pieces.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+}
+
+// ───────────────────────────── Editorial header + Hero ───────────────────────
+
+@Composable
+private fun CardsEditorialHeader(
+    view: CardsView,
+    reorderMode: Boolean,
+    overflowOpen: Boolean,
+    onOverflowToggle: (Boolean) -> Unit,
+    onShowArchived: () -> Unit,
+    onShowActive: () -> Unit,
+    onExitReorder: () -> Unit,
+) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 12.dp, top = 4.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.foundation.layout.Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "PLASTIC ON FILE",
+                style = com.subramanya.artha.ui.theme.EyebrowStyle,
+                color = com.subramanya.artha.ui.theme.Text3,
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.height(4.dp))
+            Text(
+                text = when {
+                    reorderMode -> stringResource(R.string.cards_reorder_hint)
+                    view == CardsView.ARCHIVED -> stringResource(R.string.cards_section_archived)
+                    else -> stringResource(R.string.cards_title)
+                },
+                fontFamily = com.subramanya.artha.ui.theme.InstrumentSerif,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
+                fontSize = androidx.compose.ui.unit.TextUnit(26f, androidx.compose.ui.unit.TextUnitType.Sp),
+                lineHeight = androidx.compose.ui.unit.TextUnit(30f, androidx.compose.ui.unit.TextUnitType.Sp),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        if (reorderMode) {
+            TextButton(onClick = onExitReorder) {
+                Icon(Icons.Filled.Done, contentDescription = null)
+                Text(
+                    text = stringResource(R.string.accounts_reorder_done),
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
+        } else {
+            Box {
+                IconButton(onClick = { onOverflowToggle(true) }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = null)
+                }
+                DropdownMenu(expanded = overflowOpen, onDismissRequest = { onOverflowToggle(false) }) {
+                    if (view == CardsView.ACTIVE) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.cards_menu_show_archived)) },
+                            onClick = { onShowArchived(); onOverflowToggle(false) },
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.cards_menu_back_active)) },
+                            onClick = { onShowActive(); onOverflowToggle(false) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CardsTotalOutstandingCard(
+    rows: List<com.subramanya.artha.domain.model.CardWithBalance>,
+) {
+    val totalOut = rows.sumOf { it.currentOutstanding }
+    val totalLimit = rows.sumOf { it.card.creditLimit ?: 0.0 }
+    val util = if (totalLimit > 0.0) (totalOut / totalLimit * 100).toInt() else 0
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+            .background(com.subramanya.artha.ui.theme.Surface2)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            ),
+    ) {
+        androidx.compose.foundation.layout.Column(modifier = Modifier.padding(16.dp)) {
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "TOTAL OUTSTANDING",
+                    style = com.subramanya.artha.ui.theme.EyebrowStyle,
+                    color = com.subramanya.artha.ui.theme.Text3,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "$util% util",
+                    color = com.subramanya.artha.ui.theme.Text3,
+                    fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                        fontFeatureSettings = "tnum",
+                    ),
+                )
+            }
+            androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
+            Text(
+                text = IndianNumberFormat.format(totalOut),
+                style = ArthaAmountStyles.hero.copy(
+                    fontSize = androidx.compose.ui.unit.TextUnit(32f, androidx.compose.ui.unit.TextUnitType.Sp),
+                    lineHeight = androidx.compose.ui.unit.TextUnit(36f, androidx.compose.ui.unit.TextUnitType.Sp),
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "of " + IndianNumberFormat.format(totalLimit) + " limit",
+                color = com.subramanya.artha.ui.theme.Text3,
+                fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                    fontFeatureSettings = "tnum",
+                ),
+            )
+        }
+    }
+    androidx.compose.foundation.layout.Spacer(Modifier.height(14.dp))
 }
