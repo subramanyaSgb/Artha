@@ -20,6 +20,11 @@ object IndianNumberFormat {
 
     private const val INR_SYMBOL: String = "₹"
 
+    // HANDOFF §6.5 — the negative sign is an en-dash, not a hyphen-minus.
+    // The editorial typography (Instrument Serif numerals) reads sloppy with
+    // a hyphen, so every "-₹X" rendered through this object becomes "–₹X".
+    private const val NEG_SIGN: String = "–"
+
     /** Default display: hides `.00` on whole rupees, shows two decimals otherwise. */
     fun format(amount: Double): String = format(amount, alwaysShowDecimals = false)
 
@@ -46,7 +51,7 @@ object IndianNumberFormat {
         }
         val rendered = if (value >= 10.0) "%.0f".format(value)
                        else "%.1f".format(value).trimEnd('0').trimEnd('.')
-        return (if (isNegative) "-" else "") + INR_SYMBOL + rendered + " " + suffix
+        return (if (isNegative) NEG_SIGN else "") + INR_SYMBOL + rendered + " " + suffix
     }
 
     private fun format(amount: Double, alwaysShowDecimals: Boolean): String {
@@ -61,13 +66,13 @@ object IndianNumberFormat {
             alwaysShowDecimals || fraction != 0 -> ".%02d".format(fraction)
             else -> ""
         }
-        val signPrefix = if (isNegative) "-" else ""
+        val signPrefix = if (isNegative) NEG_SIGN else ""
         return "$signPrefix$INR_SYMBOL$groupedWhole$tail"
     }
 
     /** Public for callers that want only the grouped integer part (e.g., chips/tabs). */
     fun groupIndian(value: Long): String {
-        if (value < 0L) return "-" + groupIndian(-value)
+        if (value < 0L) return NEG_SIGN + groupIndian(-value)
         val digits = value.toString()
         if (digits.length <= 3) return digits
 

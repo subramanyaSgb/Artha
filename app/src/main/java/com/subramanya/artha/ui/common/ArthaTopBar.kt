@@ -34,7 +34,8 @@ import com.subramanya.artha.utils.DateFormatter
  *       Namaste, {name}
  *
  * The brand mark replaces the old greeting icon; "Namaste, X" replaces the
- * "Hello, X 👋" line so we own an Indian voice consistently.
+ * earlier wave-emoji greeting so we own an Indian voice consistently.
+ * (HANDOFF §6.11 — no emoji anywhere in the app.)
  */
 @Composable
 fun ArthaTopBar(

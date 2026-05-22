@@ -265,7 +265,10 @@ private fun FieldsCard(state: TransactionDetailUiState, txn: Transaction) {
                 )
             }
             if (!txn.receiptUri.isNullOrBlank()) {
-                DetailRow(stringResource(R.string.txn_detail_field_receipt), "✓")
+                DetailRow(
+                    stringResource(R.string.txn_detail_field_receipt),
+                    stringResource(R.string.txn_detail_receipt_yes),
+                )
             }
             if (!txn.notes.isNullOrBlank()) {
                 DetailRow(stringResource(R.string.txn_detail_field_notes), txn.notes)

@@ -106,6 +106,7 @@
     <string name="txn_receipt_remove">Remove</string>
     <string name="txn_receipt_camera_todo">Camera capture: coming in next pass</string>
     <string name="txn_receipt_attached">Receipt attached</string>
+    <string name="txn_detail_receipt_yes">Yes</string>
     <string name="txn_notes_label">Notes</string>
     <string name="txn_save">Save</string>
     <string name="txn_save_expense_fmt">Save expense · %1$s</string>
@@ -161,7 +162,8 @@
     <string name="common_save">Save</string>
 
     <!-- Dashboard FAB -->
-    <string name="dashboard_fab_add">Add transaction</string>
+    <string name="dashboard_fab_add">Add</string>
+    <string name="dashboard_fab_add_a11y">Add transaction</string>
     <string name="dashboard_fab_ai_toast">AI Quick Entry coming in Phase 3</string>
 
     <!-- Dashboard sections -->

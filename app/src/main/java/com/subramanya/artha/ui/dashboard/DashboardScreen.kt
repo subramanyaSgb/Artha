@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -989,14 +990,26 @@ private fun FabRow(onTap: () -> Unit, onLongPress: () -> Unit, modifier: Modifie
             }
         },
     ) {
-        FloatingActionButton(
+        // HANDOFF §2 — Extended FAB on Home only: 56dp tall, "Add" label,
+        // plus icon, Teal700, 110dp from the bottom edge.
+        ExtendedFloatingActionButton(
             onClick = onTap,
             shape = RoundedCornerShape(18.dp),
             containerColor = Teal700,
-            contentColor = Color.White,
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.dashboard_fab_add))
-        }
+            contentColor = androidx.compose.ui.graphics.Color(0xFFF0EAD6),
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = stringResource(R.string.dashboard_fab_add_a11y),
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.dashboard_fab_add),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            },
+        )
     }
 }
 

@@ -22,9 +22,12 @@ class IndianNumberFormatTest {
         assertEquals("₹54.25", IndianNumberFormat.format(54.25))
     }
 
-    @Test fun `negative amounts move the sign outside the symbol`() {
-        assertEquals("-₹1,234", IndianNumberFormat.format(-1234.0))
-        assertEquals("-₹50.25", IndianNumberFormat.format(-50.25))
+    @Test fun `negative amounts use an en-dash outside the symbol (HANDOFF §6_5)`() {
+        // Use an explicit unicode literal so this stays robust against editors
+        // that try to "auto-fix" en-dashes back to hyphens.
+        val enDash = "–"
+        assertEquals("${enDash}₹1,234", IndianNumberFormat.format(-1234.0))
+        assertEquals("${enDash}₹50.25", IndianNumberFormat.format(-50.25))
     }
 
     @Test fun `formatWithDecimals always shows two decimal places`() {
