@@ -1,14 +1,24 @@
 package com.subramanya.artha.ui.more
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Rule
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -24,18 +34,29 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.subramanya.artha.R
+import com.subramanya.artha.ui.common.ArthaSheetHandle
+import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.Line1
+import com.subramanya.artha.ui.theme.Surface2
+import com.subramanya.artha.ui.theme.Surface3
+import com.subramanya.artha.ui.theme.Surface4
+import com.subramanya.artha.ui.theme.Teal300
+import com.subramanya.artha.ui.theme.Text1
+import com.subramanya.artha.ui.theme.Text3
 
 enum class MoreAction {
     Categories, Tags, Settings, About,
@@ -43,6 +64,64 @@ enum class MoreAction {
     People, Budgets, Goals, Subscriptions, Recurring,
     Reports,
 }
+
+private data class MoreRow(
+    val action: MoreAction,
+    val icon: ImageVector,
+    @StringRes val titleRes: Int,
+    @StringRes val subRes: Int,
+)
+
+private data class MoreSection(
+    @StringRes val titleRes: Int,
+    val rows: List<MoreRow>,
+)
+
+/**
+ * HANDOFF §3.5 — More sheet rendered as 5 grouped sections (Money,
+ * Recurring, People & rules, Look-ups, App), each a card-flush container
+ * with Surface4-tiled icons, teal-300 glyph, label + sub, trailing chevron.
+ */
+private val MoreSections: List<MoreSection> = listOf(
+    MoreSection(
+        titleRes = R.string.more_section_money,
+        rows = listOf(
+            MoreRow(MoreAction.Investments, Icons.AutoMirrored.Filled.TrendingUp, R.string.more_investments, R.string.more_sub_investments),
+            MoreRow(MoreAction.Insurance, Icons.Filled.Shield, R.string.more_insurance, R.string.more_sub_insurance),
+            MoreRow(MoreAction.Budgets, Icons.Filled.AccountBalanceWallet, R.string.more_budgets, R.string.more_sub_budgets),
+            MoreRow(MoreAction.Goals, Icons.Filled.Flag, R.string.more_goals, R.string.more_sub_goals),
+            MoreRow(MoreAction.Reports, Icons.Filled.BarChart, R.string.more_reports, R.string.more_sub_reports),
+        ),
+    ),
+    MoreSection(
+        titleRes = R.string.more_section_recurring,
+        rows = listOf(
+            MoreRow(MoreAction.Subscriptions, Icons.Filled.Subscriptions, R.string.more_subscriptions, R.string.more_sub_subscriptions),
+            MoreRow(MoreAction.Recurring, Icons.Filled.EventRepeat, R.string.more_recurring, R.string.more_sub_recurring),
+        ),
+    ),
+    MoreSection(
+        titleRes = R.string.more_section_rules_people,
+        rows = listOf(
+            MoreRow(MoreAction.Rules, Icons.AutoMirrored.Filled.Rule, R.string.more_rules, R.string.more_sub_rules),
+            MoreRow(MoreAction.People, Icons.Filled.Group, R.string.more_people, R.string.more_sub_people),
+        ),
+    ),
+    MoreSection(
+        titleRes = R.string.more_section_lookups,
+        rows = listOf(
+            MoreRow(MoreAction.Categories, Icons.Filled.Category, R.string.more_categories, R.string.more_sub_categories),
+            MoreRow(MoreAction.Tags, Icons.Filled.Sell, R.string.more_tags, R.string.more_sub_tags),
+        ),
+    ),
+    MoreSection(
+        titleRes = R.string.more_section_app,
+        rows = listOf(
+            MoreRow(MoreAction.Settings, Icons.Filled.Settings, R.string.more_settings, R.string.more_sub_settings),
+            MoreRow(MoreAction.About, Icons.Filled.Info, R.string.more_about, R.string.more_sub_about),
+        ),
+    ),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,127 +133,118 @@ fun MoreSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
-        dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
+        containerColor = Surface3,
+        dragHandle = { ArthaSheetHandle() },
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
+                .padding(horizontal = 20.dp)
                 .padding(bottom = 16.dp),
         ) {
+            // Editorial header per §3.5: eyebrow + Instrument Serif title.
+            Text(
+                text = stringResource(R.string.more_eyebrow).uppercase(),
+                style = EyebrowStyle,
+                color = Teal300,
+            )
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.more_title),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Normal),
+                color = Text1,
             )
+            Spacer(Modifier.height(20.dp))
 
-            MoreTile(
-                icon = Icons.Filled.Category,
-                titleRes = R.string.more_categories,
-                onClick = { onActionSelected(MoreAction.Categories) },
-            )
-            MoreTile(
-                icon = Icons.Filled.Sell,
-                titleRes = R.string.more_tags,
-                onClick = { onActionSelected(MoreAction.Tags) },
-            )
-            MoreTile(
-                icon = Icons.Filled.Settings,
-                titleRes = R.string.more_settings,
-                onClick = { onActionSelected(MoreAction.Settings) },
-            )
-            MoreTile(
-                icon = Icons.Filled.Info,
-                titleRes = R.string.more_about,
-                onClick = { onActionSelected(MoreAction.About) },
-            )
-
-            MoreTile(
-                icon = Icons.AutoMirrored.Filled.TrendingUp,
-                titleRes = R.string.more_investments,
-                onClick = { onActionSelected(MoreAction.Investments) },
-            )
-            MoreTile(
-                icon = Icons.Filled.Shield,
-                titleRes = R.string.more_insurance,
-                onClick = { onActionSelected(MoreAction.Insurance) },
-            )
-            MoreTile(
-                icon = Icons.AutoMirrored.Filled.Rule,
-                titleRes = R.string.more_rules,
-                onClick = { onActionSelected(MoreAction.Rules) },
-            )
-            MoreTile(
-                icon = Icons.Filled.AccountBalanceWallet,
-                titleRes = R.string.more_budgets,
-                onClick = { onActionSelected(MoreAction.Budgets) },
-            )
-            MoreTile(
-                icon = Icons.Filled.Flag,
-                titleRes = R.string.more_goals,
-                onClick = { onActionSelected(MoreAction.Goals) },
-            )
-            MoreTile(
-                icon = Icons.Filled.Subscriptions,
-                titleRes = R.string.more_subscriptions,
-                onClick = { onActionSelected(MoreAction.Subscriptions) },
-            )
-            MoreTile(
-                icon = Icons.Filled.EventRepeat,
-                titleRes = R.string.more_recurring,
-                onClick = { onActionSelected(MoreAction.Recurring) },
-            )
-            MoreTile(
-                icon = Icons.Filled.Group,
-                titleRes = R.string.more_people,
-                onClick = { onActionSelected(MoreAction.People) },
-            )
-            MoreTile(
-                icon = Icons.Filled.BarChart,
-                titleRes = R.string.more_reports,
-                onClick = { onActionSelected(MoreAction.Reports) },
-            )
+            MoreSections.forEachIndexed { idx, section ->
+                if (idx > 0) Spacer(Modifier.height(20.dp))
+                Text(
+                    text = stringResource(section.titleRes).uppercase(),
+                    style = EyebrowStyle,
+                    color = Text3,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+                )
+                MoreSectionCard(rows = section.rows, onClick = onActionSelected)
+            }
         }
     }
 }
 
 @Composable
-private fun MoreTile(
-    icon: ImageVector,
-    @StringRes titleRes: Int,
-    onClick: () -> Unit,
+private fun MoreSectionCard(
+    rows: List<MoreRow>,
+    onClick: (MoreAction) -> Unit,
 ) {
-    ListItem(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        leadingContent = { Icon(icon, contentDescription = null) },
-        headlineContent = { Text(stringResource(titleRes)) },
-    )
+            .clip(RoundedCornerShape(16.dp))
+            .background(Surface2)
+            .border(1.dp, Line1, RoundedCornerShape(16.dp)),
+    ) {
+        rows.forEachIndexed { i, row ->
+            if (i > 0) {
+                // 1px hairline divider, indented past the icon so it lines up with the label edge.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 64.dp)
+                        .height(1.dp)
+                        .background(Line1),
+                )
+            }
+            MoreActionRow(row = row, onClick = { onClick(row.action) })
+        }
+    }
 }
 
 @Composable
-private fun DisabledTile(
-    icon: ImageVector,
-    @StringRes titleRes: Int,
-    @StringRes subtitleRes: Int,
-) {
-    // Disabled visual: dimmed alpha, no click handler attached.
-    ListItem(
+private fun MoreActionRow(row: MoreRow, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(DISABLED_ALPHA),
-        leadingContent = { Icon(icon, contentDescription = null) },
-        headlineContent = { Text(stringResource(titleRes)) },
-        supportingContent = {
-            Text(
-                text = stringResource(subtitleRes),
-                style = MaterialTheme.typography.bodySmall,
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Surface4),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = row.icon,
+                contentDescription = null,
+                tint = Teal300,
+                modifier = Modifier.size(18.dp),
             )
-        },
-    )
+        }
+        Spacer(Modifier.size(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(row.titleRes),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                color = Text1,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = stringResource(row.subRes),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                color = Text3,
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Text3,
+            modifier = Modifier.size(18.dp),
+        )
+    }
 }
-
-private const val DISABLED_ALPHA: Float = 0.45f

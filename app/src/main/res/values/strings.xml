@@ -36,6 +36,26 @@
     <string name="more_reports">Reports</string>
     <string name="more_coming_phase_2">Coming in Phase 2</string>
     <string name="more_coming_phase_4">Coming in Phase 4</string>
+    <!-- More sheet — HANDOFF §3.5 grouped sections + per-row sub-labels -->
+    <string name="more_eyebrow">Everything else</string>
+    <string name="more_section_money">Money</string>
+    <string name="more_section_recurring">Recurring</string>
+    <string name="more_section_rules_people">People &amp; rules</string>
+    <string name="more_section_lookups">Look-ups</string>
+    <string name="more_section_app">App</string>
+    <string name="more_sub_investments">Funds, deposits, gold</string>
+    <string name="more_sub_insurance">Policies and premiums</string>
+    <string name="more_sub_budgets">Caps per category</string>
+    <string name="more_sub_goals">Save toward a target</string>
+    <string name="more_sub_reports">Spend insights and tax</string>
+    <string name="more_sub_subscriptions">Renewal calendar</string>
+    <string name="more_sub_recurring">Salary, EMIs, SIPs</string>
+    <string name="more_sub_rules">If X then categorise Y</string>
+    <string name="more_sub_people">Lending and shared spend</string>
+    <string name="more_sub_categories">Tree of categories</string>
+    <string name="more_sub_tags">Flexible labels</string>
+    <string name="more_sub_settings">Theme, lock, backup</string>
+    <string name="more_sub_about">Artha · the philosophy</string>
 
     <!-- Splash -->
     <string name="splash_logo_glyph">अ</string>
@@ -744,6 +764,16 @@
     <string name="reports_tax_sections">Tax-section usage</string>
     <string name="reports_empty_period">No spending in this period.</string>
     <string name="reports_tax_empty">No tax-eligible amounts found. Tag investments with a section (80C, 80D, …) on their detail screen.</string>
+    <string name="reports_eyebrow">Insights</string>
+    <string name="reports_in">In</string>
+    <string name="reports_out">Out</string>
+    <string name="reports_net">Net</string>
+    <string name="reports_section_categorybars">By category</string>
+    <string name="reports_section_appbars">By payment app</string>
+    <string name="reports_section_top_merchants">Top merchants</string>
+    <string name="reports_section_tax">80C · 80D · 80CCD</string>
+    <string name="reports_merchant_count_fmt">×%1$d</string>
+    <string name="reports_tax_headroom_fmt">%1$s left</string>
 
     <!-- Phase 4: People screen -->
     <string name="people_title">People</string>
