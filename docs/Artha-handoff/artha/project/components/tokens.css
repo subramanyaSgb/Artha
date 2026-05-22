@@ -1,0 +1,212 @@
+/* ──────────────────────────────────────────────────────────────
+   Artha — Design Tokens
+   Dark theme primary. Indian rupee-note color cues.
+   Material 3 slot names where they make sense.
+   ────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces — deep ink with teal undertone */
+  --surface-0: #07100d;       /* outside / scrim */
+  --surface-1: #0b1612;       /* base background */
+  --surface-2: #111d18;       /* raised card */
+  --surface-3: #17261f;       /* dialog / sheet */
+  --surface-4: #1e3028;       /* hover / pressed */
+
+  /* Hairlines — replace shadows in dark theme */
+  --line-1: rgba(176, 200, 188, 0.08);
+  --line-2: rgba(176, 200, 188, 0.14);
+  --line-3: rgba(176, 200, 188, 0.22);
+  --line-teal: rgba(20, 184, 166, 0.32);
+
+  /* Brand */
+  --teal-700: #0F766E;        /* brand primary */
+  --teal-500: #14B8A6;        /* accent on dark */
+  --teal-300: #5EEAD4;        /* hover bright */
+  --teal-900: #134e48;        /* container */
+  --teal-950: #0a2c29;        /* deep container */
+
+  /* Indian rupee-note accent palette */
+  --ochre: #C2841C;           /* warm saffron-ochre */
+  --ochre-soft: #E2A84A;
+  --indigo: #6B7BC4;          /* rupee blue, softer for dark */
+  --indigo-deep: #3E4B8C;
+  --saffron: #E58B2A;
+  --terracotta: #C25450;
+
+  /* Semantic */
+  --income: #56BD8C;          /* muted sage */
+  --income-soft: #2E5D45;
+  --expense: #E58B6F;         /* warm coral, never aggressive red */
+  --expense-soft: #5D332A;
+  --warn: var(--ochre);
+  --danger: #D9534F;
+
+  /* Text */
+  --text-1: #F0EAD6;          /* warm off-white, like note paper */
+  --text-2: #A8B3AC;
+  --text-3: #6F7A74;
+  --text-4: #4D5752;
+
+  /* Card backgrounds (account/category accents) */
+  --acc-teal: #0F766E;
+  --acc-indigo: #5260A8;
+  --acc-emerald: #2F8F6B;
+  --acc-saffron: #C97A2A;
+  --acc-magenta: #B14A6E;
+  --acc-violet: #7D5BB8;
+
+  /* Spacing scale (4px base) */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-7: 32px; --s-8: 40px; --s-9: 56px;
+
+  /* Radii */
+  --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px;
+  --r-xl: 28px; --r-pill: 999px;
+
+  /* Type families */
+  --font-ui: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-deva: 'Tiro Devanagari Hindi', 'Noto Serif Devanagari', serif;
+
+  /* Z */
+  --z-nav: 50;
+  --z-fab: 60;
+  --z-sheet: 100;
+  --z-tweaks: 200;
+}
+
+/* ── Base ─────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: #0a0a0a;
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-feature-settings: 'cv02', 'cv03', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Tabular numerals everywhere we display amounts ─────── */
+.tnum, .num-mono, .num-display {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+.num-mono { font-family: var(--font-mono); letter-spacing: -0.01em; }
+.num-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-feature-settings: 'tnum' 1, 'lnum' 1, 'ss01' 1;
+}
+
+/* ── Devanagari helper class ────────────────────────────── */
+.deva { font-family: var(--font-deva); }
+
+/* ── Utility ────────────────────────────────────────────── */
+.row { display: flex; align-items: center; }
+.col { display: flex; flex-direction: column; }
+.between { justify-content: space-between; }
+.gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; } .gap-5 { gap: 20px; } .gap-6 { gap: 24px; }
+.flex-1 { flex: 1 1 0; min-width: 0; }
+.muted { color: var(--text-2); }
+.dim { color: var(--text-3); }
+
+/* ── Hairline card ──────────────────────────────────────── */
+.card {
+  background: var(--surface-2);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-md);
+}
+.card-flush {
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+/* ── Scrollbars hidden inside phone ─────────────────────── */
+.phone-content::-webkit-scrollbar { width: 0; height: 0; }
+.phone-content { scrollbar-width: none; }
+
+/* ── Eyebrow label ──────────────────────────────────────── */
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 600;
+}
+
+/* ── Pill / chip ────────────────────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-1);
+  font-size: 13px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+  white-space: nowrap;
+}
+.chip:hover { background: var(--surface-3); }
+.chip.active {
+  background: var(--teal-900);
+  border-color: var(--teal-500);
+  color: var(--teal-300);
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+.btn-primary {
+  height: 52px; border-radius: var(--r-pill);
+  background: var(--teal-700); color: var(--text-1);
+  border: none; cursor: pointer; font-family: var(--font-ui);
+  font-size: 15px; font-weight: 600; letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 24px;
+}
+.btn-primary:hover { background: #117a72; }
+.btn-primary:disabled { background: var(--surface-3); color: var(--text-3); cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent; border: 1px solid var(--line-2);
+  color: var(--text-1);
+  height: 44px; padding: 0 18px; border-radius: var(--r-pill);
+  font-family: var(--font-ui); font-size: 14px; cursor: pointer;
+}
+.btn-ghost:hover { background: var(--surface-3); }
+
+/* ── Input ──────────────────────────────────────────────── */
+.input {
+  width: 100%; height: 56px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-sm);
+  padding: 0 16px;
+  color: var(--text-1);
+  font-family: var(--font-ui); font-size: 15px;
+  outline: none;
+}
+.input::placeholder { color: var(--text-3); }
+.input:focus { border-color: var(--teal-500); }
+
+.input-floating {
+  position: relative;
+}
+.input-floating .label {
+  position: absolute; left: 16px; top: 18px;
+  color: var(--text-3); font-size: 15px;
+  transition: all .15s; pointer-events: none;
+  background: var(--surface-2); padding: 0 4px;
+}
+.input-floating input:focus + .label,
+.input-floating input:not(:placeholder-shown) + .label {
+  top: -8px; font-size: 11px; color: var(--teal-300);
+}
+
+/* ── Touch ripple-ish ───────────────────────────────────── */
+.touch { cursor: pointer; transition: background .12s; -webkit-tap-highlight-color: transparent; }
+.touch:active { background: var(--surface-3); }
