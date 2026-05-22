@@ -883,6 +883,10 @@
     <string name="recurring_delete_confirm_title">Delete this recurring rule?</string>
     <string name="recurring_delete_confirm_body">Removes the rule. Past transactions it created stay in the log.</string>
     <string name="recurring_delete_confirm_yes">Delete</string>
+    <string name="recurring_banner">Rules stored locally. Auto-firing on schedule turns on with WorkManager in Phase 5 — you\'ll still see entries here as reminders.</string>
+    <string name="recurring_eyebrow">Schedule</string>
+    <string name="recurring_auto_chip">Auto</string>
+    <string name="recurring_day_fmt">Day %1$d</string>
 
     <!-- Rule action labels -->
     <string name="rules_action_kind_set_type">Set transaction type…</string>
