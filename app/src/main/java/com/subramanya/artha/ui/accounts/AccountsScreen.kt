@@ -145,17 +145,26 @@ fun AccountsScreen(
             }
 
             if (state.view == AccountsView.ACTIVE && !state.isReorderMode) {
-                FloatingActionButton(
+                // HANDOFF §2 — Extended FAB anchored 20dp above the bottom nav.
+                // (Was bottom=110.dp — the JSX prototype value, which is the
+                // distance from the *phone shell* bottom. In Compose Scaffold
+                // already insets the body past the nav, so 110dp made the FAB
+                // float ~80dp above where it belongs.)
+                androidx.compose.material3.ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = androidx.compose.ui.graphics.Color.White,
+                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    icon = {
+                        Icon(Icons.Filled.Add, contentDescription = null)
+                    },
+                    text = {
+                        Text(stringResource(R.string.accounts_fab_add))
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 20.dp, bottom = 110.dp),
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.accounts_fab_add))
-                }
+                        .padding(end = 20.dp, bottom = 20.dp),
+                )
             }
         }
     }

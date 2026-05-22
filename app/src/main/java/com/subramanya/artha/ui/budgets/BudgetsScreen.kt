@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -378,6 +379,10 @@ private fun BudgetFormSheet(
     onSave: (Budget) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val app = context.applicationContext as ArthaApplication
+    val categories by app.categoryRepository.observeAll()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
     var scope by remember(editing) { mutableStateOf(editing?.scope ?: BudgetScope.OVERALL) }
@@ -385,6 +390,11 @@ private fun BudgetFormSheet(
     var amountText by remember(editing) { mutableStateOf(editing?.amount?.toPlainString() ?: "") }
     var categoryId by remember(editing) { mutableStateOf(editing?.categoryId.orEmpty()) }
     var threshold by remember(editing) { mutableStateOf((editing?.alertThresholdPercent ?: 80).toString()) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
+
+    val selectedCategoryName = remember(categoryId, categories) {
+        categories.firstOrNull { it.id == categoryId }?.name
+    }
 
     val scopeOptions = listOf(
         com.subramanya.artha.ui.common.PillOption(BudgetScope.OVERALL, stringResource(R.string.budget_scope_overall)),
@@ -431,10 +441,14 @@ private fun BudgetFormSheet(
             }
             if (scope == BudgetScope.CATEGORY) {
                 com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.budgets_form_category_id_label)) {
-                    com.subramanya.artha.ui.common.ArthaTextField(
-                        value = categoryId,
-                        onValueChange = { categoryId = it },
-                        placeholder = "cat_food_drink",
+                    // Real category picker — was a raw text field asking for
+                    // the internal ID. Now opens CategoryPickerSheet so the
+                    // user picks by name and we store the resolved id.
+                    com.subramanya.artha.ui.common.SheetChip(
+                        label = selectedCategoryName
+                            ?: stringResource(R.string.budgets_form_category_pick),
+                        leading = androidx.compose.material.icons.Icons.Filled.Category,
+                        onClick = { showCategoryPicker = true },
                     )
                 }
             }
@@ -492,6 +506,22 @@ private fun BudgetFormSheet(
             )
             Spacer(Modifier.height(20.dp))
         }
+    }
+
+    // Category picker — only relevant when scope = CATEGORY. Filters to
+    // EXPENSE categories since budgets cap spending, not income.
+    if (showCategoryPicker) {
+        com.subramanya.artha.ui.transaction.CategoryPickerSheet(
+            categories = categories.filter {
+                it.type == com.subramanya.artha.data.entity.enums.CategoryType.EXPENSE
+            },
+            type = com.subramanya.artha.data.entity.enums.CategoryType.EXPENSE,
+            onSelected = {
+                categoryId = it.id
+                showCategoryPicker = false
+            },
+            onDismiss = { showCategoryPicker = false },
+        )
     }
 }
 
