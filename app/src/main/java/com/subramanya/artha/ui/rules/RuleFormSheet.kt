@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -47,8 +48,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
+import com.subramanya.artha.domain.model.Category
+import com.subramanya.artha.ui.transaction.CategoryPickerSheet
 import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.SourceKind
@@ -82,6 +86,10 @@ fun RuleFormSheet(
     val app = context.applicationContext as ArthaApplication
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Categories list so SetCategory / SetSubCategory show a picker instead of
+    // asking the user to type an internal id.
+    val categories by app.categoryRepository.observeAll()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
 
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
     var logic by remember(editing) {
@@ -176,6 +184,7 @@ fun RuleFormSheet(
                     actions.forEachIndexed { index, action ->
                         ActionRow(
                             action = action,
+                            categories = categories,
                             onChange = { actions[index] = it },
                             onRemove = { actions.removeAt(index) },
                         )
@@ -448,16 +457,17 @@ private fun AddConditionButton(onAdd: (RuleCondition) -> Unit) {
 @Composable
 private fun ActionRow(
     action: RuleAction,
+    categories: List<Category>,
     onChange: (RuleAction) -> Unit,
     onRemove: () -> Unit,
 ) {
     ListItem(
         modifier = Modifier.fillMaxWidth(),
         headlineContent = {
-            Text(action.summary(), style = MaterialTheme.typography.bodyMedium)
+            Text(action.summary(categories), style = MaterialTheme.typography.bodyMedium)
         },
         supportingContent = {
-            ActionEditor(action = action, onChange = onChange)
+            ActionEditor(action = action, categories = categories, onChange = onChange)
         },
         trailingContent = {
             IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, contentDescription = null) }
@@ -466,7 +476,11 @@ private fun ActionRow(
 }
 
 @Composable
-private fun ActionEditor(action: RuleAction, onChange: (RuleAction) -> Unit) {
+private fun ActionEditor(
+    action: RuleAction,
+    categories: List<Category>,
+    onChange: (RuleAction) -> Unit,
+) {
     when (action) {
         is RuleAction.SetType -> EnumPicker(
             label = stringResource(R.string.rules_action_set_type_label),
@@ -476,23 +490,49 @@ private fun ActionEditor(action: RuleAction, onChange: (RuleAction) -> Unit) {
             labelFor = { it.name },
         )
         is RuleAction.SetCategory -> Column {
-            OutlinedTextField(
-                value = action.categoryId,
-                onValueChange = { onChange(action.copy(categoryId = it)) },
-                singleLine = true,
-                label = { Text(stringResource(R.string.rules_action_category_id_label)) },
-                placeholder = { Text("cat_food_drink") },
-                modifier = Modifier.fillMaxWidth(),
+            // Picker — was a free-text categoryId field which made it trivial to
+            // ship a broken rule that pointed at a non-existent id.
+            var pickingCategory by remember { mutableStateOf(false) }
+            var pickingSub by remember { mutableStateOf(false) }
+            val selectedCategoryName = categories.firstOrNull { it.id == action.categoryId }?.name
+            val selectedSubName = action.subCategoryId
+                ?.let { id -> categories.firstOrNull { it.id == id }?.name }
+            com.subramanya.artha.ui.common.SheetChip(
+                label = selectedCategoryName
+                    ?: stringResource(R.string.rules_action_category_pick),
+                leading = androidx.compose.material.icons.Icons.Filled.Category,
+                onClick = { pickingCategory = true },
             )
-            OutlinedTextField(
-                value = action.subCategoryId.orEmpty(),
-                onValueChange = {
-                    onChange(action.copy(subCategoryId = it.takeIf { v -> v.isNotBlank() }))
-                },
-                singleLine = true,
-                label = { Text(stringResource(R.string.rules_action_subcategory_id_label)) },
-                modifier = Modifier.fillMaxWidth(),
+            Spacer(Modifier.height(6.dp))
+            com.subramanya.artha.ui.common.SheetChip(
+                label = selectedSubName
+                    ?: stringResource(R.string.rules_action_subcategory_pick),
+                leading = androidx.compose.material.icons.Icons.Filled.Category,
+                onClick = { pickingSub = true },
             )
+            if (pickingCategory) {
+                CategoryPickerSheet(
+                    categories = categories.filter { it.parentId == null },
+                    type = com.subramanya.artha.data.entity.enums.CategoryType.EXPENSE,
+                    onSelected = {
+                        onChange(action.copy(categoryId = it.id, subCategoryId = null))
+                        pickingCategory = false
+                    },
+                    onDismiss = { pickingCategory = false },
+                )
+            }
+            if (pickingSub) {
+                val children = categories.filter { it.parentId == action.categoryId }
+                CategoryPickerSheet(
+                    categories = children,
+                    type = com.subramanya.artha.data.entity.enums.CategoryType.EXPENSE,
+                    onSelected = {
+                        onChange(action.copy(subCategoryId = it.id))
+                        pickingSub = false
+                    },
+                    onDismiss = { pickingSub = false },
+                )
+            }
         }
         is RuleAction.SetTaxSection -> OutlinedTextField(
             value = action.section,
@@ -577,9 +617,15 @@ private fun RuleCondition.summary(): String = when (this) {
 }
 
 @Composable
-private fun RuleAction.summary(): String = when (this) {
+private fun RuleAction.summary(categories: List<Category>): String = when (this) {
     is RuleAction.SetType -> stringResource(R.string.rules_action_summary_set_type, type.name)
-    is RuleAction.SetCategory -> stringResource(R.string.rules_action_summary_set_category, categoryId)
+    is RuleAction.SetCategory -> {
+        // Resolve the friendly name so the summary doesn't dump the internal id
+        // ("Set category Food & Drink" instead of "Set category cat_food_drink").
+        val name = categories.firstOrNull { it.id == categoryId }?.name
+            ?: stringResource(R.string.rules_action_category_pick)
+        stringResource(R.string.rules_action_summary_set_category, name)
+    }
     is RuleAction.SetTaxSection -> stringResource(R.string.rules_action_summary_set_tax, section)
     is RuleAction.AddTag -> stringResource(R.string.rules_action_summary_add_tag, tagId)
     is RuleAction.AddPerson -> stringResource(R.string.rules_action_summary_add_person, personId)

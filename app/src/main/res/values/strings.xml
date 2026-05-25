@@ -933,6 +933,8 @@
     <string name="rules_action_set_type_label">Type to set</string>
     <string name="rules_action_category_id_label">Category id</string>
     <string name="rules_action_subcategory_id_label">Sub-category id (optional)</string>
+    <string name="rules_action_category_pick">Pick a category…</string>
+    <string name="rules_action_subcategory_pick">Pick a sub-category (optional)</string>
     <string name="rules_action_tax_section_label">Tax section</string>
     <string name="rules_action_tag_id_label">Tag id</string>
     <string name="rules_action_person_id_label">Person id</string>

@@ -60,18 +60,23 @@ class ReportsViewModel(
         transactionRepository.observeAll(),
         accountRepository.observeActiveWithBalances(),
         cardRepository.observeActiveWithBalances(),
-        investmentRepository.observeActive(),
+        // 4th source folds investments + categories into a Pair so the outer
+        // combine stays inside the 5-arg arity cap.
+        combine(
+            investmentRepository.observeActive(),
+            categoryRepository.observeAll(),
+        ) { invs, cats -> invs to cats },
         range,
-    ) { txns, accounts, cards, investments, currentRange ->
+    ) { txns, accounts, cards, (investments, categories), currentRange ->
         val window = windowFor(currentRange)
         val inWindow = txns.filter { it.date in window.first..window.second }
 
         val income = inWindow.filter { it.type.isIncomeish() }.sumOf { it.amount }
         val expense = inWindow.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
 
-        val categories = categoryRepository.observeAll()
-        // Pull category names synchronously to label slices — small cardinality, OK.
-        val catNames = inWindow.mapNotNull { it.categoryId }.distinct()
+        // Build an id → friendly name lookup so the by-category slice shows
+        // "Food & Drink" instead of "cat_food_drink".
+        val categoryNameById = categories.associateBy({ it.id }, { it.name })
 
         val byCategory = inWindow
             .filter { it.type == TransactionType.EXPENSE }
@@ -79,7 +84,7 @@ class ReportsViewModel(
             .map { (cid, list) ->
                 CategorySlice(
                     categoryId = cid,
-                    displayName = cid,
+                    displayName = categoryNameById[cid] ?: "Uncategorised",
                     total = list.sumOf { it.amount },
                 )
             }

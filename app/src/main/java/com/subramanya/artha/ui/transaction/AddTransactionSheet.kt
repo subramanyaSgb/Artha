@@ -590,7 +590,8 @@ private fun TabTintedSaveButton(
         TransactionTab.INCOME -> R.string.txn_save_income_fmt
         TransactionTab.TRANSFER -> R.string.txn_save_transfer_fmt
     }
-    val priceText = amount?.let { "₹${IndianNumberFormat.format(it)}" } ?: "₹0"
+    // IndianNumberFormat.format already prefixes ₹ — don't double it.
+    val priceText = amount?.let { IndianNumberFormat.format(it) } ?: "₹0"
     Surface(color = Surface1, modifier = Modifier.fillMaxWidth()) {
         Column {
             HorizontalDivider(color = Line1, thickness = Dp.Hairline)
