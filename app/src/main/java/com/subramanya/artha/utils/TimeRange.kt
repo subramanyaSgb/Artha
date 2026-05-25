@@ -9,6 +9,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
 /** Inclusive-start, inclusive-end window in epoch millis. End is exclusive only if explicitly noted. */
@@ -30,22 +31,34 @@ enum class TimeRange {
         val nowLdt: LocalDateTime = Instant.fromEpochMilliseconds(now).toLocalDateTime(tz)
         val today: LocalDate = nowLdt.date
 
+        // End-of-period (last millisecond of today / this week / this month), NOT `now`.
+        // Using `now` makes a freshly-saved transaction whose `date` is even a few ms
+        // after the chip selection fall outside the window and silently vanish from
+        // "Today" — manifesting as a "Recent Activity doesn't update" bug.
         return when (this) {
             TODAY -> {
                 val start = today.atStartOfDayIn(tz).toEpochMilliseconds()
-                MillisRange(start, now)
+                val endExclusive = today.plus(1, DateTimeUnit.DAY).atStartOfDayIn(tz).toEpochMilliseconds()
+                MillisRange(start, endExclusive - 1)
             }
             THIS_WEEK -> {
                 // Week starts on Monday — Indian convention also follows ISO weeks.
                 val daysSinceMonday = (today.dayOfWeek.isoDayNumber - DayOfWeek.MONDAY.isoDayNumber)
                 val weekStart = today.minus(daysSinceMonday, DateTimeUnit.DAY)
                 val start = weekStart.atStartOfDayIn(tz).toEpochMilliseconds()
-                MillisRange(start, now)
+                val nextWeekStart = weekStart.plus(7, DateTimeUnit.DAY).atStartOfDayIn(tz).toEpochMilliseconds()
+                MillisRange(start, nextWeekStart - 1)
             }
             THIS_MONTH -> {
-                val start = LocalDate(today.year, today.monthNumber, 1)
-                    .atStartOfDayIn(tz).toEpochMilliseconds()
-                MillisRange(start, now)
+                val firstOfMonth = LocalDate(today.year, today.monthNumber, 1)
+                val start = firstOfMonth.atStartOfDayIn(tz).toEpochMilliseconds()
+                val nextMonth = if (today.monthNumber == 12) {
+                    LocalDate(today.year + 1, 1, 1)
+                } else {
+                    LocalDate(today.year, today.monthNumber + 1, 1)
+                }
+                val endExclusive = nextMonth.atStartOfDayIn(tz).toEpochMilliseconds()
+                MillisRange(start, endExclusive - 1)
             }
             ALL_TIME -> MillisRange(0L, Long.MAX_VALUE)
         }
