@@ -5,15 +5,18 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Placeholder "A" mark. Real logo lives in Phase 1 Session 4 / polish. -->
+    <!-- Adaptive-icon foreground. The launcher mask crops the outer 22% of the
+         108×108 canvas, leaving a 66×66 "safe zone" centered at (54, 54). The
+         "A" mark below sits inside that zone (x: 36..72, y: 36..72) so it stays
+         optically centered on round, squircle, and rectangular masks. -->
     <path
-        android:pathData="M 38 78 L 54 30 L 70 78"
+        android:pathData="M 38 72 L 54 36 L 70 72"
         android:strokeColor="@color/ic_launcher_foreground"
         android:strokeWidth="6"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     <path
-        android:pathData="M 45 60 L 63 60"
+        android:pathData="M 44 60 L 64 60"
         android:strokeColor="@color/ic_launcher_foreground"
         android:strokeWidth="6"
         android:strokeLineCap="round" />

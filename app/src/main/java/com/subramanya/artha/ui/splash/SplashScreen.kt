@@ -66,11 +66,23 @@ private fun LogoMark() {
             .background(tealSeed),
         contentAlignment = Alignment.Center,
     ) {
+        // Devanagari "अ" sits visually below its baseline-based geometric center
+        // because the glyph has a tall ascender (the matra hook) and no descender.
+        // Tight lineHeight + no built-in font padding pulls the glyph back to the
+        // optical centre of the circle on every device.
         Text(
             text = stringResource(R.string.splash_logo_glyph),
             color = Color.White,
             fontSize = 64.sp,
+            lineHeight = 64.sp,
             fontWeight = FontWeight.SemiBold,
+            style = androidx.compose.ui.text.TextStyle(
+                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false),
+                lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                    alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                    trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.Both,
+                ),
+            ),
         )
     }
 }

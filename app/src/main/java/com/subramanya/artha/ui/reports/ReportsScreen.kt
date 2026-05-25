@@ -263,12 +263,12 @@ private fun androidx.compose.foundation.layout.RowScope.StripCol(
     Column(
         modifier = Modifier
             .weight(weight)
-            .padding(horizontal = 14.dp),
+            .padding(horizontal = 10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(6.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .background(color),
             )
@@ -280,12 +280,18 @@ private fun androidx.compose.foundation.layout.RowScope.StripCol(
             )
         }
         Spacer(Modifier.height(4.dp))
-        Text(
+        // 1/3 of a phone width can't fit a 7-figure ₹ at 20sp serif → wraps to
+        // a second row. Drop the size and force single-line with auto-shrink.
+        androidx.compose.material3.Text(
             text = IndianNumberFormat.format(value),
+            color = Text1,
+            maxLines = 1,
+            softWrap = false,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
             style = TextStyle(
                 fontFamily = InstrumentSerif,
-                fontSize = 20.sp,
-                lineHeight = 24.sp,
+                fontSize = 17.sp,
+                lineHeight = 20.sp,
                 color = Text1,
                 fontFeatureSettings = "tnum, lnum",
             ),

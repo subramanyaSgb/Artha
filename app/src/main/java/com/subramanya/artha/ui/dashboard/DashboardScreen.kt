@@ -256,27 +256,30 @@ private fun NetPositionHero(state: DashboardUiState) {
             alpha = 0.05f,
         )
 
-        // Corner अ glyph
+        // Corner अ glyph — subordinated to the amount. Shrunk from 32dp/18sp to
+        // 24dp/13sp and tucked further into the corner so a long net-position
+        // amount ("₹1,00,00,000") doesn't visually collide with it.
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(16.dp)
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .border(width = 1.dp, color = LineTeal, shape = RoundedCornerShape(8.dp)),
+                .padding(top = 14.dp, end = 14.dp)
+                .size(24.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .border(width = 1.dp, color = LineTeal, shape = RoundedCornerShape(6.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "अ",
                 color = Teal300,
                 fontFamily = TiroDevanagariHindi,
-                fontSize = 18.sp,
-                lineHeight = 18.sp,
+                fontSize = 13.sp,
+                lineHeight = 13.sp,
                 fontWeight = FontWeight.Normal,
             )
         }
 
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp, bottom = 18.dp)) {
+        // end padding accounts for the corner mark (24dp + 14dp + 12dp breathing).
+        Column(modifier = Modifier.padding(start = 22.dp, end = 52.dp, top = 20.dp, bottom = 18.dp)) {
             Text(
                 text = stringResource(R.string.dashboard_net_position).uppercase(),
                 style = EyebrowStyle,

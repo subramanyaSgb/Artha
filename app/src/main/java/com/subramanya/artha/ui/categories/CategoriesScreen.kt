@@ -274,7 +274,7 @@ private fun ParentRow(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CategoryAvatar(color = parent.color)
+            CategoryAvatar(color = parent.color, icon = parent.icon)
             Spacer(Modifier.size(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -352,7 +352,7 @@ private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) 
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CategoryAvatar(color = child.color, small = true)
+                CategoryAvatar(color = child.color, icon = child.icon, small = true)
                 Spacer(Modifier.size(12.dp))
                 Text(
                     text = child.name,
@@ -398,7 +398,7 @@ private fun pluralCount(count: Int, oneRes: Int, manyRes: Int): String =
     if (count == 1) stringResource(oneRes) else stringResource(manyRes, count)
 
 @Composable
-private fun CategoryAvatar(color: Long, small: Boolean = false) {
+private fun CategoryAvatar(color: Long, icon: String? = null, small: Boolean = false) {
     val dim = if (small) 28.dp else 36.dp
     Box(
         modifier = Modifier
@@ -408,9 +408,10 @@ private fun CategoryAvatar(color: Long, small: Boolean = false) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Filled.Category,
+            imageVector = com.subramanya.artha.utils.MaterialIcons.resolve(icon),
             contentDescription = null,
             tint = Color.White,
+            modifier = Modifier.size(if (small) 16.dp else 20.dp),
         )
     }
 }

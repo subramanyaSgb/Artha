@@ -155,9 +155,15 @@ fun TransactionsScreen(
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(Surface2),
                         ) {
+                            // Map categoryId → Category once per group so the icon lookup
+                                // inside each row is O(1) instead of re-scanning the list.
+                                val categoryById = remember(state.categories) {
+                                    state.categories.associateBy { it.id }
+                                }
                             group.transactions.forEachIndexed { i, txn ->
                                 TransactionRow(
                                     txn = txn,
+                                    category = txn.categoryId?.let { categoryById[it] },
                                     selected = txn.id in state.selectedIds,
                                     selectionMode = state.isSelectionMode,
                                     onTap = {
@@ -552,6 +558,7 @@ private fun DayHeader(label: String, sum: Double) {
 @Composable
 private fun TransactionRow(
     txn: Transaction,
+    category: Category?,
     selected: Boolean,
     selectionMode: Boolean,
     onTap: () -> Unit,
@@ -560,6 +567,12 @@ private fun TransactionRow(
     val container = if (selected) MaterialTheme.colorScheme.secondaryContainer
                     else Color.Transparent
     val isIncome = txn.type.isIncomeLike()
+    // Prefer the category-specific icon (Restaurant for food, DirectionsCar for
+    // transport, etc.) so the row is scannable by shape; fall back to the type
+    // glyph for transactions with no category (transfers, raw card payments).
+    val rowIcon = category?.icon
+        ?.let { com.subramanya.artha.utils.MaterialIcons.resolve(it) }
+        ?: iconForType(txn.type)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -576,7 +589,7 @@ private fun TransactionRow(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = iconForType(txn.type),
+                imageVector = rowIcon,
                 contentDescription = null,
                 tint = if (isIncome) Income else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(17.dp),

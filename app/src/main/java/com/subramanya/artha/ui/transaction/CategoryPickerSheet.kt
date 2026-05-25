@@ -1,14 +1,24 @@
 ﻿package com.subramanya.artha.ui.transaction
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -109,18 +119,38 @@ fun CategoryPickerSheet(
 
 @Composable
 private fun CategoryRow(row: CategoryRowData, onClick: () -> Unit) {
-    val indent = if (row.isChild) 32.dp else 0.dp
+    val indent = if (row.isChild) 24.dp else 0.dp
     val style = if (row.isChild) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleSmall
     val weight = if (row.isChild) FontWeight.Normal else FontWeight.SemiBold
+    val avatarSize = if (row.isChild) 24.dp else 30.dp
 
-    Text(
-        text = row.category.name,
-        style = style.copy(fontWeight = weight),
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(start = 24.dp + indent, end = 24.dp, top = 14.dp, bottom = 14.dp),
-    )
+            .padding(start = 20.dp + indent, end = 24.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(avatarSize)
+                .clip(CircleShape)
+                .background(Color(row.category.color)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = com.subramanya.artha.utils.MaterialIcons.resolve(row.category.icon),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(if (row.isChild) 14.dp else 18.dp),
+            )
+        }
+        Text(
+            text = row.category.name,
+            style = style.copy(fontWeight = weight),
+        )
+    }
 }
 
 private data class CategoryRowData(val category: Category, val isChild: Boolean)
