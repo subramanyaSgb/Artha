@@ -216,8 +216,9 @@ private fun NetWorthHero(value: Double) {
                 color = Text3,
             )
             Spacer(Modifier.height(8.dp))
-            Text(
+            com.subramanya.artha.ui.common.AutoShrinkAmountText(
                 text = IndianNumberFormat.format(value),
+                color = Text1,
                 style = TextStyle(
                     fontFamily = InstrumentSerif,
                     fontSize = 40.sp,

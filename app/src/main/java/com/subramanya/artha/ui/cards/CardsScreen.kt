@@ -756,7 +756,7 @@ private fun CardsTotalOutstandingCard(
                 )
             }
             androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
-            Text(
+            com.subramanya.artha.ui.common.AutoShrinkAmountText(
                 text = IndianNumberFormat.format(totalOut),
                 style = ArthaAmountStyles.hero.copy(
                     fontSize = androidx.compose.ui.unit.TextUnit(32f, androidx.compose.ui.unit.TextUnitType.Sp),

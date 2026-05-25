@@ -519,7 +519,7 @@ internal fun TotalLiquidCard(accounts: List<com.subramanya.artha.domain.model.Ac
                 color = com.subramanya.artha.ui.theme.Text3,
             )
             androidx.compose.foundation.layout.Spacer(Modifier.height(6.dp))
-            Text(
+            com.subramanya.artha.ui.common.AutoShrinkAmountText(
                 text = IndianNumberFormat.format(total),
                 style = ArthaAmountStyles.hero.copy(
                     fontSize = androidx.compose.ui.unit.TextUnit(40f, androidx.compose.ui.unit.TextUnitType.Sp),

@@ -286,7 +286,7 @@ private fun NetPositionHero(state: DashboardUiState) {
                 color = Text3,
             )
             Spacer(Modifier.height(6.dp))
-            Text(
+            com.subramanya.artha.ui.common.AutoShrinkAmountText(
                 text = IndianNumberFormat.format(state.netPosition),
                 style = ArthaAmountStyles.hero,
                 color = MaterialTheme.colorScheme.onSurface,
