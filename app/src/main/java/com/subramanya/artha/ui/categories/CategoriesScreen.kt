@@ -33,8 +33,6 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -130,7 +128,11 @@ fun CategoriesScreen(
                         )
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 4.dp, bottom = 100.dp),
+                    ) {
                         state.parents.forEach { parent ->
                             val children = state.childrenByParent[parent.id].orEmpty()
                             val expanded = parent.id in state.expandedParentIds
@@ -138,6 +140,7 @@ fun CategoriesScreen(
                                 ParentRow(
                                     parent = parent,
                                     hasChildren = children.isNotEmpty(),
+                                    childCount = children.size,
                                     expanded = expanded,
                                     onToggle = { vm.toggleExpanded(parent.id) },
                                     onEdit = { formMode = FormMode.Edit(parent) },
@@ -252,39 +255,119 @@ private fun TypeChip(current: CategoryType, target: CategoryType, labelRes: Int,
 private fun ParentRow(
     parent: Category,
     hasChildren: Boolean,
+    childCount: Int,
     expanded: Boolean,
     onToggle: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    ListItem(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .let { if (hasChildren) it.clickable(onClick = onToggle) else it },
-        colors = ListItemDefaults.colors(),
-        leadingContent = { CategoryAvatar(color = parent.color) },
-        headlineContent = { Text(parent.name) },
-        supportingContent = {
-            if (parent.isSystem) {
+        color = com.subramanya.artha.ui.theme.Surface2,
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.subramanya.artha.ui.theme.Line1),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CategoryAvatar(color = parent.color)
+            Spacer(Modifier.size(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "System",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = parent.name,
+                    color = Text1,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
                 )
-            }
-        },
-        trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (hasChildren) {
-                    Icon(
-                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = null,
+                val parts = buildList {
+                    if (parent.isSystem) add(stringResource(R.string.categories_system_chip))
+                    if (childCount > 0) {
+                        add(pluralCount(childCount, R.string.categories_subcount_one, R.string.categories_subcount_many))
+                    }
+                }
+                if (parts.isNotEmpty()) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = parts.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = com.subramanya.artha.ui.theme.Text3,
+                        maxLines = 1,
                     )
                 }
+            }
+            if (hasChildren) {
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = com.subramanya.artha.ui.theme.Text3,
+                )
+            }
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = stringResource(R.string.categories_action_edit),
+                        tint = com.subramanya.artha.ui.theme.Text3,
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.categories_action_edit)) },
+                        onClick = { menuOpen = false; onEdit() },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.categories_action_delete),
+                                color = com.subramanya.artha.ui.theme.Danger,
+                            )
+                        },
+                        onClick = { menuOpen = false; onDelete() },
+                        leadingIcon = {
+                            Icon(Icons.Filled.Delete, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) {
+    var menuOpen by remember { mutableStateOf(false) }
+    // Children are indented 24dp and use Surface3 to step down a layer from the parent
+    // tile — same hierarchy idea as the Reports / Cards detail screens.
+    Row(modifier = Modifier.fillMaxWidth().padding(start = 24.dp)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = com.subramanya.artha.ui.theme.Surface3,
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CategoryAvatar(color = child.color, small = true)
+                Spacer(Modifier.size(12.dp))
+                Text(
+                    text = child.name,
+                    color = Text2,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                )
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.categories_action_edit))
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = stringResource(R.string.categories_action_edit),
+                            tint = com.subramanya.artha.ui.theme.Text3,
+                        )
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
@@ -306,53 +389,13 @@ private fun ParentRow(
                     }
                 }
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable
-private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) {
-    var menuOpen by remember { mutableStateOf(false) }
-    ListItem(
-        modifier = Modifier.fillMaxWidth(),
-        leadingContent = {
-            Spacer(modifier = Modifier.size(20.dp))
-            CategoryAvatar(color = child.color, small = true)
-        },
-        headlineContent = {
-            Text(
-                text = child.name,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(start = 16.dp),
-            )
-        },
-        trailingContent = {
-            Box {
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.categories_action_edit))
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.categories_action_edit)) },
-                        onClick = { menuOpen = false; onEdit() },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = stringResource(R.string.categories_action_delete),
-                                color = com.subramanya.artha.ui.theme.Danger,
-                            )
-                        },
-                        onClick = { menuOpen = false; onDelete() },
-                        leadingIcon = {
-                            Icon(Icons.Filled.Delete, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger)
-                        },
-                    )
-                }
-            }
-        },
-    )
-}
+private fun pluralCount(count: Int, oneRes: Int, manyRes: Int): String =
+    if (count == 1) stringResource(oneRes) else stringResource(manyRes, count)
 
 @Composable
 private fun CategoryAvatar(color: Long, small: Boolean = false) {

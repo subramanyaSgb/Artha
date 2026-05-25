@@ -409,6 +409,9 @@
     <string name="categories_empty">No categories yet for this type.</string>
     <string name="categories_action_edit">Edit</string>
     <string name="categories_action_delete">Delete</string>
+    <string name="categories_system_chip">System</string>
+    <string name="categories_subcount_one">1 sub-category</string>
+    <string name="categories_subcount_many">%1$d sub-categories</string>
     <string name="categories_delete_confirm_title">Delete this category?</string>
     <string name="categories_delete_confirm_body">This permanently removes the category. Its children become top-level. This cannot be undone.</string>
     <string name="categories_delete_confirm_yes">Delete</string>
