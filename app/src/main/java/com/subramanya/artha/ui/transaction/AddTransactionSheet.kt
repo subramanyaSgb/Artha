@@ -95,6 +95,7 @@ import com.subramanya.artha.ui.theme.Surface1
 import com.subramanya.artha.ui.theme.Surface2
 import com.subramanya.artha.ui.theme.Surface3
 import com.subramanya.artha.ui.theme.Surface4
+import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Teal700
 import com.subramanya.artha.ui.theme.Text1
 import com.subramanya.artha.ui.theme.Text2
@@ -317,8 +318,10 @@ private fun SheetBody(
                 )
             }
 
-            // ----- category + sub-category (not for Transfer) -----
-            if (state.tab != TransactionTab.TRANSFER) {
+            // ----- category + sub-category (not for Transfer / Invest) -----
+            // INVEST flows save as INVESTMENT_BUY with no category — the destination
+            // investment already represents what the money went into.
+            if (state.tab != TransactionTab.TRANSFER && state.tab != TransactionTab.INVEST) {
                 Spacer(modifier = Modifier.height(20.dp))
                 CategoryField(
                     state = state,
@@ -448,6 +451,7 @@ private fun SegmentedTabs(
                     TransactionTab.EXPENSE -> Text1
                     TransactionTab.INCOME -> Income
                     TransactionTab.TRANSFER -> Indigo
+                    TransactionTab.INVEST -> Teal500
                 }
                 Surface(
                     color = if (isActive) Surface4 else Color.Transparent,
@@ -488,6 +492,7 @@ private fun AmountInput(
         TransactionTab.EXPENSE -> Text1
         TransactionTab.INCOME -> Income
         TransactionTab.TRANSFER -> Indigo
+        TransactionTab.INVEST -> Teal500
     }
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -584,11 +589,13 @@ private fun TabTintedSaveButton(
         TransactionTab.EXPENSE -> Teal700 to Text1
         TransactionTab.INCOME -> Income to Color(0xFF06281C)
         TransactionTab.TRANSFER -> IndigoDeep to Text1
+        TransactionTab.INVEST -> Teal500 to Color(0xFF06281C)
     }
     val labelRes = when (tab) {
         TransactionTab.EXPENSE -> R.string.txn_save_expense_fmt
         TransactionTab.INCOME -> R.string.txn_save_income_fmt
         TransactionTab.TRANSFER -> R.string.txn_save_transfer_fmt
+        TransactionTab.INVEST -> R.string.txn_save_invest_fmt
     }
     // IndianNumberFormat.format already prefixes ₹ — don't double it.
     val priceText = amount?.let { IndianNumberFormat.format(it) } ?: "₹0"
@@ -654,12 +661,15 @@ private fun FundsPickers(
     viewModel: AddTransactionViewModel,
 ) {
     val sourceLabel = when (state.tab) {
-        TransactionTab.EXPENSE, TransactionTab.TRANSFER -> R.string.txn_from_label
+        TransactionTab.EXPENSE, TransactionTab.TRANSFER, TransactionTab.INVEST -> R.string.txn_from_label
         TransactionTab.INCOME -> R.string.txn_to_label
     }
+    // The source list never contains investments — you don't pay an expense FROM an
+    // RD, and an Invest-tab "from" is the bank account funding the SIP/RD/FD.
+    val sourceOptions = funds.filter { it.kind != SourceKind.INVESTMENT }
     Text(stringResource(sourceLabel), style = MaterialTheme.typography.labelLarge)
     Spacer(modifier = Modifier.height(8.dp))
-    if (funds.isEmpty()) {
+    if (sourceOptions.isEmpty()) {
         Text(
             text = stringResource(R.string.txn_no_accounts),
             style = MaterialTheme.typography.bodySmall,
@@ -667,7 +677,7 @@ private fun FundsPickers(
         )
     } else {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            funds.forEach { ep ->
+            sourceOptions.forEach { ep ->
                 FilterChip(
                     selected = state.source?.id == ep.id && state.source.kind == ep.kind,
                     onClick = { viewModel.onSourceSelected(ep) },
@@ -688,20 +698,44 @@ private fun FundsPickers(
         )
     }
 
-    if (state.tab == TransactionTab.TRANSFER) {
+    if (state.tab == TransactionTab.TRANSFER || state.tab == TransactionTab.INVEST) {
         Spacer(modifier = Modifier.height(16.dp))
-        Text(stringResource(R.string.txn_to_label), style = MaterialTheme.typography.labelLarge)
+        val destLabel = if (state.tab == TransactionTab.INVEST) {
+            R.string.txn_invest_destination_label
+        } else {
+            R.string.txn_to_label
+        }
+        Text(stringResource(destLabel), style = MaterialTheme.typography.labelLarge)
         Spacer(modifier = Modifier.height(8.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            funds.forEach { ep ->
-                FilterChip(
-                    selected = state.destination?.id == ep.id && state.destination.kind == ep.kind,
-                    onClick = { viewModel.onDestinationSelected(ep) },
-                    label = { Text(ep.displayName) },
-                    leadingIcon = if (ep.kind == SourceKind.CARD) {
-                        { Icon(Icons.Filled.CreditCard, contentDescription = null) }
-                    } else null,
-                )
+        // Invest tab restricts destinations to investments; Transfer tab restricts to
+        // accounts and cards (an investment can't be the destination of a vanilla transfer).
+        val destOptions = when (state.tab) {
+            TransactionTab.INVEST -> funds.filter { it.kind == SourceKind.INVESTMENT }
+            else -> funds.filter { it.kind != SourceKind.INVESTMENT }
+        }
+        if (destOptions.isEmpty()) {
+            val emptyMsg = if (state.tab == TransactionTab.INVEST) {
+                R.string.txn_invest_no_investments
+            } else {
+                R.string.txn_no_accounts
+            }
+            Text(
+                text = stringResource(emptyMsg),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                destOptions.forEach { ep ->
+                    FilterChip(
+                        selected = state.destination?.id == ep.id && state.destination.kind == ep.kind,
+                        onClick = { viewModel.onDestinationSelected(ep) },
+                        label = { Text(ep.displayName) },
+                        leadingIcon = if (ep.kind == SourceKind.CARD) {
+                            { Icon(Icons.Filled.CreditCard, contentDescription = null) }
+                        } else null,
+                    )
+                }
             }
         }
         if (state.showValidationErrors && state.destination == null) {
@@ -896,6 +930,7 @@ private fun TransactionTab.label(): String = when (this) {
     TransactionTab.EXPENSE -> stringResource(R.string.txn_tab_expense)
     TransactionTab.INCOME -> stringResource(R.string.txn_tab_income)
     TransactionTab.TRANSFER -> stringResource(R.string.txn_tab_transfer)
+    TransactionTab.INVEST -> stringResource(R.string.txn_tab_invest)
 }
 
 @Composable
@@ -916,6 +951,9 @@ private fun categoryTypeForTab(tab: TransactionTab): CategoryType = when (tab) {
     TransactionTab.EXPENSE -> CategoryType.EXPENSE
     TransactionTab.INCOME -> CategoryType.INCOME
     TransactionTab.TRANSFER -> CategoryType.TRANSFER
+    // INVEST flows don't show the category picker so the type doesn't matter —
+    // fall through to TRANSFER so the helper stays total.
+    TransactionTab.INVEST -> CategoryType.TRANSFER
 }
 
 /** Returns ("Thu, 21 May", "14:30") for the date+time chips. */

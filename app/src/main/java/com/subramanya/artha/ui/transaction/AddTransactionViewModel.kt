@@ -14,6 +14,7 @@ import com.subramanya.artha.data.preferences.SpouseTransactionDefault
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
+import com.subramanya.artha.data.repository.InvestmentRepository
 import com.subramanya.artha.data.repository.PersonRepository
 import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.data.repository.TransactionRepository
@@ -21,6 +22,7 @@ import com.subramanya.artha.data.repository.TransactionRuleRepository
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.Category
+import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.domain.model.Person
 import com.subramanya.artha.domain.model.Tag
 import com.subramanya.artha.domain.model.Transaction
@@ -54,6 +56,7 @@ class AddTransactionViewModel(
     private val tagRepository: TagRepository,
     private val transactionRepository: TransactionRepository,
     private val transactionRuleRepository: TransactionRuleRepository,
+    private val investmentRepository: InvestmentRepository,
     private val settingsPreferences: SettingsPreferences,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : ViewModel() {
@@ -61,11 +64,16 @@ class AddTransactionViewModel(
     private val _state = MutableStateFlow(AddTransactionUiState())
     val state: StateFlow<AddTransactionUiState> = _state.asStateFlow()
 
-    /** Live lists for the From/To pickers; merged into a single [FundsEndpoint] catalogue. */
+    /**
+     * Live lists for the From/To pickers; merged into a single [FundsEndpoint]
+     * catalogue. Includes Investments so the new Invest tab can pick one as
+     * the destination (RD top-up, SIP, gold buy, etc.).
+     */
     val fundsCatalogue: StateFlow<List<FundsEndpoint>> = combine(
         accountRepository.observeActive(),
         cardRepository.observeActive(),
-    ) { accounts: List<Account>, cards: List<Card> ->
+        investmentRepository.observeActive(),
+    ) { accounts: List<Account>, cards: List<Card>, investments: List<Investment> ->
         buildList {
             accounts.forEach {
                 add(FundsEndpoint(kind = SourceKind.ACCOUNT, id = it.id, displayName = it.name))
@@ -79,6 +87,9 @@ class AddTransactionViewModel(
                         isCreditCard = it.type == com.subramanya.artha.data.entity.enums.CardType.CREDIT,
                     ),
                 )
+            }
+            investments.forEach {
+                add(FundsEndpoint(kind = SourceKind.INVESTMENT, id = it.id, displayName = it.name))
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -183,6 +194,7 @@ class AddTransactionViewModel(
     private fun TransactionType.toTab(): TransactionTab = when (this) {
         TransactionType.INCOME -> TransactionTab.INCOME
         TransactionType.TRANSFER, TransactionType.CARD_PAYMENT -> TransactionTab.TRANSFER
+        TransactionType.INVESTMENT_BUY, TransactionType.INVESTMENT_SELL -> TransactionTab.INVEST
         else -> TransactionTab.EXPENSE
     }
 
@@ -199,7 +211,10 @@ class AddTransactionViewModel(
                 categoryDisplay = null,
                 subCategoryId = null,
                 subCategoryDisplay = null,
-                destination = if (tab == TransactionTab.TRANSFER) it.destination else null,
+                // Transfer + Invest both need a destination; everything else
+                // doesn't, so wipe the destination when leaving those tabs.
+                destination = if (tab == TransactionTab.TRANSFER || tab == TransactionTab.INVEST)
+                    it.destination else null,
                 showValidationErrors = false,
             )
         }
@@ -476,6 +491,7 @@ class AddTransactionViewModelFactory(
     private val tagRepository: TagRepository,
     private val transactionRepository: TransactionRepository,
     private val transactionRuleRepository: TransactionRuleRepository,
+    private val investmentRepository: InvestmentRepository,
     private val settingsPreferences: SettingsPreferences,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
@@ -491,6 +507,7 @@ class AddTransactionViewModelFactory(
             tagRepository,
             transactionRepository,
             transactionRuleRepository,
+            investmentRepository,
             settingsPreferences,
         ) as T
     }

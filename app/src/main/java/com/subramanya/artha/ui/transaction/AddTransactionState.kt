@@ -4,8 +4,15 @@ import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
 
-/** The three top-level tabs the user sees. Investment is Phase 2. */
-enum class TransactionTab { EXPENSE, INCOME, TRANSFER }
+/**
+ * Top-level tabs the user picks between when adding a transaction.
+ *
+ * INVEST is the "I moved money from an account into an investment" path —
+ * RD top-ups, FD principal, SIP, gold purchases, etc. It saves as a
+ * TransactionType.INVESTMENT_BUY so the spending number on Dashboard /
+ * Reports stays clean instead of bloating "expense" with savings.
+ */
+enum class TransactionTab { EXPENSE, INCOME, TRANSFER, INVEST }
 
 /**
  * A source or destination selection in the From/To pickers. Keeps the display name
@@ -65,6 +72,7 @@ data class AddTransactionUiState(
             TransactionTab.TRANSFER ->
                 if (destination?.isCreditCard == true) TransactionType.CARD_PAYMENT
                 else TransactionType.TRANSFER
+            TransactionTab.INVEST -> TransactionType.INVESTMENT_BUY
         }
 
     /** Whether the Transfer→Card_Payment hint chip should be shown. */
@@ -79,7 +87,7 @@ data class AddTransactionUiState(
             if (description.isBlank()) return false
             return when (tab) {
                 TransactionTab.EXPENSE, TransactionTab.INCOME -> categoryId != null
-                TransactionTab.TRANSFER ->
+                TransactionTab.TRANSFER, TransactionTab.INVEST ->
                     destination != null && (source.kind != destination.kind || source.id != destination.id)
             }
         }

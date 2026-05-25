@@ -183,6 +183,7 @@ fun TransactionDetailScreen(
                 tagRepository = app.tagRepository,
                 transactionRepository = app.transactionRepository,
                 transactionRuleRepository = app.transactionRuleRepository,
+                investmentRepository = app.investmentRepository,
                 settingsPreferences = app.settingsPreferences,
             ),
         )

@@ -101,6 +101,7 @@
     <string name="txn_tab_expense">Expense</string>
     <string name="txn_tab_income">Income</string>
     <string name="txn_tab_transfer">Transfer</string>
+    <string name="txn_tab_invest">Invest</string>
     <string name="txn_amount_label">Amount</string>
     <string name="txn_amount_placeholder">0</string>
     <string name="txn_date_label">Date &amp; time</string>
@@ -132,6 +133,9 @@
     <string name="txn_save_expense_fmt">Save expense · %1$s</string>
     <string name="txn_save_income_fmt">Save income · %1$s</string>
     <string name="txn_save_transfer_fmt">Save transfer · %1$s</string>
+    <string name="txn_save_invest_fmt">Save invest · %1$s</string>
+    <string name="txn_invest_destination_label">Into investment</string>
+    <string name="txn_invest_no_investments">No investments yet — add one from Investments</string>
     <string name="txn_amount_eyebrow">Amount</string>
     <string name="txn_cancel">Cancel</string>
     <string name="txn_card_payment_hint">Credit card payment — won\'t count as expense</string>
