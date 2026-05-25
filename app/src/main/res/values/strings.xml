@@ -476,6 +476,24 @@
     <string name="settings_security_biometric_body">Prompt for fingerprint, face, or screen-lock on app open. Falls back to your device PIN/pattern if biometrics aren\'t enrolled.</string>
     <string name="settings_security_sms">SMS auto-import (Phase 5)</string>
     <string name="settings_security_sms_body">Listen for bank transaction SMS and pre-fill them for your review. Requires SMS permissions; flipping this off revokes the listener.</string>
+    <string name="settings_section_ai">AI Quick Entry</string>
+    <string name="settings_ai_key_add">Add Gemini API key</string>
+    <string name="settings_ai_key_change">Change Gemini API key</string>
+    <string name="settings_ai_key_present_subtitle">A working key is saved on this device. AI Quick Entry is active.</string>
+    <string name="settings_ai_key_absent_subtitle">Paste a key from aistudio.google.com/apikey. Without it, AI Quick Entry stays offline.</string>
+    <string name="settings_ai_key_clear">Remove stored key</string>
+    <string name="settings_ai_key_clear_subtitle">Disables AI Quick Entry until you paste another key</string>
+    <string name="settings_ai_key_dialog_title">Paste your Gemini API key</string>
+    <string name="settings_ai_key_dialog_body">Artha will round-trip a tiny request to Google to confirm the key works. Only valid keys are saved.</string>
+    <string name="settings_ai_key_dialog_field">API key</string>
+    <string name="settings_ai_key_dialog_show">Show</string>
+    <string name="settings_ai_key_dialog_hide">Hide</string>
+    <string name="settings_ai_key_dialog_validating">Validating with Gemini…</string>
+    <string name="settings_ai_key_dialog_save">Save</string>
+    <string name="settings_ai_key_saved">Key saved — AI Quick Entry is on</string>
+    <string name="settings_ai_key_cleared">AI key removed</string>
+    <string name="settings_ai_key_invalid_fmt">Key rejected — try a new one. (%1$s)</string>
+    <string name="settings_ai_key_network_fmt">Couldn\'t reach Gemini — try again on better signal. (%1$s)</string>
     <string name="settings_section_about">About</string>
     <string name="settings_about_open">Open About</string>
 
@@ -581,7 +599,7 @@
     <string name="ai_quick_entry_submit">Parse</string>
     <string name="ai_quick_entry_confirm">Continue → confirm fields</string>
     <string name="ai_quick_entry_no_key_title">Gemini API key not set</string>
-    <string name="ai_quick_entry_no_key_body">Add `geminiApiKey=…` to local.properties, then rebuild the APK. Until then, AI Quick Entry stays offline.</string>
+    <string name="ai_quick_entry_no_key_body">Open Settings → AI Quick Entry to paste your Gemini API key. Without it, AI Quick Entry stays offline.</string>
     <string name="ai_quick_entry_error_title">Couldn\'t parse</string>
     <string name="ai_quick_entry_preview_title">Preview — verify low-confidence fields (red)</string>
     <string name="ai_quick_entry_preview_amount">Amount</string>

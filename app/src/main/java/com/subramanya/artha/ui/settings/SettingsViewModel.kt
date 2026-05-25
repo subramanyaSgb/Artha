@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.subramanya.artha.ai.AiQuickEntryParser
+import com.subramanya.artha.ai.KeyValidationResult
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.seed.SeedCategories
 import com.subramanya.artha.data.importing.BankImporter
@@ -43,7 +45,23 @@ data class SettingsUiState(
     val isImportingBundled: Boolean = false,
     /** Set right after Export → file is ready to be shared. */
     val pendingExportFile: File? = null,
+    /** AI Quick Entry — true once the user has stored any non-blank key. We only
+     *  expose presence; the raw key never leaks back to the UI. */
+    val hasAiKey: Boolean = false,
+    val aiKeySaveInFlight: Boolean = false,
+    /** Stable string keys so the UI can map them to localized toast strings without
+     *  the ViewModel taking a Context dependency. */
+    val aiKeyStatus: AiKeyStatus = AiKeyStatus.Idle,
 )
+
+/** ViewModel-side enum for the "did the key save" lifecycle. Maps 1:1 to a toast. */
+sealed interface AiKeyStatus {
+    data object Idle : AiKeyStatus
+    data object Saved : AiKeyStatus
+    data object Cleared : AiKeyStatus
+    data class Invalid(val message: String) : AiKeyStatus
+    data class NetworkError(val message: String) : AiKeyStatus
+}
 
 /** Account names the bank-statement importer creates. Wipe-imports keys off these. */
 private val IMPORTED_ACCOUNT_NAMES = setOf("Federal Bank (Jupiter)", "ICICI Bank")
@@ -52,6 +70,7 @@ private const val IMPORTED_NOTES_PREFIX = "Imported from "
 class SettingsViewModel(
     private val settingsPreferences: SettingsPreferences,
     private val database: AppDatabase,
+    private val aiParser: AiQuickEntryParser,
 ) : ViewModel() {
 
     private val firstResetDialog = MutableStateFlow(false)
@@ -59,6 +78,8 @@ class SettingsViewModel(
     private val wipeImportConfirm = MutableStateFlow(false)
     private val importingBundled = MutableStateFlow(false)
     private val pendingExport = MutableStateFlow<File?>(null)
+    private val aiSaveInFlight = MutableStateFlow(false)
+    private val aiKeyStatus = MutableStateFlow<AiKeyStatus>(AiKeyStatus.Idle)
 
     private val dashboardPrefs = combine(
         settingsPreferences.dashboardShowMonthly,
@@ -82,13 +103,21 @@ class SettingsViewModel(
         bag.copy(security = security)
     }
 
+    // Fold AI flags into a single secondary source so the primary combine stays
+    // inside the 5-arg arity cap.
+    private val aiBag = combine(
+        settingsPreferences.geminiApiKey,
+        aiSaveInFlight,
+        aiKeyStatus,
+    ) { key, inFlight, status -> AiBag(hasKey = key.isNotBlank(), inFlight = inFlight, status = status) }
+
     val state: StateFlow<SettingsUiState> = combine(
         settingsPreferences.userName,
         settingsPreferences.themeMode,
         settingsPreferences.useDynamicColor,
         settingsPreferences.spouseTransactionDefault,
-        dialogFlags,
-    ) { name, theme, dynamic, spouse, bag ->
+        combine(dialogFlags, aiBag) { bag, ai -> bag to ai },
+    ) { name, theme, dynamic, spouse, (bag, ai) ->
         SettingsUiState(
             userName = name,
             themeMode = theme,
@@ -105,8 +134,13 @@ class SettingsViewModel(
             pendingExportFile = bag.export,
             biometricLockEnabled = bag.security.biometric,
             smsAutoImportEnabled = bag.security.smsImport,
+            hasAiKey = ai.hasKey,
+            aiKeySaveInFlight = ai.inFlight,
+            aiKeyStatus = ai.status,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
+
+    private data class AiBag(val hasKey: Boolean, val inFlight: Boolean, val status: AiKeyStatus)
 
     private data class DashboardVisibility(val monthly: Boolean, val accounts: Boolean, val cards: Boolean, val recent: Boolean)
     private data class SecurityPrefs(val biometric: Boolean, val smsImport: Boolean)
@@ -159,6 +193,48 @@ class SettingsViewModel(
 
     fun onSmsAutoImportChanged(enabled: Boolean) {
         viewModelScope.launch { settingsPreferences.setSmsAutoImportEnabled(enabled) }
+    }
+
+    /**
+     * Persist a new Gemini key only after a live test call succeeds. We never store
+     * an unvalidated key — that's the point of this flow. NetworkError is surfaced
+     * to the user (so they can decide to retry on better signal) but also blocks
+     * the save, since we can't be sure the key is good.
+     */
+    fun saveAiKey(candidate: String) {
+        val trimmed = candidate.trim()
+        if (trimmed.isBlank()) {
+            aiKeyStatus.update { AiKeyStatus.Invalid("Key is empty") }
+            return
+        }
+        if (aiSaveInFlight.value) return
+        viewModelScope.launch {
+            aiSaveInFlight.update { true }
+            aiKeyStatus.update { AiKeyStatus.Idle }
+            when (val result = aiParser.validateKey(trimmed)) {
+                KeyValidationResult.Ok -> {
+                    settingsPreferences.setGeminiApiKey(trimmed)
+                    aiKeyStatus.update { AiKeyStatus.Saved }
+                }
+                is KeyValidationResult.Invalid ->
+                    aiKeyStatus.update { AiKeyStatus.Invalid(result.message) }
+                is KeyValidationResult.NetworkError ->
+                    aiKeyStatus.update { AiKeyStatus.NetworkError(result.message) }
+            }
+            aiSaveInFlight.update { false }
+        }
+    }
+
+    fun clearAiKey() {
+        viewModelScope.launch {
+            settingsPreferences.clearGeminiApiKey()
+            aiKeyStatus.update { AiKeyStatus.Cleared }
+        }
+    }
+
+    /** Call after the UI has surfaced the latest status to the user. */
+    fun acknowledgeAiKeyStatus() {
+        aiKeyStatus.update { AiKeyStatus.Idle }
     }
 
     // ----- export -----
@@ -385,12 +461,13 @@ private inline fun <T> List<T>.toJsonArray(builder: (T) -> JSONObject): JSONArra
 class SettingsViewModelFactory(
     private val settingsPreferences: SettingsPreferences,
     private val database: AppDatabase,
+    private val aiParser: AiQuickEntryParser,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         require(modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
             "Unknown ViewModel class: $modelClass"
         }
-        return SettingsViewModel(settingsPreferences, database) as T
+        return SettingsViewModel(settingsPreferences, database, aiParser) as T
     }
 }

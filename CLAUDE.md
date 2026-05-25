@@ -61,16 +61,12 @@ Phase scope reminder: Splash, Onboarding, Dashboard, Transactions list, Add Tran
 
 ### Phase 3 — Gemini API key
 
-AI Quick Entry uses Google's Generative AI SDK. Drop your key into
-`local.properties` so it never lands in git:
-
-```
-geminiApiKey=AIzaSy...
-```
-
-Then `./gradlew assembleDebug` bakes it into `BuildConfig.GEMINI_API_KEY`.
-Empty key → the parser returns `NoApiKey` and the UI shows a friendly hint
-instead of crashing, so the rest of the app still builds + runs fine.
+AI Quick Entry uses Google's Generative AI SDK. The user pastes their own key
+into **Settings → AI Quick Entry**, which validates the key against Gemini
+before storing it in `SettingsPreferences` (DataStore). No build-time key, no
+`local.properties` hook, no `BuildConfig` baking — keys are per-install and
+revocable from inside the app. Empty key → the parser returns `NoApiKey` and
+the UI nudges the user toward Settings.
 
 ## What NOT to Do
 

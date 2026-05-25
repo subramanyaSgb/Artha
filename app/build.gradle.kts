@@ -7,14 +7,14 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Gemini API key lives in local.properties (never committed) so each dev/install
-// can plug its own key without touching the repo. Falls back to empty string,
-// which the parser stub interprets as "no key configured, show a friendly hint."
+// Gemini API key is no longer baked into the APK — the user pastes their own key
+// in Settings → AI Quick Entry, which validates it against Gemini before storing
+// it in DataStore. No hardcoded fallback, no local.properties dependency.
+@Suppress("unused")
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
-val geminiKey: String = localProps.getProperty("geminiApiKey", "")
 
 android {
     namespace = "com.subramanya.artha"
@@ -34,9 +34,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        // Surface the API key to runtime code via BuildConfig — never logged.
-        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     }
 
     buildTypes {

@@ -82,7 +82,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
     val vm: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(app.settingsPreferences, app.database),
+        factory = SettingsViewModelFactory(app.settingsPreferences, app.database, app.aiQuickEntryParser),
     )
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -163,6 +163,54 @@ fun SettingsScreen(
                     onBiometricChanged = vm::onBiometricLockChanged,
                     onSmsImportChanged = vm::onSmsAutoImportChanged,
                 )
+
+                HorizontalDivider()
+                SectionHeader(stringResource(R.string.settings_section_ai))
+                var showKeyDialog by remember { mutableStateOf(false) }
+                AiQuickEntrySection(
+                    hasKey = state.hasAiKey,
+                    inFlight = state.aiKeySaveInFlight,
+                    onAddOrChange = { showKeyDialog = true },
+                    onClear = vm::clearAiKey,
+                )
+                if (showKeyDialog) {
+                    AiKeyDialog(
+                        inFlight = state.aiKeySaveInFlight,
+                        onConfirm = { vm.saveAiKey(it) },
+                        onDismiss = { showKeyDialog = false },
+                    )
+                }
+                // Toast + auto-dismiss dialog when the save flow lands a verdict.
+                LaunchedEffect(state.aiKeyStatus) {
+                    when (val status = state.aiKeyStatus) {
+                        AiKeyStatus.Idle -> Unit
+                        AiKeyStatus.Saved -> {
+                            Toast.makeText(context, R.string.settings_ai_key_saved, Toast.LENGTH_SHORT).show()
+                            showKeyDialog = false
+                            vm.acknowledgeAiKeyStatus()
+                        }
+                        AiKeyStatus.Cleared -> {
+                            Toast.makeText(context, R.string.settings_ai_key_cleared, Toast.LENGTH_SHORT).show()
+                            vm.acknowledgeAiKeyStatus()
+                        }
+                        is AiKeyStatus.Invalid -> {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.settings_ai_key_invalid_fmt, status.message),
+                                Toast.LENGTH_LONG,
+                            ).show()
+                            vm.acknowledgeAiKeyStatus()
+                        }
+                        is AiKeyStatus.NetworkError -> {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.settings_ai_key_network_fmt, status.message),
+                                Toast.LENGTH_LONG,
+                            ).show()
+                            vm.acknowledgeAiKeyStatus()
+                        }
+                    }
+                }
 
                 HorizontalDivider()
                 SectionHeader(stringResource(R.string.settings_section_data))
@@ -445,6 +493,125 @@ private fun DataSection(onExport: () -> Unit, onEncryptedExport: () -> Unit, onR
             trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger) },
         )
     }
+}
+
+/**
+ * AI Quick Entry section — shows current key state, lets the user paste a new key,
+ * and revokes the stored key. The actual save call validates the key with Gemini
+ * first; toasts surface in the host via LaunchedEffect on aiKeyStatus.
+ */
+@Composable
+private fun AiQuickEntrySection(
+    hasKey: Boolean,
+    inFlight: Boolean,
+    onAddOrChange: () -> Unit,
+    onClear: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        ListItem(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !inFlight, onClick = onAddOrChange),
+            headlineContent = {
+                Text(
+                    if (hasKey) stringResource(R.string.settings_ai_key_change)
+                    else stringResource(R.string.settings_ai_key_add),
+                )
+            },
+            supportingContent = {
+                Text(
+                    if (hasKey) stringResource(R.string.settings_ai_key_present_subtitle)
+                    else stringResource(R.string.settings_ai_key_absent_subtitle),
+                )
+            },
+            trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
+        )
+        if (hasKey) {
+            ListItem(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = !inFlight, onClick = onClear),
+                headlineContent = {
+                    Text(
+                        text = stringResource(R.string.settings_ai_key_clear),
+                        color = com.subramanya.artha.ui.theme.Danger,
+                    )
+                },
+                supportingContent = { Text(stringResource(R.string.settings_ai_key_clear_subtitle)) },
+            )
+        }
+    }
+}
+
+/**
+ * Plain AlertDialog with a password-style text field for the API key. Save is
+ * disabled while blank or while the validate call is in flight. The save callback
+ * triggers validation in the VM; the dialog stays open until [aiKeyStatus] flips
+ * to Saved (the host hides it from there).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AiKeyDialog(
+    inFlight: Boolean,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var key by remember { mutableStateOf("") }
+    var reveal by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = { if (!inFlight) onDismiss() },
+        title = { Text(stringResource(R.string.settings_ai_key_dialog_title)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.settings_ai_key_dialog_body),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = key,
+                    onValueChange = { key = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.settings_ai_key_dialog_field)) },
+                    placeholder = { Text("AIza…") },
+                    visualTransformation = if (reveal) {
+                        androidx.compose.ui.text.input.VisualTransformation.None
+                    } else {
+                        androidx.compose.ui.text.input.PasswordVisualTransformation()
+                    },
+                    trailingIcon = {
+                        TextButton(onClick = { reveal = !reveal }) {
+                            Text(
+                                if (reveal) stringResource(R.string.settings_ai_key_dialog_hide)
+                                else stringResource(R.string.settings_ai_key_dialog_show),
+                            )
+                        }
+                    },
+                    enabled = !inFlight,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (inFlight) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.settings_ai_key_dialog_validating),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Text3,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(key) },
+                enabled = !inFlight && key.isNotBlank(),
+            ) { Text(stringResource(R.string.settings_ai_key_dialog_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !inFlight) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        },
+    )
 }
 
 @Composable

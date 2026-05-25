@@ -19,6 +19,7 @@ import com.subramanya.artha.data.repository.SubscriptionRepository
 import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.data.repository.TransactionRuleRepository
+import kotlinx.coroutines.flow.first
 
 /**
  * No DI framework in Phase 1. Repositories are lazy-built singletons attached to the
@@ -73,10 +74,10 @@ class ArthaApplication : Application() {
         RecurringRuleRepository(database.recurringRuleDao())
     }
 
-    /** Backed by [GeminiQuickEntryParser] reading BuildConfig.GEMINI_API_KEY.
-     *  An empty key triggers the parser's NoApiKey short-circuit so the UI shows a
-     *  hint instead of crashing. */
+    /** Backed by [GeminiQuickEntryParser] reading the user's stored key from
+     *  [SettingsPreferences]. The lambda runs per-call so a key paste in Settings
+     *  takes effect immediately — no process restart, no hardcoded BuildConfig key. */
     val aiQuickEntryParser: AiQuickEntryParser by lazy {
-        GeminiQuickEntryParser(apiKey = BuildConfig.GEMINI_API_KEY)
+        GeminiQuickEntryParser(keyProvider = { settingsPreferences.geminiApiKey.first() })
     }
 }

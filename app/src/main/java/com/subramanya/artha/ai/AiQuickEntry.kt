@@ -41,6 +41,15 @@ sealed interface AiQuickEntryResult {
     data class Error(val message: String) : AiQuickEntryResult
 }
 
+/** Reason a [AiQuickEntryParser.validateKey] call failed, so the UI can phrase the toast. */
+sealed interface KeyValidationResult {
+    data object Ok : KeyValidationResult
+    /** Key was rejected outright (401/403 / "API key not valid" / similar). */
+    data class Invalid(val message: String) : KeyValidationResult
+    /** Network or transient failure — let the user retry rather than blocking save. */
+    data class NetworkError(val message: String) : KeyValidationResult
+}
+
 /**
  * Backend-agnostic AI parser. Lets the rest of the app stay ignorant of which
  * model is wired up — swapping providers (Gemini → Claude, etc.) is a single
@@ -48,4 +57,8 @@ sealed interface AiQuickEntryResult {
  */
 interface AiQuickEntryParser {
     suspend fun parse(input: AiQuickEntryInput): AiQuickEntryResult
+
+    /** Round-trips [candidate] against the live API so Settings can refuse to save
+     *  a key the provider rejects. Default = "no validator wired" → treated as Ok. */
+    suspend fun validateKey(candidate: String): KeyValidationResult = KeyValidationResult.Ok
 }

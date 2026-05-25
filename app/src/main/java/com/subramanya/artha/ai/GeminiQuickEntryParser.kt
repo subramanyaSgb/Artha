@@ -11,27 +11,22 @@ import org.json.JSONObject
 /**
  * Gemini-backed implementation of [AiQuickEntryParser].
  *
- * Wire your key into `local.properties` as:
- *   geminiApiKey=AIzaSy...
- *
- * Then `./gradlew assembleDebug` bakes it into BuildConfig and this class
- * becomes live. With an empty key the wrapper short-circuits to
- * [AiQuickEntryResult.NoApiKey] — UI shows a hint instead of throwing.
- *
- * Prompt asks Gemini to return strict JSON with a fixed schema; we then
- * tag every field's confidence based on whether the model produced it.
+ * The API key comes from a [keyProvider] (a suspend lambda that reads the user's
+ * stored preference) so the user can paste/rotate the key in Settings without
+ * restarting the app. An empty key short-circuits to [AiQuickEntryResult.NoApiKey]
+ * so the UI shows a friendly hint instead of crashing.
  */
 class GeminiQuickEntryParser(
-    private val apiKey: String,
+    private val keyProvider: suspend () -> String,
     private val modelName: String = "gemini-1.5-flash-latest",
 ) : AiQuickEntryParser {
 
-    private val model: GenerativeModel? = apiKey.takeIf { it.isNotBlank() }?.let {
-        GenerativeModel(modelName = modelName, apiKey = it)
-    }
+    /** Build a model on demand — keeps the parser stateless w.r.t. the live key. */
+    private fun modelFor(key: String): GenerativeModel? =
+        key.takeIf { it.isNotBlank() }?.let { GenerativeModel(modelName = modelName, apiKey = it) }
 
     override suspend fun parse(input: AiQuickEntryInput): AiQuickEntryResult {
-        val gen = model ?: return AiQuickEntryResult.NoApiKey
+        val gen = modelFor(keyProvider()) ?: return AiQuickEntryResult.NoApiKey
         return runCatching {
             val prompt = buildPrompt(input.text)
             val payload: Content = if (input.photo != null) {
@@ -47,6 +42,25 @@ class GeminiQuickEntryParser(
             val json = extractJsonObject(raw) ?: throw IllegalStateException("Model didn't return JSON")
             AiQuickEntryResult.Success(decode(json, raw))
         }.getOrElse { AiQuickEntryResult.Error(it.message ?: "Gemini call failed") }
+    }
+
+    /**
+     * Round-trips a tiny prompt against the Gemini endpoint so Settings can confirm
+     * the key works before persisting it. Anything the SDK throws containing "API key"
+     * is treated as an outright rejection — everything else as a recoverable network
+     * blip so the user isn't blocked from saving in an unstable cell-data window.
+     */
+    override suspend fun validateKey(candidate: String): KeyValidationResult {
+        val gen = modelFor(candidate) ?: return KeyValidationResult.Invalid("Key is empty")
+        return runCatching {
+            gen.generateContent(content { text("Reply with just: ok") })
+            KeyValidationResult.Ok
+        }.getOrElse { err ->
+            val msg = err.message.orEmpty()
+            val looksLikeAuth = listOf("API key", "API_KEY", "401", "403", "invalid", "INVALID_ARGUMENT", "PERMISSION_DENIED")
+                .any { it in msg }
+            if (looksLikeAuth) KeyValidationResult.Invalid(msg) else KeyValidationResult.NetworkError(msg)
+        }
     }
 
     private fun buildPrompt(userText: String): String = """

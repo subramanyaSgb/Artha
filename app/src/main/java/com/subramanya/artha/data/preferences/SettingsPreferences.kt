@@ -94,6 +94,17 @@ class SettingsPreferences(context: Context) {
         dataStore.edit { it[Keys.SMS_AUTO_IMPORT] = value }
     }
 
+    /** User-supplied Gemini API key for AI Quick Entry. Empty = AI disabled.
+     *  Stored only locally (never synced). The Settings flow validates a new key
+     *  against the Gemini endpoint before persisting it — see SettingsViewModel. */
+    val geminiApiKey: Flow<String> = dataStore.data.map { it[Keys.GEMINI_API_KEY].orEmpty() }
+    suspend fun setGeminiApiKey(value: String) {
+        dataStore.edit { it[Keys.GEMINI_API_KEY] = value.trim() }
+    }
+    suspend fun clearGeminiApiKey() {
+        dataStore.edit { it.remove(Keys.GEMINI_API_KEY) }
+    }
+
     suspend fun setUserName(name: String) {
         dataStore.edit { it[Keys.USER_NAME] = name.trim() }
     }
@@ -127,6 +138,7 @@ class SettingsPreferences(context: Context) {
         val BUNDLED_IMPORT_VERSION = intPreferencesKey("bundled_import_version")
         val BIOMETRIC_LOCK = booleanPreferencesKey("biometric_lock_enabled")
         val SMS_AUTO_IMPORT = booleanPreferencesKey("sms_auto_import_enabled")
+        val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
     }
 }
 
