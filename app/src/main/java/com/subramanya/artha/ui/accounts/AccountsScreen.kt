@@ -31,8 +31,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -46,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -113,7 +112,11 @@ fun AccountsScreen(
                         )
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 4.dp),
+                    ) {
                         items(rows, key = { it.account.id }) { row ->
                             if (state.view == AccountsView.ACTIVE) {
                                 ActiveAccountRow(
@@ -202,6 +205,11 @@ private sealed interface FormMode {
 
 // ---------------- rows ----------------
 
+/**
+ * Polished tile for an active account. Replaces the bare Material ListItem with a
+ * Surface2 rounded card so the row reads as deliberate UI rather than a system list.
+ * The Surface owns the click/long-press so the entire tile is the tap target.
+ */
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun ActiveAccountRow(
@@ -218,24 +226,39 @@ private fun ActiveAccountRow(
     onDelete: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    ListItem(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onTap, onLongClick = onLongPress),
-        colors = ListItemDefaults.colors(),
-        leadingContent = { AccountAvatar(color = row.account.color) },
-        headlineContent = { Text(row.account.name, maxLines = 1) },
-        supportingContent = {
-            val subtitle = formatSubtitle(row.account)
-            if (subtitle != null) {
+        color = com.subramanya.artha.ui.theme.Surface2,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.subramanya.artha.ui.theme.Line1),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AccountAvatar(color = row.account.color)
+            androidx.compose.foundation.layout.Spacer(Modifier.size(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = row.account.name,
+                    color = com.subramanya.artha.ui.theme.Text1,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
                 )
+                val subtitle = formatSubtitle(row.account)
+                if (subtitle != null) {
+                    androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = com.subramanya.artha.ui.theme.Text3,
+                        maxLines = 1,
+                    )
+                }
             }
-        },
-        trailingContent = {
+
             if (reorderMode) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onMoveUp, enabled = canMoveUp) {
@@ -252,84 +275,29 @@ private fun ActiveAccountRow(
                     }
                 }
             } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = IndianNumberFormat.format(row.currentBalance),
-                        style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
-                    )
-                    Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = null)
-                        }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.account_detail_action_edit)) },
-                                onClick = { menuOpen = false; onEdit() },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.account_detail_action_archive)) },
-                                onClick = { menuOpen = false; onArchive() },
-                                leadingIcon = { Icon(Icons.Filled.Archive, contentDescription = null) },
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = stringResource(R.string.account_action_delete),
-                                        color = com.subramanya.artha.ui.theme.Danger,
-                                    )
-                                },
-                                onClick = { menuOpen = false; onDelete() },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Filled.Delete,
-                                        contentDescription = null,
-                                        tint = com.subramanya.artha.ui.theme.Danger,
-                                    )
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        },
-    )
-}
-
-@Composable
-private fun ArchivedAccountRow(
-    row: AccountWithBalance,
-    onRestore: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    var menuOpen by remember { mutableStateOf(false) }
-    ListItem(
-        modifier = Modifier.fillMaxWidth(),
-        leadingContent = { AccountAvatar(color = row.account.color) },
-        headlineContent = { Text(row.account.name, maxLines = 1) },
-        supportingContent = {
-            val subtitle = formatSubtitle(row.account)
-            if (subtitle != null) {
                 Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = IndianNumberFormat.format(row.currentBalance),
+                    color = com.subramanya.artha.ui.theme.Text1,
+                    style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
                 )
-            }
-        },
-        trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onRestore) {
-                    Icon(Icons.Filled.Unarchive, contentDescription = null)
-                    Text(
-                        text = stringResource(R.string.accounts_action_restore),
-                        modifier = Modifier.padding(start = 6.dp),
-                    )
-                }
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = null)
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = null,
+                            tint = com.subramanya.artha.ui.theme.Text3,
+                        )
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.account_detail_action_edit)) },
+                            onClick = { menuOpen = false; onEdit() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.account_detail_action_archive)) },
+                            onClick = { menuOpen = false; onArchive() },
+                            leadingIcon = { Icon(Icons.Filled.Archive, contentDescription = null) },
+                        )
                         DropdownMenuItem(
                             text = {
                                 Text(
@@ -349,8 +317,83 @@ private fun ArchivedAccountRow(
                     }
                 }
             }
-        },
-    )
+        }
+    }
+}
+
+@Composable
+private fun ArchivedAccountRow(
+    row: AccountWithBalance,
+    onRestore: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = com.subramanya.artha.ui.theme.Surface2,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.subramanya.artha.ui.theme.Line1),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(modifier = Modifier.alpha(0.7f)) { AccountAvatar(color = row.account.color) }
+            androidx.compose.foundation.layout.Spacer(Modifier.size(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = row.account.name,
+                    color = com.subramanya.artha.ui.theme.Text2,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                )
+                val subtitle = formatSubtitle(row.account)
+                if (subtitle != null) {
+                    androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = com.subramanya.artha.ui.theme.Text3,
+                        maxLines = 1,
+                    )
+                }
+            }
+            TextButton(onClick = onRestore) {
+                Icon(Icons.Filled.Unarchive, contentDescription = null)
+                Text(
+                    text = stringResource(R.string.accounts_action_restore),
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(
+                        Icons.Filled.MoreVert,
+                        contentDescription = null,
+                        tint = com.subramanya.artha.ui.theme.Text3,
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.account_action_delete),
+                                color = com.subramanya.artha.ui.theme.Danger,
+                            )
+                        },
+                        onClick = { menuOpen = false; onDelete() },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = null,
+                                tint = com.subramanya.artha.ui.theme.Danger,
+                            )
+                        },
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
