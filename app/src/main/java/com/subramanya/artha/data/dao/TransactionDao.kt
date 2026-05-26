@@ -43,6 +43,16 @@ interface TransactionDao {
     @Query("SELECT tag_id FROM transaction_tags WHERE transaction_id = :transactionId")
     suspend fun getTagIds(transactionId: String): List<String>
 
+    /** Whole-table snapshots used by Repository.observeAll/observeBetween to hydrate
+     *  peopleIds + tagIds onto domain Transactions in a single round-trip. Without
+     *  these, list flows return Transactions with peopleIds = [] and downstream
+     *  consumers (PeopleScreen, future reports) silently see zero links. */
+    @Query("SELECT * FROM transaction_people")
+    fun observeAllPeopleLinks(): Flow<List<TransactionPersonCrossRef>>
+
+    @Query("SELECT * FROM transaction_tags")
+    fun observeAllTagLinks(): Flow<List<TransactionTagCrossRef>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: TransactionEntity)
 
