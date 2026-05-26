@@ -857,6 +857,14 @@
     <string name="people_delete_confirm_title">Delete this person?</string>
     <string name="people_delete_confirm_body">Removes the person record. Past transactions tagged with them keep the (now-orphaned) tag.</string>
     <string name="people_delete_confirm_yes">Delete</string>
+    <string name="people_action_edit">Edit</string>
+
+    <!-- Person detail -->
+    <string name="person_detail_hero_net">Net balance</string>
+    <string name="person_detail_hero_they_owe">They owe you</string>
+    <string name="person_detail_hero_you_owe">You owe them</string>
+    <string name="person_detail_txns_title">Transactions</string>
+    <string name="person_detail_txns_empty">No transactions tagged with this person yet.</string>
 
     <!-- Phase 4: Budgets -->
     <string name="budgets_title">Budgets</string>

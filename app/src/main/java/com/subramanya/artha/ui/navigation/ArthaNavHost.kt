@@ -86,6 +86,11 @@ object SubRoutes {
     const val INSURANCE_DETAIL_ARG_ID = "insuranceId"
     const val INSURANCE_DETAIL_PATTERN = "$INSURANCE_DETAIL_BASE/{$INSURANCE_DETAIL_ARG_ID}"
     fun insuranceDetail(id: String): String = "$INSURANCE_DETAIL_BASE/$id"
+
+    private const val PERSON_DETAIL_BASE = "person_detail"
+    const val PERSON_DETAIL_ARG_ID = "personId"
+    const val PERSON_DETAIL_PATTERN = "$PERSON_DETAIL_BASE/{$PERSON_DETAIL_ARG_ID}"
+    fun personDetail(id: String): String = "$PERSON_DETAIL_BASE/$id"
 }
 
 private const val NAV_ANIM_MS: Int = 220
@@ -248,7 +253,21 @@ fun ArthaNavHost(
             RulesScreen(onBack = { navController.popBackStack() })
         }
         composable(SubRoutes.PEOPLE) {
-            PeopleScreen(onBack = { navController.popBackStack() })
+            PeopleScreen(
+                onBack = { navController.popBackStack() },
+                onOpenPerson = { id -> navController.navigate(SubRoutes.personDetail(id)) },
+            )
+        }
+        composable(
+            route = SubRoutes.PERSON_DETAIL_PATTERN,
+            arguments = listOf(navArgument(SubRoutes.PERSON_DETAIL_ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(SubRoutes.PERSON_DETAIL_ARG_ID).orEmpty()
+            com.subramanya.artha.ui.people.PersonDetailScreen(
+                personId = id,
+                onBack = { navController.popBackStack() },
+                onOpenTransaction = { txnId -> navController.navigate(SubRoutes.transactionDetail(txnId)) },
+            )
         }
         composable(SubRoutes.BUDGETS) {
             BudgetsScreen(onBack = { navController.popBackStack() })

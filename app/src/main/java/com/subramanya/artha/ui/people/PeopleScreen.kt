@@ -90,6 +90,7 @@ import java.util.UUID
 @Composable
 fun PeopleScreen(
     onBack: () -> Unit,
+    onOpenPerson: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -142,7 +143,9 @@ fun PeopleScreen(
                         PersonRow(
                             person = person,
                             netBalance = net,
-                            onEdit = { formMode = PersonFormMode.Edit(person) },
+                            // Tap opens the per-person detail (transactions + figures);
+                            // edit lives in the detail's top bar like AccountDetail.
+                            onTap = { onOpenPerson(person.id) },
                             onDelete = { pendingDelete = person },
                         )
                     }
@@ -188,7 +191,7 @@ private sealed interface PersonFormMode {
 private fun PersonRow(
     person: Person,
     netBalance: Double,
-    onEdit: () -> Unit,
+    onTap: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val positive = netBalance >= 0.0
@@ -203,7 +206,7 @@ private fun PersonRow(
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, Line1, RoundedCornerShape(16.dp))
-            .clickable(onClick = onEdit),
+            .clickable(onClick = onTap),
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -318,7 +321,7 @@ private fun PersonRelation.label(): String = when (this) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PersonFormSheet(
+internal fun PersonFormSheet(
     editing: Person?,
     onSave: (Person) -> Unit,
     onDismiss: () -> Unit,
