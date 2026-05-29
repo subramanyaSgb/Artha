@@ -116,3 +116,14 @@ docs/Bank statement/__pycache__/
 #   python "docs/Bank statement/import_to_artha.py" --export-json
 # before each APK build that needs it.
 app/src/main/assets/seed/bank_import.json
+
+# Emulator / SDK installers and other large binaries that have no business
+# living in git history. GitHub rejects pushes containing files over 100 MB.
+*.exe
+*.msi
+*.dmg
+*.iso
+*.7z
+*.tar.gz
+*.tgz
+docs/Artha-handoff/artha/project/genymotion-*.exe
