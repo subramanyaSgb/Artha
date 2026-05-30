@@ -127,3 +127,6 @@ app/src/main/assets/seed/bank_import.json
 *.tar.gz
 *.tgz
 docs/Artha-handoff/artha/project/genymotion-*.exe
+
+# Local Claude Code overrides (MCP toggles, hook approvals) — personal, not shared
+.claude/settings.local.json

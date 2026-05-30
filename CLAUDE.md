@@ -6,11 +6,41 @@ Artha is a native Android personal finance app for an Indian user (Subramanya GB
 
 ---
 
+## Project Memory (MANDATORY — read at start, update as we go)
+
+A persistent memory lives at
+`C:\Users\DSI-LPT-081\.claude\projects\c--Users-DSI-LPT-081-Desktop-SubramanyaGB-Test-Projects-Artha\memory\`.
+`MEMORY.md` there is the index (one line per memory).
+
+- **Every session, before planning:** read `memory/MEMORY.md` and open any memory
+  file whose description looks relevant. Treat these as standing context alongside
+  this file and the PRD.
+- **As we work — after each meaningful exchange, not only at session end:** whenever
+  we make a decision, hit a gotcha, agree on a convention, or the user states a
+  preference, write or update the matching memory file *immediately*, then add/refresh
+  its one-line pointer in `MEMORY.md`. One fact per file, kebab-case name, frontmatter
+  with `type: user | feedback | project | reference`. Link related memories with
+  `[[name]]`.
+- **Don't duplicate** what the code, git history, or this CLAUDE.md already records —
+  capture only the non-obvious *why*. Update the existing file instead of creating a
+  near-duplicate; delete a memory that turns out wrong.
+- **Project-wide decisions** (library choice, convention) also get reflected here in
+  CLAUDE.md so they load even without memory recall.
+
+Enforcement: a **Stop hook** (`.claude/hooks/memory-reminder.js`, wired in
+`.claude/settings.json`) fires once at the end of each turn and blocks the stop to ask
+whether memory needs updating — so the check happens automatically, not just from my own
+diligence. It only nudges once per turn (guards on `stop_hook_active`), so trivial turns
+just get a one-line "nothing to record." After editing these hook files, the hook only
+goes live once `/hooks` is opened or Claude Code is restarted (the config watcher.)
+
+---
+
 ## Current Phase
 
-**Phase 1 — MVP Skeleton.** See `docs/phase1_tasks.md` for the session-by-session task list. Do not build features outside Phase 1 scope unless I explicitly ask.
+**Maintenance & extension.** All planned phases are complete — Phases 1–4 done, Phase 5 partial — see **Phase Roadmap (status)** at the bottom for exactly what's built and what's deferred. The app is feature-complete for daily use.
 
-Phase scope reminder: Splash, Onboarding, Dashboard, Transactions list, Add Transaction (Expense/Income/Transfer), Accounts + detail, Cards + detail, Settings, Categories management, More drawer. Pre-seeded categories including Religious & Spiritual sub-tree. Spouse-prompt dialog. Three hardcoded rules. No AI, no investments, no insurance, no budgets/goals/subs/recurring, no SMS parsing, no cloud.
+Work from the goal I state at session start; don't start speculative features. When I ask for something, first check whether it's already a deferred item (SMS parsing, recurring auto-fire via WorkManager, crash reporting, cloud sync) versus genuinely new. `docs/phase1_tasks.md` is retained as historical reference for the original MVP build.
 
 ---
 
@@ -99,8 +129,12 @@ the UI nudges the user toward Settings.
 
 - **Phase 1 done** — MVP skeleton, manual entry, bundled bank import, polish pass.
 - **Phase 2 done** — Investments + Insurance + Rules Engine UI + endowment-investment linkage.
-- **Phase 3 done** — AI Quick Entry sheet (text/voice/photo) wired to Gemini via
-  BuildConfig.GEMINI_API_KEY. Empty key short-circuits to a friendly hint.
+- **Phase 3 done** — AI Quick Entry sheet (text/voice/photo) wired to Gemini. The API
+  key is per-install BYOK: the user pastes it in **Settings → AI Quick Entry**, it's
+  validated against Gemini, then stored in `SettingsPreferences` (DataStore) and read
+  on-demand by `GeminiQuickEntryParser`. No `BuildConfig`/`local.properties` key.
+  Empty key short-circuits to a friendly `NoApiKey` hint. (See the "Phase 3 — Gemini
+  API key" section above.)
 - **Phase 4 done** — Budgets + Goals + Subscriptions + Recurring + People.
 - **Phase 5 partial** — Biometric/device-credential lock, Reports/Analytics, AES-GCM
   encrypted backup. **Deferred:** SMS parsing receiver, recurring-rule auto-fire via
