@@ -130,3 +130,6 @@ docs/Artha-handoff/artha/project/genymotion-*.exe
 
 # Local Claude Code overrides (MCP toggles, hook approvals) — personal, not shared
 .claude/settings.local.json
+
+# Git worktrees for isolated feature work (see CLAUDE.md "Worktrees")
+.worktrees/

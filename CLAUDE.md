@@ -89,6 +89,12 @@ Work from the goal I state at session start; don't start speculative features. W
 - Lint: `./gradlew lint`
 - Format: configure ktlint / Spotless in Session 1
 
+### Worktrees
+
+Worktree directory convention: create feature worktrees under `.worktrees/`
+(project-local, gitignored). `local.properties` (the SDK path) is gitignored and is
+**not** copied into a new worktree, so copy it in or Gradle can't find the Android SDK.
+
 ### Phase 3 — Gemini API key
 
 AI Quick Entry uses Google's Generative AI SDK. The user pastes their own key
