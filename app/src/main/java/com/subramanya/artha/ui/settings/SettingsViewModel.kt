@@ -4,8 +4,11 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.subramanya.artha.ai.AiQuickEntryParser
 import com.subramanya.artha.ai.KeyValidationResult
+import com.subramanya.artha.data.backup.BackupCodec
+import com.subramanya.artha.data.backup.BackupRepository
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.seed.SeedCategories
 import com.subramanya.artha.data.importing.BankImporter
@@ -14,7 +17,6 @@ import com.subramanya.artha.data.preferences.SpouseTransactionDefault
 import com.subramanya.artha.data.preferences.ThemeMode
 import com.subramanya.artha.security.BackupCrypto
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,8 +26,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 
 data class SettingsUiState(
@@ -52,7 +52,24 @@ data class SettingsUiState(
     /** Stable string keys so the UI can map them to localized toast strings without
      *  the ViewModel taking a Context dependency. */
     val aiKeyStatus: AiKeyStatus = AiKeyStatus.Idle,
+    /** True while a restore is wiping + reinserting; blocks re-triggering. */
+    val isRestoring: Boolean = false,
+    /** Outcome of the last restore, surfaced once then acknowledged. */
+    val restoreResult: RestoreResult = RestoreResult.Idle,
+    /** Set when the user picked an encrypted `.artha` file — the UI shows a password
+     *  prompt and passes the password + this uri back to [SettingsViewModel.importDataEncrypted]. */
+    val pendingEncryptedRestoreUri: Uri? = null,
 )
+
+/** Lifecycle of a restore-from-backup attempt. Maps 1:1 to a toast in the UI. */
+sealed interface RestoreResult {
+    data object Idle : RestoreResult
+    data object Success : RestoreResult
+    /** Wrong password / not an Artha encrypted backup. */
+    data object WrongPassword : RestoreResult
+    /** File couldn't be read or parsed. The DB was NOT touched (parse precedes wipe). */
+    data object InvalidFile : RestoreResult
+}
 
 /** ViewModel-side enum for the "did the key save" lifecycle. Maps 1:1 to a toast. */
 sealed interface AiKeyStatus {
@@ -80,6 +97,11 @@ class SettingsViewModel(
     private val pendingExport = MutableStateFlow<File?>(null)
     private val aiSaveInFlight = MutableStateFlow(false)
     private val aiKeyStatus = MutableStateFlow<AiKeyStatus>(AiKeyStatus.Idle)
+    private val restoring = MutableStateFlow(false)
+    private val restoreResult = MutableStateFlow<RestoreResult>(RestoreResult.Idle)
+    private val pendingEncryptedRestoreUri = MutableStateFlow<Uri?>(null)
+
+    private val backupRepository = BackupRepository(database)
 
     private val dashboardPrefs = combine(
         settingsPreferences.dashboardShowMonthly,
@@ -103,13 +125,29 @@ class SettingsViewModel(
         bag.copy(security = security)
     }
 
-    // Fold AI flags into a single secondary source so the primary combine stays
-    // inside the 5-arg arity cap.
+    // The restore sub-state (result + pending-password uri) folded into one flow so the
+    // aiBag combine below stays inside the 5-arg arity cap.
+    private val restoreBag = combine(
+        restoring,
+        restoreResult,
+        pendingEncryptedRestoreUri,
+    ) { isRestoring, result, pendingUri -> RestoreBag(isRestoring, result, pendingUri) }
+
+    // Fold AI + restore flags into a single secondary source so the primary combine
+    // stays inside the 5-arg arity cap.
     private val aiBag = combine(
         settingsPreferences.geminiApiKey,
         aiSaveInFlight,
         aiKeyStatus,
-    ) { key, inFlight, status -> AiBag(hasKey = key.isNotBlank(), inFlight = inFlight, status = status) }
+        restoreBag,
+    ) { key, inFlight, status, restore ->
+        AiBag(
+            hasKey = key.isNotBlank(),
+            inFlight = inFlight,
+            status = status,
+            restore = restore,
+        )
+    }
 
     val state: StateFlow<SettingsUiState> = combine(
         settingsPreferences.userName,
@@ -137,10 +175,24 @@ class SettingsViewModel(
             hasAiKey = ai.hasKey,
             aiKeySaveInFlight = ai.inFlight,
             aiKeyStatus = ai.status,
+            isRestoring = ai.restore.isRestoring,
+            restoreResult = ai.restore.result,
+            pendingEncryptedRestoreUri = ai.restore.pendingEncryptedUri,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
-    private data class AiBag(val hasKey: Boolean, val inFlight: Boolean, val status: AiKeyStatus)
+    private data class RestoreBag(
+        val isRestoring: Boolean,
+        val result: RestoreResult,
+        val pendingEncryptedUri: Uri?,
+    )
+
+    private data class AiBag(
+        val hasKey: Boolean,
+        val inFlight: Boolean,
+        val status: AiKeyStatus,
+        val restore: RestoreBag,
+    )
 
     private data class DashboardVisibility(val monthly: Boolean, val accounts: Boolean, val cards: Boolean, val recent: Boolean)
     private data class SecurityPrefs(val biometric: Boolean, val smsImport: Boolean)
@@ -240,78 +292,19 @@ class SettingsViewModel(
     // ----- export -----
 
     /**
-     * Builds a JSON snapshot of every Room table and writes it to `context.cacheDir`.
-     * The on-screen state flips to `pendingExportFile = <file>`, which the host can use
-     * to launch an ACTION_SEND chooser. We use the cache dir + `FileProvider` later via
-     * the host; for Phase 1 the simpler path of saving to externalCacheDir + Intent.EXTRA_STREAM
-     * is enough since most chooser targets (Drive / email / Gmail) accept file:// from
-     * external cache without FileProvider plumbing on modern Android share intents.
+     * Writes a COMPLETE JSON snapshot of every Room table to `context.cacheDir` and flips
+     * state to `pendingExportFile`, which the host turns into an ACTION_SEND chooser.
+     *
+     * Snapshot + serialization go through [BackupRepository.snapshot] + [BackupCodec.encode]
+     * — the SAME path the encrypted export uses, so the two can never drift (that drift was
+     * the D3 audit bug). Every table incl. cross-refs is covered.
      */
     fun exportData(context: Context) {
         viewModelScope.launch {
             val file = withContext(Dispatchers.IO) {
-                val root = JSONObject()
-                root.put("exported_at", System.currentTimeMillis())
-                root.put("accounts", database.accountDao().observeAll().firstSnapshot().toJsonArray { acct ->
-                    JSONObject().apply {
-                        put("id", acct.id); put("name", acct.name); put("type", acct.type.name)
-                        put("institution", acct.institution); put("last4", acct.accountNumberLast4)
-                        put("opening_balance", acct.openingBalance); put("currency", acct.currency)
-                        put("icon", acct.icon); put("color", acct.color)
-                        put("is_archived", acct.isArchived); put("display_order", acct.displayOrder)
-                        put("created_at", acct.createdAt)
-                    }
-                })
-                root.put("cards", database.cardDao().observeAll().firstSnapshot().toJsonArray { card ->
-                    JSONObject().apply {
-                        put("id", card.id); put("name", card.name); put("type", card.type.name)
-                        put("issuer", card.issuer); put("network", card.network.name)
-                        put("last4", card.cardNumberLast4); put("credit_limit", card.creditLimit)
-                        put("statement_day", card.statementDayOfMonth); put("due_day", card.dueDayOfMonth)
-                        put("linked_account_id", card.linkedAccountId)
-                        put("icon", card.icon); put("color", card.color)
-                        put("is_archived", card.isArchived); put("display_order", card.displayOrder)
-                        put("created_at", card.createdAt)
-                    }
-                })
-                root.put("categories", database.categoryDao().observeAll().firstSnapshot().toJsonArray { cat ->
-                    JSONObject().apply {
-                        put("id", cat.id); put("name", cat.name); put("parent_id", cat.parentId)
-                        put("type", cat.type.name); put("icon", cat.icon); put("color", cat.color)
-                        put("is_system", cat.isSystem); put("display_order", cat.displayOrder)
-                    }
-                })
-                root.put("people", database.personDao().observeAll().firstSnapshot().toJsonArray { p ->
-                    JSONObject().apply {
-                        put("id", p.id); put("name", p.name); put("relation", p.relation.name)
-                        put("contact", p.contact); put("avatar_uri", p.avatarUri)
-                        put("created_at", p.createdAt)
-                    }
-                })
-                root.put("tags", database.tagDao().observeAll().firstSnapshot().toJsonArray { t ->
-                    JSONObject().apply { put("id", t.id); put("name", t.name); put("color", t.color) }
-                })
-                root.put("transactions", database.transactionDao().observeAll().firstSnapshot().toJsonArray { txn ->
-                    JSONObject().apply {
-                        put("id", txn.id); put("type", txn.type.name); put("amount", txn.amount)
-                        put("currency", txn.currency); put("date", txn.date)
-                        put("description", txn.description)
-                        put("category_id", txn.categoryId); put("sub_category_id", txn.subCategoryId)
-                        put("source_type", txn.sourceType.name); put("source_id", txn.sourceId)
-                        put("destination_type", txn.destinationType?.name); put("destination_id", txn.destinationId)
-                        put("payment_app", txn.paymentApp.name)
-                        put("place", txn.place); put("latitude", txn.latitude); put("longitude", txn.longitude)
-                        put("receipt_uri", txn.receiptUri); put("notes", txn.notes)
-                        put("tax_section", txn.taxSection)
-                        put("recurring_rule_id", txn.recurringRuleId)
-                        put("is_split", txn.isSplit); put("split_group_id", txn.splitGroupId)
-                        put("source", txn.source.name)
-                        put("created_at", txn.createdAt); put("updated_at", txn.updatedAt)
-                    }
-                })
-
+                val json = BackupCodec.encode(backupRepository.snapshot(), System.currentTimeMillis())
                 val out = File(context.cacheDir, "artha_export_${System.currentTimeMillis()}.json")
-                out.writeText(root.toString(2))
+                out.writeText(json)
                 out
             }
             pendingExport.update { file }
@@ -326,36 +319,9 @@ class SettingsViewModel(
     fun exportDataEncrypted(context: Context, password: CharArray) {
         viewModelScope.launch {
             val file = withContext(Dispatchers.IO) {
-                val root = JSONObject()
-                root.put("exported_at", System.currentTimeMillis())
-                root.put("encrypted", true)
-                // Build full JSON (same shape as plain export) then encrypt the whole blob.
-                root.put("accounts", database.accountDao().observeAll().firstSnapshot().toJsonArray { acct ->
-                    JSONObject().apply {
-                        put("id", acct.id); put("name", acct.name); put("type", acct.type.name)
-                        put("institution", acct.institution); put("last4", acct.accountNumberLast4)
-                        put("opening_balance", acct.openingBalance); put("currency", acct.currency)
-                        put("icon", acct.icon); put("color", acct.color)
-                        put("is_archived", acct.isArchived); put("display_order", acct.displayOrder)
-                        put("created_at", acct.createdAt)
-                    }
-                })
-                root.put("transactions", database.transactionDao().observeAll().firstSnapshot().toJsonArray { txn ->
-                    JSONObject().apply {
-                        put("id", txn.id); put("type", txn.type.name); put("amount", txn.amount)
-                        put("currency", txn.currency); put("date", txn.date)
-                        put("description", txn.description)
-                        put("category_id", txn.categoryId); put("sub_category_id", txn.subCategoryId)
-                        put("source_type", txn.sourceType.name); put("source_id", txn.sourceId)
-                        put("destination_type", txn.destinationType?.name); put("destination_id", txn.destinationId)
-                        put("payment_app", txn.paymentApp.name)
-                        put("notes", txn.notes); put("tax_section", txn.taxSection)
-                        put("created_at", txn.createdAt); put("updated_at", txn.updatedAt)
-                    }
-                })
-                val plain = root.toString()
-                val cipherText = BackupCrypto.encrypt(plain, password)
-                password.fill(' ') // wipe in-memory copy
+                val json = BackupCodec.encode(backupRepository.snapshot(), System.currentTimeMillis())
+                val cipherText = BackupCrypto.encrypt(json, password)
+                password.fill(' ') // wipe in-memory copy
                 val out = File(context.cacheDir, "artha_backup_${System.currentTimeMillis()}.artha")
                 out.writeText(cipherText)
                 out
@@ -367,6 +333,97 @@ class SettingsViewModel(
     fun acknowledgeExport() {
         pendingExport.update { null }
     }
+
+    // ----- restore (import) -----
+
+    /**
+     * Restores from a plain `.json` backup at [uri], REPLACING all current data. The file
+     * is read and fully decoded BEFORE any wipe; [BackupRepository.restore] then does the
+     * wipe + reinsert in a single Room transaction, so a corrupt file reports an error and
+     * leaves existing data untouched. Outcome lands on [SettingsUiState.restoreResult].
+     */
+    fun importData(context: Context, uri: Uri) {
+        if (restoring.value) return
+        viewModelScope.launch {
+            restoring.update { true }
+            val outcome = withContext(Dispatchers.IO) {
+                runCatching {
+                    val raw = readText(context, uri)
+                    backupRepository.restore(BackupCodec.decode(raw))
+                }
+            }
+            restoring.update { false }
+            restoreResult.update {
+                if (outcome.isSuccess) RestoreResult.Success else RestoreResult.InvalidFile
+            }
+        }
+    }
+
+    /**
+     * Routes a just-picked backup file: peeks the first line to tell an encrypted `.artha`
+     * (magic-prefixed) from a plain `.json`. Encrypted -> stash the uri and let the UI prompt
+     * for a password; plain -> restore immediately. Keeps the file-format sniff out of the UI.
+     */
+    fun prepareRestore(context: Context, uri: Uri) {
+        if (restoring.value) return
+        viewModelScope.launch {
+            val encrypted = withContext(Dispatchers.IO) {
+                runCatching { BackupCrypto.isEncrypted(readText(context, uri)) }.getOrDefault(false)
+            }
+            if (encrypted) {
+                pendingEncryptedRestoreUri.update { uri }
+            } else {
+                importData(context, uri)
+            }
+        }
+    }
+
+    /** User dismissed the encrypted-backup password prompt without restoring. */
+    fun cancelEncryptedRestore() {
+        pendingEncryptedRestoreUri.update { null }
+    }
+
+    /**
+     * Restores from an encrypted `.artha` backup at [uri] using [password]: decrypt ->
+     * decode -> restore. A wrong password (AES-GCM tag mismatch) or a non-Artha file reports
+     * [RestoreResult.WrongPassword] WITHOUT touching the database; a decrypted-but-corrupt
+     * payload reports [RestoreResult.InvalidFile]. The CharArray is wiped after use.
+     */
+    fun importDataEncrypted(context: Context, uri: Uri, password: CharArray) {
+        if (restoring.value) return
+        viewModelScope.launch {
+            pendingEncryptedRestoreUri.update { null }
+            restoring.update { true }
+            val outcome = withContext(Dispatchers.IO) {
+                val raw = runCatching { readText(context, uri) }.getOrNull()
+                if (raw == null) {
+                    password.fill(' ')
+                    return@withContext RestoreResult.InvalidFile
+                }
+                val decrypted = BackupCrypto.decrypt(raw, password)
+                password.fill(' ')
+                if (decrypted.isFailure) {
+                    return@withContext RestoreResult.WrongPassword
+                }
+                runCatching {
+                    backupRepository.restore(BackupCodec.decode(decrypted.getOrThrow()))
+                }.fold(
+                    onSuccess = { RestoreResult.Success },
+                    onFailure = { RestoreResult.InvalidFile },
+                )
+            }
+            restoring.update { false }
+            restoreResult.update { outcome }
+        }
+    }
+
+    fun acknowledgeRestore() {
+        restoreResult.update { RestoreResult.Idle }
+    }
+
+    private fun readText(context: Context, uri: Uri): String =
+        context.contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+            ?: throw IllegalStateException("Could not open backup file")
 
     // ----- reset -----
 
@@ -447,15 +504,6 @@ class SettingsViewModel(
             onDone(txnCount, acctCount)
         }
     }
-}
-
-/** Pulls a one-shot snapshot from a Flow for the export. */
-private suspend fun <T> Flow<T>.firstSnapshot(): T = first()
-
-private inline fun <T> List<T>.toJsonArray(builder: (T) -> JSONObject): JSONArray {
-    val arr = JSONArray()
-    for (item in this) arr.put(builder(item))
-    return arr
 }
 
 class SettingsViewModelFactory(

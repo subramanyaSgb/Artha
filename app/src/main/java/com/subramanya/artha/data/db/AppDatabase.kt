@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.subramanya.artha.data.dao.AccountDao
+import com.subramanya.artha.data.dao.BackupDao
 import com.subramanya.artha.data.dao.BudgetDao
 import com.subramanya.artha.data.dao.CardDao
 import com.subramanya.artha.data.dao.CategoryDao
@@ -72,6 +73,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun goalDao(): GoalDao
     abstract fun subscriptionDao(): SubscriptionDao
     abstract fun recurringRuleDao(): RecurringRuleDao
+    abstract fun backupDao(): BackupDao
 
     companion object {
         const val DB_NAME = "artha.db"
