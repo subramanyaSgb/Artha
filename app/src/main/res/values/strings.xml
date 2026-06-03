@@ -249,6 +249,7 @@
     <string name="transactions_sort_amount_desc">Amount — largest first</string>
     <string name="transactions_sort_amount_asc">Amount — smallest first</string>
     <string name="transactions_empty">No transactions match these filters</string>
+    <string name="ledger_add_transaction">Add transaction</string>
     <string name="transactions_select_count">%1$d selected</string>
     <string name="transactions_select_delete">Delete</string>
     <string name="transactions_select_clear">Clear selection</string>
