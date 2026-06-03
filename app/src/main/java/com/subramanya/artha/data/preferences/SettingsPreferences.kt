@@ -113,6 +113,41 @@ class SettingsPreferences(context: Context) {
         dataStore.edit { it.remove(Keys.GEMINI_API_KEY) }
     }
 
+    // ----- Configurable cosmetic pick-lists (Phase 1: colours + icons; no schema change since
+    //        category/tag rows already store color:Long and icon:String). Stored as a delimited
+    //        string of the user's ADDED entries; the form merges them after the built-in set. -----
+
+    /** Extra colour swatches the user added, in pick order. */
+    val customColours: Flow<List<Long>> = dataStore.data.map { prefs ->
+        prefs[Keys.CUSTOM_COLOURS]?.split(',')?.mapNotNull { it.toLongOrNull() }.orEmpty()
+    }
+
+    suspend fun addCustomColour(color: Long) {
+        dataStore.edit { prefs ->
+            val current = prefs[Keys.CUSTOM_COLOURS]?.split(',')?.mapNotNull { it.toLongOrNull() }.orEmpty()
+            if (color !in current) prefs[Keys.CUSTOM_COLOURS] = (current + color).joinToString(",")
+        }
+    }
+
+    suspend fun removeCustomColour(color: Long) {
+        dataStore.edit { prefs ->
+            val current = prefs[Keys.CUSTOM_COLOURS]?.split(',')?.mapNotNull { it.toLongOrNull() }.orEmpty()
+            prefs[Keys.CUSTOM_COLOURS] = (current - color).joinToString(",")
+        }
+    }
+
+    /** Extra icon keys the user added, in pick order. */
+    val customIcons: Flow<List<String>> = dataStore.data.map { prefs ->
+        prefs[Keys.CUSTOM_ICONS]?.split(',')?.filter { it.isNotBlank() }.orEmpty()
+    }
+
+    suspend fun addCustomIcon(key: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[Keys.CUSTOM_ICONS]?.split(',')?.filter { it.isNotBlank() }.orEmpty()
+            if (key !in current) prefs[Keys.CUSTOM_ICONS] = (current + key).joinToString(",")
+        }
+    }
+
     suspend fun setUserName(name: String) {
         dataStore.edit { it[Keys.USER_NAME] = name.trim() }
     }
@@ -148,6 +183,8 @@ class SettingsPreferences(context: Context) {
         val SMS_AUTO_IMPORT = booleanPreferencesKey("sms_auto_import_enabled")
         val AI_QUICK_ENTRY_ENABLED = booleanPreferencesKey("ai_quick_entry_enabled")
         val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
+        val CUSTOM_COLOURS = stringPreferencesKey("custom_colours")
+        val CUSTOM_ICONS = stringPreferencesKey("custom_icons")
     }
 }
 

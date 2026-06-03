@@ -17,6 +17,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -49,6 +51,13 @@ fun TagFormSheet(
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
     var color by remember(editing) { mutableStateOf(editing?.color ?: PALETTE.first()) }
     var showErrors by remember { mutableStateOf(false) }
+
+    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext
+        as com.subramanya.artha.ArthaApplication
+    val pickScope = androidx.compose.runtime.rememberCoroutineScope()
+    val customColours by app.settingsPreferences.customColours
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    var pickingColour by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -86,8 +95,9 @@ fun TagFormSheet(
             FieldRow(label = stringResource(R.string.tag_form_color_label)) {
                 ColorSwatchRow(
                     value = color,
-                    swatches = PALETTE,
+                    swatches = PALETTE + customColours,
                     onChange = { color = it },
+                    onAdd = { pickingColour = true },
                 )
             }
 
@@ -111,7 +121,37 @@ fun TagFormSheet(
             Spacer(Modifier.height(20.dp))
         }
     }
+
+    if (pickingColour) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pickingColour = false },
+            title = { androidx.compose.material3.Text(stringResource(R.string.picklist_add_colour_title)) },
+            text = {
+                ColorSwatchRow(
+                    value = 0L,
+                    swatches = EXTRA_COLOURS.filter { it !in PALETTE && it !in customColours },
+                    onChange = { picked ->
+                        pickScope.launch { app.settingsPreferences.addCustomColour(picked) }
+                        color = picked
+                        pickingColour = false
+                    },
+                )
+            },
+            confirmButton = {},
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pickingColour = false }) {
+                    androidx.compose.material3.Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
 }
+
+private val EXTRA_COLOURS: List<Long> = listOf(
+    0xFF2563EBL, 0xFFDC2626L, 0xFFEA580CL, 0xFFCA8A04L,
+    0xFF16A34AL, 0xFF0891B2L, 0xFF7C3AEDL, 0xFFDB2777L,
+    0xFF4B5563L, 0xFF65A30DL, 0xFF0D9488L, 0xFF9333EAL,
+)
 
 private val PALETTE: List<Long> = listOf(
     0xFF0F766EL, // acc-teal

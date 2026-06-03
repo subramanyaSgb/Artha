@@ -15,6 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -72,6 +74,14 @@ fun CategoryFormSheet(
     var icon by remember(editing) { mutableStateOf(editing?.icon ?: ICONS.first().key) }
     var color by remember(editing) { mutableStateOf(editing?.color ?: PALETTE.first()) }
     var showErrors by remember { mutableStateOf(false) }
+
+    // User-configurable colour palette (Phase 1): built-ins + the user's saved custom swatches.
+    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext
+        as com.subramanya.artha.ArthaApplication
+    val pickScope = androidx.compose.runtime.rememberCoroutineScope()
+    val customColours by app.settingsPreferences.customColours
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    var pickingColour by remember { mutableStateOf(false) }
 
     val isSystem = editing?.isSystem == true
     val isValid = name.isNotBlank()
@@ -153,8 +163,9 @@ fun CategoryFormSheet(
             FieldRow(label = stringResource(R.string.category_form_color_label)) {
                 ColorSwatchRow(
                     value = color,
-                    swatches = PALETTE,
+                    swatches = PALETTE + customColours,
                     onChange = { color = it },
+                    onAdd = { pickingColour = true },
                 )
             }
 
@@ -186,9 +197,40 @@ fun CategoryFormSheet(
             @Suppress("UNUSED_EXPRESSION") Text3
         }
     }
+
+    if (pickingColour) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pickingColour = false },
+            title = { Text(stringResource(R.string.picklist_add_colour_title)) },
+            text = {
+                ColorSwatchRow(
+                    value = 0L,
+                    swatches = EXTRA_COLOURS.filter { it !in PALETTE && it !in customColours },
+                    onChange = { picked ->
+                        pickScope.launch { app.settingsPreferences.addCustomColour(picked) }
+                        color = picked
+                        pickingColour = false
+                    },
+                )
+            },
+            confirmButton = {},
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pickingColour = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
 }
 
 private fun nextDisplayOrder(): Int = (System.currentTimeMillis() / 1000L).toInt()
+
+/** Extra colours offered when the user taps "+" to add a custom swatch. */
+private val EXTRA_COLOURS: List<Long> = listOf(
+    0xFF2563EBL, 0xFFDC2626L, 0xFFEA580CL, 0xFFCA8A04L,
+    0xFF16A34AL, 0xFF0891B2L, 0xFF7C3AEDL, 0xFFDB2777L,
+    0xFF4B5563L, 0xFF65A30DL, 0xFF0D9488L, 0xFF9333EAL,
+)
 
 private val PALETTE: List<Long> = listOf(
     0xFF0F766EL, // acc-teal
