@@ -24,9 +24,14 @@ import com.subramanya.artha.data.entity.enums.ValuationMode
  *
  * For credit cards (outstanding = how much the user owes):
  *   - EXPENSE, LOAN_GIVEN, GIFT_SENT charged TO the card    → outstanding increases
- *   - REFUND, CASHBACK on the card                          → outstanding decreases
+ *   - any "money in" type ON the card (INCOME, REFUND,
+ *     CASHBACK, INTEREST, LOAN_RECEIVED, GIFT_RECEIVED,
+ *     INVESTMENT_SELL)                                       → outstanding decreases
  *   - CARD_PAYMENT where destination = card                 → outstanding decreases (bill paid)
  *   - ADJUSTMENT                                             → signed by amount
+ *
+ * The credit set is the same MONEY_INTO_SOURCE used for accounts, so e.g. a refund posted
+ * as a plain INCOME directly onto the card still pays it down (symmetric with accounts).
  */
 object BalanceCalculator {
 
@@ -65,12 +70,8 @@ object BalanceCalculator {
             TransactionType.GIFT_SENT,
         )
 
-    /** Card credits: decrease outstanding when applied as `source = CARD`. */
-    private val CARD_CREDITS: Set<TransactionType> =
-        setOf(
-            TransactionType.REFUND,
-            TransactionType.CASHBACK,
-        )
+    // Card credits (outstanding decreases) reuse MONEY_INTO_SOURCE — any money landing on the
+    // card pays it down, mirroring how those same types add to an account balance.
 
     fun computeAccountBalance(
         openingBalance: Double,
@@ -185,7 +186,7 @@ object BalanceCalculator {
             if (txn.sourceType == SourceKind.CARD && txn.sourceId == cardId) {
                 when (txn.type) {
                     in CARD_CHARGES -> outstanding += txn.amount
-                    in CARD_CREDITS -> outstanding -= txn.amount
+                    in MONEY_INTO_SOURCE -> outstanding -= txn.amount
                     TransactionType.ADJUSTMENT -> outstanding += txn.amount
                     else -> Unit
                 }

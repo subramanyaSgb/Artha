@@ -97,6 +97,40 @@ class BalanceCalculatorTest {
         assertEquals(750.0, outstanding, EPS)
     }
 
+    // 9) Direct income posted onto a card reduces outstanding (the user's refund-as-income case).
+    //    Purchase ₹601 on the card, then ₹401 comes back posted as INCOME directly to the card
+    //    (not as a REFUND) — outstanding must drop to ₹200, not stay at ₹601.
+    @Test fun `direct income posted to a card reduces outstanding`() {
+        val txns = listOf(
+            cardExpense(cardC, 601.0),
+            txn(type = TransactionType.INCOME, sourceKind = SourceKind.CARD, sourceId = cardC, amount = 401.0),
+        )
+        val outstanding = BalanceCalculator.computeCardOutstanding(cardC, txns)
+        assertEquals(200.0, outstanding, EPS)
+    }
+
+    // 10) Every "money in" type posted onto a card reduces its outstanding, symmetric with how
+    //     those types increase an account balance.
+    @Test fun `all money-in types posted to a card reduce outstanding`() {
+        val moneyIn = listOf(
+            TransactionType.INCOME,
+            TransactionType.REFUND,
+            TransactionType.CASHBACK,
+            TransactionType.INTEREST,
+            TransactionType.LOAN_RECEIVED,
+            TransactionType.GIFT_RECEIVED,
+            TransactionType.INVESTMENT_SELL,
+        )
+        moneyIn.forEach { type ->
+            val txns = listOf(
+                cardExpense(cardC, 1_000.0),
+                txn(type = type, sourceKind = SourceKind.CARD, sourceId = cardC, amount = 300.0),
+            )
+            val outstanding = BalanceCalculator.computeCardOutstanding(cardC, txns)
+            assertEquals("$type on a card should reduce outstanding", 700.0, outstanding, EPS)
+        }
+    }
+
     // ---------- helpers ----------
 
     private fun expense(accountId: String, amount: Double): TransactionEntity =
