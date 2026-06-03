@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreditCard
@@ -35,6 +36,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -80,6 +82,9 @@ import com.subramanya.artha.ui.theme.InstrumentSerif
 import com.subramanya.artha.ui.theme.Surface2
 import com.subramanya.artha.ui.theme.Surface4
 import com.subramanya.artha.ui.theme.Text3
+import com.subramanya.artha.ui.transaction.AddTransactionSheet
+import com.subramanya.artha.ui.transaction.AddTransactionViewModel
+import com.subramanya.artha.ui.transaction.AddTransactionViewModelFactory
 import com.subramanya.artha.utils.IndianNumberFormat
 import com.subramanya.artha.utils.TimeRange
 
@@ -102,92 +107,105 @@ fun TransactionsScreen(
     )
     val state by vm.state.collectAsStateWithLifecycle()
     var sortMenuOpen by remember { mutableStateOf(false) }
+    var showAddSheet by remember { mutableStateOf(false) }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            if (state.isSelectionMode) {
-                SelectionTopBar(
-                    count = state.selectedIds.size,
-                    onClear = vm::clearSelection,
-                    onDelete = vm::requestDelete,
-                )
-            } else {
-                LedgerHeader(
-                    rangeLabel = rangeDisplay(state.filter.range),
-                    sort = state.sort,
-                    sortMenuOpen = sortMenuOpen,
-                    onSortMenuToggle = { sortMenuOpen = it },
-                    onSortChanged = vm::onSortChanged,
-                )
-            }
-
-            TotalsStrip(grouped = state.grouped)
-
-            SearchField(query = state.query, onQueryChanged = vm::onQueryChanged)
-            Spacer(Modifier.height(8.dp))
-            FilterRow(state = state, viewModel = vm)
-            Spacer(Modifier.height(4.dp))
-
-            if (state.grouped.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Filled.Inbox, contentDescription = null, tint = Text3, modifier = Modifier.size(28.dp))
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.transactions_empty),
-                            color = Text3,
-                        )
-                    }
+    Box(modifier = modifier.fillMaxSize()) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (state.isSelectionMode) {
+                    SelectionTopBar(
+                        count = state.selectedIds.size,
+                        onClear = vm::clearSelection,
+                        onDelete = vm::requestDelete,
+                    )
+                } else {
+                    LedgerHeader(
+                        rangeLabel = rangeDisplay(state.filter.range),
+                        sort = state.sort,
+                        sortMenuOpen = sortMenuOpen,
+                        onSortMenuToggle = { sortMenuOpen = it },
+                        onSortChanged = vm::onSortChanged,
+                    )
                 }
-                return@Column
-            }
 
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-                state.grouped.forEach { group ->
-                    val daySum = group.transactions.sumOf { signedDelta(it) }
-                    item(key = "header-${group.headerKey}") {
-                        DayHeader(label = group.headerDisplay, sum = daySum)
+                TotalsStrip(grouped = state.grouped)
+
+                SearchField(query = state.query, onQueryChanged = vm::onQueryChanged)
+                Spacer(Modifier.height(8.dp))
+                FilterRow(state = state, viewModel = vm)
+                Spacer(Modifier.height(4.dp))
+
+                if (state.grouped.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Filled.Inbox, contentDescription = null, tint = Text3, modifier = Modifier.size(28.dp))
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.transactions_empty),
+                                color = Text3,
+                            )
+                        }
                     }
-                    item(key = "card-${group.headerKey}") {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Surface2),
-                        ) {
-                            // Map categoryId → Category once per group so the icon lookup
+                    return@Column
+                }
+
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+                    state.grouped.forEach { group ->
+                        val daySum = group.transactions.sumOf { signedDelta(it) }
+                        item(key = "header-${group.headerKey}") {
+                            DayHeader(label = group.headerDisplay, sum = daySum)
+                        }
+                        item(key = "card-${group.headerKey}") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Surface2),
+                            ) {
+                                // Map categoryId → Category once per group so the icon lookup
                                 // inside each row is O(1) instead of re-scanning the list.
                                 val categoryById = remember(state.categories) {
                                     state.categories.associateBy { it.id }
                                 }
-                            group.transactions.forEachIndexed { i, txn ->
-                                TransactionRow(
-                                    txn = txn,
-                                    category = txn.categoryId?.let { categoryById[it] },
-                                    selected = txn.id in state.selectedIds,
-                                    selectionMode = state.isSelectionMode,
-                                    onTap = {
-                                        if (state.isSelectionMode) vm.toggleSelected(txn.id)
-                                        else onOpenTransaction(txn.id)
-                                    },
-                                    onLongPress = { vm.toggleSelected(txn.id) },
-                                )
-                                if (i < group.transactions.size - 1) {
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(start = 56.dp)
-                                            .fillMaxWidth()
-                                            .height(1.dp)
-                                            .background(MaterialTheme.colorScheme.outlineVariant),
+                                group.transactions.forEachIndexed { i, txn ->
+                                    TransactionRow(
+                                        txn = txn,
+                                        category = txn.categoryId?.let { categoryById[it] },
+                                        selected = txn.id in state.selectedIds,
+                                        selectionMode = state.isSelectionMode,
+                                        onTap = {
+                                            if (state.isSelectionMode) vm.toggleSelected(txn.id)
+                                            else onOpenTransaction(txn.id)
+                                        },
+                                        onLongPress = { vm.toggleSelected(txn.id) },
                                     )
+                                    if (i < group.transactions.size - 1) {
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(start = 56.dp)
+                                                .fillMaxWidth()
+                                                .height(1.dp)
+                                                .background(MaterialTheme.colorScheme.outlineVariant),
+                                        )
+                                    }
                                 }
                             }
+                            Spacer(Modifier.height(14.dp))
                         }
-                        Spacer(Modifier.height(14.dp))
                     }
+                    item { Spacer(Modifier.height(80.dp)) }
                 }
-                item { Spacer(Modifier.height(80.dp)) }
             }
+        }
+
+        // Quick add: open the standard Add Transaction sheet straight from the Ledger.
+        FloatingActionButton(
+            onClick = { showAddSheet = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 20.dp, bottom = 20.dp),
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.ledger_add_transaction))
         }
     }
 
@@ -202,6 +220,23 @@ fun TransactionsScreen(
             cancelLabel = stringResource(R.string.common_cancel),
             onCancel = vm::dismissDeleteConfirm,
         )
+    }
+
+    if (showAddSheet) {
+        val txnVm: AddTransactionViewModel = viewModel(
+            factory = AddTransactionViewModelFactory(
+                accountRepository = app.accountRepository,
+                cardRepository = app.cardRepository,
+                categoryRepository = app.categoryRepository,
+                personRepository = app.personRepository,
+                tagRepository = app.tagRepository,
+                transactionRepository = app.transactionRepository,
+                transactionRuleRepository = app.transactionRuleRepository,
+                investmentRepository = app.investmentRepository,
+                settingsPreferences = app.settingsPreferences,
+            ),
+        )
+        AddTransactionSheet(viewModel = txnVm, onDismiss = { showAddSheet = false })
     }
 }
 
