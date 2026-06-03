@@ -98,6 +98,8 @@
 
     <!-- Add Transaction sheet -->
     <string name="txn_title_new">New transaction</string>
+    <string name="txn_title_edit">Edit transaction</string>
+    <string name="txn_update_fmt">Update · %1$s</string>
     <string name="txn_tab_expense">Expense</string>
     <string name="txn_tab_income">Income</string>
     <string name="txn_tab_transfer">Transfer</string>

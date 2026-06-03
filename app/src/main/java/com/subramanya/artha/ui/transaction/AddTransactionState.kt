@@ -57,6 +57,8 @@ data class AddTransactionUiState(
     val isSaving: Boolean = false,
     val savedAndClose: Boolean = false,
     val pendingSpousePrompt: SpousePromptInfo? = null,
+    /** True while editing an existing transaction — drives the sheet title + Save/Update label. */
+    val isEditing: Boolean = false,
 ) {
     val parsedAmount: Double?
         get() = amountText.toDoubleOrNull()?.takeIf { it > 0.0 }

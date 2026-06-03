@@ -257,7 +257,9 @@ private fun SheetBody(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(R.string.txn_title_new),
+                text = stringResource(
+                    if (state.isEditing) R.string.txn_title_edit else R.string.txn_title_new,
+                ),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f),
             )
@@ -418,6 +420,7 @@ private fun SheetBody(
             tab = state.tab,
             amount = state.parsedAmount,
             enabled = state.isValid && !state.isSaving,
+            isEditing = state.isEditing,
             onClick = { viewModel.trySave() },
         )
     }
@@ -583,6 +586,7 @@ private fun TabTintedSaveButton(
     tab: TransactionTab,
     amount: Double?,
     enabled: Boolean,
+    isEditing: Boolean,
     onClick: () -> Unit,
 ) {
     val (container, content) = when (tab) {
@@ -591,11 +595,12 @@ private fun TabTintedSaveButton(
         TransactionTab.TRANSFER -> IndigoDeep to Text1
         TransactionTab.INVEST -> Teal500 to Color(0xFF06281C)
     }
-    val labelRes = when (tab) {
-        TransactionTab.EXPENSE -> R.string.txn_save_expense_fmt
-        TransactionTab.INCOME -> R.string.txn_save_income_fmt
-        TransactionTab.TRANSFER -> R.string.txn_save_transfer_fmt
-        TransactionTab.INVEST -> R.string.txn_save_invest_fmt
+    val labelRes = when {
+        isEditing -> R.string.txn_update_fmt
+        tab == TransactionTab.EXPENSE -> R.string.txn_save_expense_fmt
+        tab == TransactionTab.INCOME -> R.string.txn_save_income_fmt
+        tab == TransactionTab.TRANSFER -> R.string.txn_save_transfer_fmt
+        else -> R.string.txn_save_invest_fmt
     }
     // IndianNumberFormat.format already prefixes ₹ — don't double it.
     val priceText = amount?.let { IndianNumberFormat.format(it) } ?: "₹0"
