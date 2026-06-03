@@ -18,12 +18,14 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import com.subramanya.artha.utils.TimeRange
 import com.subramanya.artha.utils.thisCalendarMonth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -101,7 +103,8 @@ class DashboardViewModel(
             netPositionSpark = spark,
             netChangeThisMonth = netChange,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())
 
     /** End-of-day net position for the last [days] days, oldest first. Reuses
      *  the existing BalanceCalculator math so the sparkline can never drift
