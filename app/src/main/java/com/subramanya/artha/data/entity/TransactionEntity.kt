@@ -73,4 +73,8 @@ data class TransactionEntity(
     val createdAt: Long,
     @ColumnInfo(name = "updated_at")
     val updatedAt: Long,
+    /** Set by a rule's `ExcludeFromExpenseTotal` action — the monthly expense aggregator skips
+     *  these (e.g. a credit-card bill the user logged as an expense). Default false. */
+    @ColumnInfo(name = "excluded_from_expense_total", defaultValue = "0")
+    val excludedFromExpenseTotal: Boolean = false,
 )

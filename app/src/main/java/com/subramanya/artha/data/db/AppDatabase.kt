@@ -53,7 +53,7 @@ import com.subramanya.artha.data.entity.TransactionTagCrossRef
         SubscriptionEntity::class,
         RecurringRuleEntity::class,
     ],
-    version = 4,
+    version = 5,
     // Schemas are exported to app/schemas (room.schemaLocation in build.gradle.kts) so
     // MigrationTestHelper can validate migrations against the generated schema.
     exportSchema = true,

@@ -26,8 +26,8 @@ object DatabaseProvider {
                 .addCallback(CategorySeederCallback())
                 .addCallback(RuleSeederCallback())
                 // Real, data-preserving migrations run first. v3->v4 adds investment valuation
-                // columns and back-fills existing rows (see MIGRATION_3_4).
-                .addMigrations(MIGRATION_3_4)
+                // columns; v4->v5 adds transactions.excluded_from_expense_total (see Migrations.kt).
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
 
         // Destructive fallback in DEBUG ONLY. During development a schema gap not covered by an
         // explicit migration resets the local DB instead of crashing — convenient for iteration.

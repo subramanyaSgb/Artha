@@ -232,6 +232,7 @@ object BackupCodec {
         put("is_split", t.isSplit); putNullable("split_group_id", t.splitGroupId)
         put("source", t.source.name)
         put("created_at", t.createdAt); put("updated_at", t.updatedAt)
+        put("excluded_from_expense_total", t.excludedFromExpenseTotal)
     }
 
     private fun transactionPersonToJson(x: TransactionPersonCrossRef) = JSONObject().apply {
@@ -383,6 +384,7 @@ object BackupCodec {
         isSplit = o.getBoolean("is_split"), splitGroupId = o.stringOrNull("split_group_id"),
         source = enumValueOf<TransactionSource>(o.getString("source")),
         createdAt = o.getLong("created_at"), updatedAt = o.getLong("updated_at"),
+        excludedFromExpenseTotal = o.optBoolean("excluded_from_expense_total", false),
     )
 
     private fun transactionPersonFromJson(o: JSONObject) = TransactionPersonCrossRef(

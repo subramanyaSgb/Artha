@@ -187,6 +187,7 @@ class AddTransactionViewModel(
         editingTransactionId = transaction.id
         editingCreatedAt = transaction.createdAt
         editingOriginalType = transaction.type
+        editingExcludedFromExpense = transaction.excludedFromExpenseTotal
         _state.update {
             it.copy(
                 tab = transaction.type.toTab(),
@@ -218,6 +219,9 @@ class AddTransactionViewModel(
      * inverting both the account leg and the invested amount. Preserve SELL across edit.
      */
     private var editingOriginalType: TransactionType? = null
+
+    /** Preserves the edited transaction's exclude-from-expense flag (rules don't re-run on edit). */
+    private var editingExcludedFromExpense: Boolean = false
 
     private fun TransactionType.toTab(): TransactionTab = when (this) {
         TransactionType.INCOME -> TransactionTab.INCOME
@@ -502,11 +506,14 @@ class AddTransactionViewModel(
             // path is already handled by interceptSaveIfNeeded() above; exclude-from-expense is
             // a future enhancement for the MonthlyAggregator hint table.
             val toSave = if (isEditing) {
-                baseTxn
+                // Rules don't re-run on edit; preserve the row's existing exclude-from-expense flag.
+                baseTxn.copy(excludedFromExpenseTotal = editingExcludedFromExpense)
             } else {
                 val activeRules = transactionRuleRepository.observeActive()
                     .let { runCatching { it.first() }.getOrDefault(emptyList()) }
-                RuleEngine.apply(baseTxn, activeRules, people.value).transaction
+                val result = RuleEngine.apply(baseTxn, activeRules, people.value)
+                // Honor the engine's ExcludeFromExpenseTotal signal by persisting it on the txn.
+                result.transaction.copy(excludedFromExpenseTotal = result.excludeFromExpenseTotal)
             }
             transactionRepository.save(toSave)
             _state.update { it.copy(isSaving = false, savedAndClose = true) }
@@ -534,6 +541,7 @@ class AddTransactionViewModel(
         editingTransactionId = null
         editingCreatedAt = null
         editingOriginalType = null
+        editingExcludedFromExpense = false
     }
 
     /** Returns the category-children list for the current categoryId, used by sub-cat picker. */

@@ -47,6 +47,7 @@ object MonthlyAggregator {
         var income = 0.0
         var expense = 0.0
         for (txn in transactions) {
+            if (txn.excludedFromExpenseTotal) continue // a rule asked to omit this from the totals
             when (txn.type) {
                 in INCOME_TYPES -> income += txn.amount
                 in EXPENSE_TYPES -> expense += txn.amount

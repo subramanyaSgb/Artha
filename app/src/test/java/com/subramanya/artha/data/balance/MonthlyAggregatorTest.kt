@@ -60,7 +60,18 @@ class MonthlyAggregatorTest {
         assertEquals(1_250.0, result.expense, EPS)
     }
 
-    private fun txn(type: TransactionType, amount: Double): TransactionEntity =
+    @Test fun `transactions flagged excluded-from-expense are skipped`() {
+        val txns = listOf(
+            txn(TransactionType.EXPENSE, 100.0),
+            txn(TransactionType.EXPENSE, 5_000.0, excluded = true), // a rule excluded this one
+            txn(TransactionType.INCOME, 200.0),
+        )
+        val result = MonthlyAggregator.aggregate(txns)
+        assertEquals(100.0, result.expense, EPS) // the 5,000 excluded
+        assertEquals(200.0, result.income, EPS)
+    }
+
+    private fun txn(type: TransactionType, amount: Double, excluded: Boolean = false): TransactionEntity =
         TransactionEntity(
             id = "txn-${idSeq++}",
             type = type,
@@ -87,6 +98,7 @@ class MonthlyAggregatorTest {
             source = TransactionSource.MANUAL,
             createdAt = 0L,
             updatedAt = 0L,
+            excludedFromExpenseTotal = excluded,
         )
 
     private companion object {
