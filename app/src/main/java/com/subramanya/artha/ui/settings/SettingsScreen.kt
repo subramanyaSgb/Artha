@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -59,6 +60,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -140,6 +142,21 @@ fun SettingsScreen(
                     useDynamicColor = state.useDynamicColor,
                     onThemeChanged = vm::onThemeChanged,
                     onDynamicColorChanged = vm::onDynamicColorChanged,
+                )
+
+                HorizontalDivider()
+                SectionHeader(stringResource(R.string.settings_section_picklists))
+                // Read the custom-cosmetics flows directly (as the Category/Tag forms do) so
+                // they stay off the ViewModel's already-maxed state combine.
+                val customColours by app.settingsPreferences.customColours
+                    .collectAsStateWithLifecycle(initialValue = emptyList())
+                val customIcons by app.settingsPreferences.customIcons
+                    .collectAsStateWithLifecycle(initialValue = emptyList())
+                PickListCosmeticsSection(
+                    customColours = customColours,
+                    customIcons = customIcons,
+                    onRemoveColour = vm::removeCustomColour,
+                    onRemoveIcon = vm::removeCustomIcon,
                 )
 
                 HorizontalDivider()
@@ -566,6 +583,126 @@ private fun DataSection(
             supportingContent = { Text(stringResource(R.string.settings_data_reset_subtitle)) },
             trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = com.subramanya.artha.ui.theme.Danger) },
         )
+    }
+}
+
+/**
+ * Look & feel — manage the custom colour swatches and icons the user added from the
+ * Category/Tag forms (the "+" affordances). Built-ins aren't shown here (they can't be
+ * removed); only the user's own additions, each tap-to-remove. Removing one just drops
+ * it from the picker — existing categories/tags already storing that colour/icon keep it.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PickListCosmeticsSection(
+    customColours: List<Long>,
+    customIcons: List<String>,
+    onRemoveColour: (Long) -> Unit,
+    onRemoveIcon: (String) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
+        if (customColours.isEmpty() && customIcons.isEmpty()) {
+            Text(
+                text = stringResource(R.string.settings_picklists_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@Column
+        }
+
+        Text(
+            text = stringResource(R.string.settings_picklists_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        if (customColours.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.settings_picklists_colours).uppercase(),
+                style = EyebrowStyle,
+                color = Text3,
+            )
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                customColours.forEach { c ->
+                    RemovableChip(onClick = { onRemoveColour(c) }) {
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(androidx.compose.ui.graphics.Color(c)),
+                        )
+                    }
+                }
+            }
+        }
+
+        if (customIcons.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.settings_picklists_icons).uppercase(),
+                style = EyebrowStyle,
+                color = Text3,
+            )
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                customIcons.forEach { key ->
+                    RemovableChip(onClick = { onRemoveIcon(key) }) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(11.dp))
+                                .background(com.subramanya.artha.ui.theme.Surface2),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = com.subramanya.artha.utils.MaterialIcons.resolve(key),
+                                contentDescription = null,
+                                tint = Text2,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Wraps a swatch/icon tile with a small "×" remove badge in the top-end corner.
+ * The whole tile is clickable to remove; the badge just signals the affordance.
+ */
+@Composable
+private fun RemovableChip(onClick: () -> Unit, content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(top = 4.dp, end = 4.dp),
+    ) {
+        content()
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(16.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(com.subramanya.artha.ui.theme.Danger),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.common_remove),
+                tint = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier.size(11.dp),
+            )
+        }
     }
 }
 

@@ -256,6 +256,18 @@ class SettingsViewModel(
         viewModelScope.launch { settingsPreferences.setSmsAutoImportEnabled(enabled) }
     }
 
+    // ----- custom pick-list cosmetics (colours/icons the user added from a form) -----
+    // The two flows are read directly by the Settings "Look & feel" section (mirroring how
+    // the Category/Tag forms read them) — kept off the maxed-out state combine above.
+
+    fun removeCustomColour(color: Long) {
+        viewModelScope.launch { settingsPreferences.removeCustomColour(color) }
+    }
+
+    fun removeCustomIcon(key: String) {
+        viewModelScope.launch { settingsPreferences.removeCustomIcon(key) }
+    }
+
     /**
      * Persist a new Gemini key only after a live test call succeeds. We never store
      * an unvalidated key — that's the point of this flow. NetworkError is surfaced

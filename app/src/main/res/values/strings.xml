@@ -186,6 +186,7 @@
     <string name="tag_picker_name_label">Tag name</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_save">Save</string>
+    <string name="common_remove">Remove</string>
 
     <!-- Dashboard FAB -->
     <string name="dashboard_fab_add">Add</string>
@@ -459,6 +460,11 @@
     <string name="settings_appearance_theme_dark">Dark</string>
     <string name="settings_appearance_dynamic">Material You dynamic color</string>
     <string name="settings_appearance_dynamic_body">Tint the UI with your wallpaper palette on Android 12+.</string>
+    <string name="settings_section_picklists">Look &amp; feel</string>
+    <string name="settings_picklists_hint">Tap an item to remove it. Add new colours and icons from the “+” in any category or tag form.</string>
+    <string name="settings_picklists_empty">No custom colours or icons yet. Add them from the “+” in any category or tag form.</string>
+    <string name="settings_picklists_colours">Custom colours</string>
+    <string name="settings_picklists_icons">Custom icons</string>
     <string name="settings_section_behavior">Behavior</string>
     <string name="settings_behavior_spouse">Spouse transaction default</string>
     <string name="settings_behavior_spouse_ask">Ask each time</string>
