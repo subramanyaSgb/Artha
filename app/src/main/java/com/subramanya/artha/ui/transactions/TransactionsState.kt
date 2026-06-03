@@ -24,6 +24,12 @@ data class TransactionsUiState(
     val sort: TransactionSort = TransactionSort.DATE_DESC,
     /** Day-grouped output ready for the LazyColumn. List preserves the chosen sort order. */
     val grouped: List<TransactionsGroup> = emptyList(),
+    /** categoryId → Category, precomputed once so rows resolve their icon without re-scanning. */
+    val categoriesById: Map<String, Category> = emptyMap(),
+    /** In/Out/Net totals for the visible (filtered) set, precomputed off the UI thread. */
+    val inSum: Double = 0.0,
+    val outSum: Double = 0.0,
+    val net: Double = 0.0,
     val accounts: List<Account> = emptyList(),
     val cards: List<Card> = emptyList(),
     val categories: List<Category> = emptyList(),
