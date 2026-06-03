@@ -3,11 +3,13 @@ package com.subramanya.artha.ui.investments
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.subramanya.artha.R
 import com.subramanya.artha.data.repository.InvestmentRepository
 import com.subramanya.artha.domain.model.Investment
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -18,6 +20,10 @@ class InvestmentsViewModel(
 ) : ViewModel() {
 
     private val view = MutableStateFlow(InvestmentsView.ALL)
+
+    private val message = MutableStateFlow<Int?>(null)
+    val toastMessage: StateFlow<Int?> = message.asStateFlow()
+    fun consumeToast() = message.update { null }
 
     val state: StateFlow<InvestmentsUiState> = combine(
         investmentRepository.observeActiveWithMetrics(),
@@ -40,7 +46,15 @@ class InvestmentsViewModel(
     }
 
     fun delete(investment: Investment) {
-        viewModelScope.launch { investmentRepository.delete(investment) }
+        viewModelScope.launch {
+            // Archive instead of orphaning referenced transactions (mirrors the detail guard).
+            if (investmentRepository.hasReferencingTransactions(investment.id)) {
+                investmentRepository.archive(investment)
+                message.update { R.string.entity_delete_archived_instead }
+            } else {
+                investmentRepository.delete(investment)
+            }
+        }
     }
 }
 

@@ -78,5 +78,10 @@ class AccountRepository(
     suspend fun restore(account: Account) =
         accountDao.update(account.toEntity().copy(isArchived = false))
 
+    /** True if any transaction references this account (source or destination) — a hard delete
+     *  would orphan them, so callers must archive instead. */
+    suspend fun hasReferencingTransactions(id: String): Boolean =
+        transactionDao.countReferencing(id) > 0
+
     suspend fun delete(account: Account) = accountDao.delete(account.toEntity())
 }

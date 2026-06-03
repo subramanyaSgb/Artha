@@ -125,5 +125,10 @@ class InvestmentRepository(
     suspend fun restore(investment: Investment) =
         investmentDao.update(investment.toEntity().copy(isArchived = false))
 
+    /** True if any transaction references this investment (source or destination) — a hard delete
+     *  would orphan them, so callers must archive instead. */
+    suspend fun hasReferencingTransactions(id: String): Boolean =
+        transactionDao.countReferencing(id) > 0
+
     suspend fun delete(investment: Investment) = investmentDao.delete(investment.toEntity())
 }

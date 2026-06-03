@@ -37,6 +37,11 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): TransactionEntity?
 
+    /** How many transactions reference [id] as their source or destination. Used to block a
+     *  hard-delete of an account/card/investment that would orphan those transactions. */
+    @Query("SELECT COUNT(*) FROM transactions WHERE source_id = :id OR destination_id = :id")
+    suspend fun countReferencing(id: String): Int
+
     @Query("SELECT person_id FROM transaction_people WHERE transaction_id = :transactionId")
     suspend fun getPeopleIds(transactionId: String): List<String>
 

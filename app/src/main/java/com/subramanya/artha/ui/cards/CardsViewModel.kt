@@ -3,12 +3,14 @@ package com.subramanya.artha.ui.cards
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.subramanya.artha.R
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.CardWithBalance
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -20,6 +22,10 @@ class CardsViewModel(
 
     private val view = MutableStateFlow(CardsView.ACTIVE)
     private val reorderMode = MutableStateFlow(false)
+
+    private val message = MutableStateFlow<Int?>(null)
+    val toastMessage: StateFlow<Int?> = message.asStateFlow()
+    fun consumeToast() = message.update { null }
 
     val state: StateFlow<CardsUiState> = combine(
         cardRepository.observeActiveWithBalances(),
@@ -50,7 +56,15 @@ class CardsViewModel(
 
     fun archive(card: Card) = viewModelScope.launch { cardRepository.archive(card) }
     fun restore(card: Card) = viewModelScope.launch { cardRepository.restore(card) }
-    fun delete(card: Card) = viewModelScope.launch { cardRepository.delete(card) }
+    fun delete(card: Card) = viewModelScope.launch {
+        // Archive instead of orphaning referenced transactions (mirrors the detail-screen guard).
+        if (cardRepository.hasReferencingTransactions(card.id)) {
+            cardRepository.archive(card)
+            message.update { R.string.entity_delete_archived_instead }
+        } else {
+            cardRepository.delete(card)
+        }
+    }
 
     fun moveUp(card: Card) = moveBy(card, -1)
     fun moveDown(card: Card) = moveBy(card, +1)

@@ -87,6 +87,13 @@ fun InvestmentsScreen(
         factory = InvestmentsViewModelFactory(app.investmentRepository),
     )
     val state by vm.state.collectAsStateWithLifecycle()
+    val toastMsg by vm.toastMessage.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(toastMsg) {
+        toastMsg?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            vm.consumeToast()
+        }
+    }
 
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Investment? by remember { mutableStateOf(null) }

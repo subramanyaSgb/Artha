@@ -338,6 +338,8 @@
     <string name="investment_delete_blocked_title">Can\'t delete this investment</string>
     <string name="investment_delete_blocked_body">%1$d transactions still reference this investment. Deleting it would leave them orphaned and distort your reports. Archive it instead — its history stays intact.</string>
     <string name="investment_delete_blocked_archive">Archive instead</string>
+    <!-- Toast when a delete from a LIST screen is auto-converted to archive (had transactions). -->
+    <string name="entity_delete_archived_instead">Had transactions — archived instead of deleting</string>
 
     <!-- Cards screen -->
     <string name="cards_title">Cards</string>

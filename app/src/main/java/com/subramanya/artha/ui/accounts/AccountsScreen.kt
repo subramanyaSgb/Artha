@@ -73,6 +73,13 @@ fun AccountsScreen(
         factory = AccountsViewModelFactory(app.accountRepository),
     )
     val state by vm.state.collectAsStateWithLifecycle()
+    val toastMsg by vm.toastMessage.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(toastMsg) {
+        toastMsg?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            vm.consumeToast()
+        }
+    }
     var overflowOpen by remember { mutableStateOf(false) }
 
     /** Null = sheet closed. The Account value or sentinel decides Add vs Edit mode. */
