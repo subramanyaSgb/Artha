@@ -529,6 +529,11 @@ class AddTransactionViewModel(
     /** Called by the host after consuming `savedAndClose`, in case the sheet is reused. */
     fun acknowledgeClose() {
         _state.value = AddTransactionUiState()
+        // Clear edit-mode markers too — otherwise a reused VM would treat the NEXT fresh entry as
+        // an edit and upsert over the previously-edited transaction's id (and skip the rules).
+        editingTransactionId = null
+        editingCreatedAt = null
+        editingOriginalType = null
     }
 
     /** Returns the category-children list for the current categoryId, used by sub-cat picker. */

@@ -432,6 +432,12 @@ private fun PremiumDueBanner(
 
 @Composable
 private fun FlowStrip(state: DashboardUiState) {
+    // Current month abbreviation (JAN..DEC) — was previously hardcoded to "MAY".
+    val monthLabel = remember {
+        kotlinx.datetime.Clock.System.now()
+            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+            .month.name.take(3)
+    }
     Row(
         modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -441,14 +447,14 @@ private fun FlowStrip(state: DashboardUiState) {
             inDirection = true,
             label = stringResource(R.string.dashboard_this_month_income),
             value = state.monthlyTotals.income,
-            footer = "MAY",
+            footer = monthLabel,
         )
         FlowTile(
             modifier = Modifier.weight(1f),
             inDirection = false,
             label = stringResource(R.string.dashboard_this_month_expense),
             value = state.monthlyTotals.expense,
-            footer = "MAY",
+            footer = monthLabel,
         )
     }
 }
