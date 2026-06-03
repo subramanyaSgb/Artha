@@ -99,10 +99,14 @@ debit-card rows / unlinked debit cards; D3 restore has no instrumented (device) 
   tables; there is no import path at all. A user who trusts "backup" loses most data. Fix: serialise all
   tables (incl. cross-refs) and implement a validated restore (`BackupCrypto.decrypt` → Room). Larger feature.
 
-**Perf — safe follow-ups (no decision needed):**
-- **P-People** — PeopleScreen has no ViewModel and recomputes every person's balance O(people × txns) per
-  frame in the composable. Add a `PeopleViewModel` that precomputes a `Map<personId, Double>` in one pass.
-- **P-Ledger-virtualize** — the Ledger still renders each day's rows in one non-lazy `item` (no per-row
-  virtualization). Flatten to keyed lazy `items` while preserving the day-card visual.
-- **P-flowOn-rest** — apply `.flowOn(Default)` to SearchViewModel / PersonDetailViewModel too (Dashboard,
-  Reports, Ledger already done).
+**Perf — safe follow-ups: DONE (merged `6bc0403`, 2026-06-03):**
+- ✅ **P-People** — `PeopleViewModel` precomputes net balances in one pass off the main thread.
+- ✅ **P-Ledger-virtualize** — Ledger flattened to one keyed lazy item per transaction (`LedgerListItem`),
+  day-card visual preserved via first/last-in-day corner rounding.
+- ✅ **P-flowOn-rest** — `.flowOn(Default)` added to Search + PersonDetail VMs.
+- ✅ **shareIn** — account/card/investment balance flows shared on an app scope (`WhileSubscribed`) so the
+  single-pass compute runs once per change, not once per collecting screen.
+
+**STILL deferred — SQL-aggregate rewrite (Item C):** push `WHERE source_id=:id`/`GROUP BY`/`SUM` into DAO
+queries (the indices exist, unused). Intentionally NOT done — risks money-correctness divergence from the
+proven Kotlin direction rules, for marginal gain now that batch + flowOn + shareIn collapsed the cost.
