@@ -3,11 +3,13 @@ package com.subramanya.artha.ui.accounts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.subramanya.artha.R
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.domain.model.Account
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -19,6 +21,11 @@ class AccountsViewModel(
 
     private val view = MutableStateFlow(AccountsView.ACTIVE)
     private val reorderMode = MutableStateFlow(false)
+
+    /** One-shot string-res message for a toast (e.g. delete-blocked → archived instead). */
+    private val message = MutableStateFlow<Int?>(null)
+    val toastMessage: StateFlow<Int?> = message.asStateFlow()
+    fun consumeToast() = message.update { null }
 
     /**
      * Live state for the screen. Archived rows surface their *opening* balance only —
@@ -73,12 +80,20 @@ class AccountsViewModel(
     }
 
     /**
-     * Hard delete. Existing transactions that reference this account are *not* touched
-     * (there is no FK to cascade through — sourceId/destinationId are polymorphic).
-     * Orphaned transactions remain in the log; their "source" simply won't resolve.
+     * Hard delete — but ONLY when no transaction references this account (there is no FK to
+     * cascade through; sourceId/destinationId are polymorphic). If transactions reference it,
+     * deleting would orphan them and distort reports, so we archive instead and toast. This
+     * mirrors the guard on the detail screen so the list path can't bypass it.
      */
     fun delete(account: Account) {
-        viewModelScope.launch { accountRepository.delete(account) }
+        viewModelScope.launch {
+            if (accountRepository.hasReferencingTransactions(account.id)) {
+                accountRepository.archive(account)
+                message.update { R.string.entity_delete_archived_instead }
+            } else {
+                accountRepository.delete(account)
+            }
+        }
     }
 
     // ---------- reorder ----------

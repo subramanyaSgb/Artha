@@ -84,6 +84,13 @@ fun CardsScreen(
     val app = context.applicationContext as ArthaApplication
     val vm: CardsViewModel = viewModel(factory = CardsViewModelFactory(app.cardRepository))
     val state by vm.state.collectAsStateWithLifecycle()
+    val toastMsg by vm.toastMessage.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(toastMsg) {
+        toastMsg?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            vm.consumeToast()
+        }
+    }
     var overflowOpen by remember { mutableStateOf(false) }
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Card? by remember { mutableStateOf(null) }
