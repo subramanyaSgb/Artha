@@ -7,16 +7,20 @@ import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.CardWithBalance
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 
 class CardRepository(
     private val cardDao: CardDao,
     private val transactionDao: TransactionDao,
+    private val scope: CoroutineScope,
 ) {
 
     fun observeAll(): Flow<List<Card>> =
@@ -36,7 +40,8 @@ class CardRepository(
             BalanceCalculator.computeCardOutstanding(cardId, txns)
         }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
-    fun observeActiveWithBalances(): Flow<List<CardWithBalance>> =
+    // Shared across consumers (dashboard, reports) so the single-pass compute runs once per change.
+    private val activeWithBalances: Flow<List<CardWithBalance>> =
         combine(cardDao.observeActive(), transactionDao.observeAll()) { cards, txns ->
             // One pass over the log for ALL cards (O(txns + cards)), off the main thread.
             val outstanding = BalanceCalculator.computeCardOutstandings(cards.map { it.id }, txns)
@@ -46,7 +51,11 @@ class CardRepository(
                     currentOutstanding = outstanding.getValue(entity.id),
                 )
             }
-        }.flowOn(Dispatchers.Default).distinctUntilChanged()
+        }.flowOn(Dispatchers.Default)
+            .distinctUntilChanged()
+            .shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    fun observeActiveWithBalances(): Flow<List<CardWithBalance>> = activeWithBalances
 
     suspend fun getById(id: String): Card? = cardDao.getById(id)?.toDomain()
 

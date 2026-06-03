@@ -22,8 +22,12 @@ data class TransactionsUiState(
     val query: String = "",
     val filter: TransactionsFilter = TransactionsFilter(),
     val sort: TransactionSort = TransactionSort.DATE_DESC,
-    /** Day-grouped output ready for the LazyColumn. List preserves the chosen sort order. */
-    val grouped: List<TransactionsGroup> = emptyList(),
+    /**
+     * Flattened day-grouped rows ready for a virtualized LazyColumn: each transaction is its own
+     * keyed item (so scroll/selection recomposes one row, not the whole day block). Day-card
+     * corner rounding is driven by the per-entry first/last flags. Preserves the chosen sort.
+     */
+    val rows: List<LedgerListItem> = emptyList(),
     /** categoryId → Category, precomputed once so rows resolve their icon without re-scanning. */
     val categoriesById: Map<String, Category> = emptyMap(),
     /** In/Out/Net totals for the visible (filtered) set, precomputed off the UI thread. */
@@ -47,3 +51,28 @@ data class TransactionsGroup(
     val headerDisplay: String,
     val transactions: List<Transaction>,
 )
+
+/** One flattened entry in the Ledger list — a day header or a single transaction row. */
+sealed interface LedgerListItem {
+    /** Stable Compose key. */
+    val key: String
+
+    data class DayHeader(
+        val headerKey: String,
+        val display: String,
+        /** Signed sum of the day's transactions for the header's right-aligned total. */
+        val daySum: Double,
+    ) : LedgerListItem {
+        override val key: String get() = "h-$headerKey"
+    }
+
+    data class Entry(
+        val txn: Transaction,
+        val category: Category?,
+        /** Drives the day-card corner rounding + the inter-row divider. */
+        val isFirstInDay: Boolean,
+        val isLastInDay: Boolean,
+    ) : LedgerListItem {
+        override val key: String get() = "t-${txn.id}"
+    }
+}

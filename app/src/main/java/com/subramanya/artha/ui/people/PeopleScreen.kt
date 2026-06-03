@@ -46,7 +46,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,7 +62,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.PersonRelation
-import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.Person
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
@@ -83,7 +81,6 @@ import com.subramanya.artha.ui.theme.Text1
 import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.IndianNumberFormat
-import kotlinx.coroutines.launch
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,9 +92,14 @@ fun PeopleScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
-    val people by app.personRepository.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
-    val transactions by app.transactionRepository.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
-    val scope = rememberCoroutineScope()
+    val vm: PeopleViewModel = viewModel(
+        factory = PeopleViewModelFactory(
+            personRepository = app.personRepository,
+            transactionRepository = app.transactionRepository,
+        ),
+    )
+    val state by vm.state.collectAsStateWithLifecycle()
+    val people = state.people
 
     var formMode: PersonFormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Person? by remember { mutableStateOf(null) }
@@ -138,15 +140,14 @@ fun PeopleScreen(
                         }
                     }
                 } else {
-                    items(people, key = { it.id }) { person ->
-                        val net = computeNetBalance(person, transactions)
+                    items(people, key = { it.person.id }) { row ->
                         PersonRow(
-                            person = person,
-                            netBalance = net,
+                            person = row.person,
+                            netBalance = row.netBalance,
                             // Tap opens the per-person detail (transactions + figures);
                             // edit lives in the detail's top bar like AccountDetail.
-                            onTap = { onOpenPerson(person.id) },
-                            onDelete = { pendingDelete = person },
+                            onTap = { onOpenPerson(row.person.id) },
+                            onDelete = { pendingDelete = row.person },
                         )
                     }
                 }
@@ -159,7 +160,8 @@ fun PeopleScreen(
         PersonFormSheet(
             editing = (mode as? PersonFormMode.Edit)?.person,
             onSave = { resolved ->
-                scope.launch { app.personRepository.upsert(resolved); formMode = null }
+                vm.upsert(resolved)
+                formMode = null
             },
             onDismiss = { formMode = null },
         )
@@ -174,7 +176,8 @@ fun PeopleScreen(
             confirmLabel = stringResource(R.string.people_delete_confirm_yes),
             confirmDestructive = true,
             onConfirm = {
-                scope.launch { app.personRepository.delete(toDelete); pendingDelete = null }
+                vm.delete(toDelete)
+                pendingDelete = null
             },
             cancelLabel = stringResource(R.string.common_cancel),
             onCancel = { pendingDelete = null },
@@ -276,28 +279,6 @@ private fun PersonAvatar(name: String) {
             color = Teal300,
         )
     }
-}
-
-/**
- * Per PRD §7.17 — net balance from this person's perspective.
- * LOAN_GIVEN to them, or any EXPENSE/GIFT_SENT tagged with them, means they owe the user.
- * LOAN_RECEIVED from them, or any INCOME/GIFT_RECEIVED tagged with them, means the user owes them.
- * Positive return = they owe the user; negative = user owes them.
- */
-private fun computeNetBalance(
-    person: Person,
-    transactions: List<com.subramanya.artha.domain.model.Transaction>,
-): Double {
-    var net = 0.0
-    for (t in transactions) {
-        if (person.id !in t.peopleIds) continue
-        when (t.type) {
-            TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT, TransactionType.EXPENSE -> net += t.amount
-            TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED, TransactionType.INCOME -> net -= t.amount
-            else -> Unit
-        }
-    }
-    return net
 }
 
 @Composable

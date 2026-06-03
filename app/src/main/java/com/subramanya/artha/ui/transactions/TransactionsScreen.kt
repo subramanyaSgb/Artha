@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -135,7 +136,7 @@ fun TransactionsScreen(
                 FilterRow(state = state, viewModel = vm)
                 Spacer(Modifier.height(4.dp))
 
-                if (state.grouped.isEmpty()) {
+                if (state.rows.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Filled.Inbox, contentDescription = null, tint = Text3, modifier = Modifier.size(28.dp))
@@ -149,44 +150,52 @@ fun TransactionsScreen(
                     return@Column
                 }
 
+                // Each transaction is its own keyed lazy item (true virtualization) — the day-card
+                // look is preserved by rounding only the first/last row of each day and drawing a
+                // divider between rows. Selecting/scrolling recomposes one row, not the whole day.
                 LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-                    state.grouped.forEach { group ->
-                        val daySum = group.transactions.sumOf { signedDelta(it) }
-                        item(key = "header-${group.headerKey}") {
-                            DayHeader(label = group.headerDisplay, sum = daySum)
-                        }
-                        item(key = "card-${group.headerKey}") {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Surface2),
-                            ) {
-                                // Category lookup map is precomputed once in the ViewModel.
-                                group.transactions.forEachIndexed { i, txn ->
-                                    TransactionRow(
-                                        txn = txn,
-                                        category = txn.categoryId?.let { state.categoriesById[it] },
-                                        selected = txn.id in state.selectedIds,
-                                        selectionMode = state.isSelectionMode,
-                                        onTap = {
-                                            if (state.isSelectionMode) vm.toggleSelected(txn.id)
-                                            else onOpenTransaction(txn.id)
-                                        },
-                                        onLongPress = { vm.toggleSelected(txn.id) },
-                                    )
-                                    if (i < group.transactions.size - 1) {
-                                        Box(
-                                            modifier = Modifier
-                                                .padding(start = 56.dp)
-                                                .fillMaxWidth()
-                                                .height(1.dp)
-                                                .background(MaterialTheme.colorScheme.outlineVariant),
+                    items(state.rows, key = { it.key }) { item ->
+                        when (item) {
+                            is LedgerListItem.DayHeader ->
+                                DayHeader(label = item.display, sum = item.daySum)
+                            is LedgerListItem.Entry -> {
+                                val shape = when {
+                                    item.isFirstInDay && item.isLastInDay -> RoundedCornerShape(14.dp)
+                                    item.isFirstInDay -> RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
+                                    item.isLastInDay -> RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+                                    else -> RoundedCornerShape(0.dp)
+                                }
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(shape)
+                                            .background(Surface2),
+                                    ) {
+                                        TransactionRow(
+                                            txn = item.txn,
+                                            category = item.category,
+                                            selected = item.txn.id in state.selectedIds,
+                                            selectionMode = state.isSelectionMode,
+                                            onTap = {
+                                                if (state.isSelectionMode) vm.toggleSelected(item.txn.id)
+                                                else onOpenTransaction(item.txn.id)
+                                            },
+                                            onLongPress = { vm.toggleSelected(item.txn.id) },
                                         )
+                                        if (!item.isLastInDay) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .padding(start = 56.dp)
+                                                    .fillMaxWidth()
+                                                    .height(1.dp)
+                                                    .background(MaterialTheme.colorScheme.outlineVariant),
+                                            )
+                                        }
                                     }
+                                    if (item.isLastInDay) Spacer(Modifier.height(14.dp))
                                 }
                             }
-                            Spacer(Modifier.height(14.dp))
                         }
                     }
                     item { Spacer(Modifier.height(80.dp)) }
@@ -706,13 +715,4 @@ private fun signedAmount(txn: Transaction): String {
             txn.type == TransactionType.GIFT_SENT -> "−$abs"
         else -> abs
     }
-}
-
-/** For day totals: positive for income-like, negative for outflow, zero otherwise. */
-private fun signedDelta(txn: Transaction): Double = when {
-    txn.type.isIncomeLike() -> txn.amount
-    txn.type == TransactionType.EXPENSE ||
-        txn.type == TransactionType.LOAN_GIVEN ||
-        txn.type == TransactionType.GIFT_SENT -> -txn.amount
-    else -> 0.0
 }
