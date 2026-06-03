@@ -111,7 +111,7 @@
     <string name="txn_category_choose">Choose category</string>
     <string name="txn_subcategory_label">Sub-category</string>
     <string name="txn_subcategory_optional">Sub-category (optional)</string>
-    <string name="txn_description_label">Description</string>
+    <string name="txn_description_label">Merchant</string>
     <string name="txn_description_placeholder">e.g. Mother Dairy</string>
     <string name="txn_payment_app_label">Payment app</string>
     <string name="txn_people_label">People</string>
@@ -147,7 +147,7 @@
     <string name="txn_validation_source">Pick where the money comes from</string>
     <string name="txn_validation_destination">Pick where the money goes to</string>
     <string name="txn_validation_category">Pick a category</string>
-    <string name="txn_validation_description">Description is required</string>
+    <string name="txn_validation_description">Merchant is required</string>
     <string name="txn_validation_same_source_dest">Source and destination must differ</string>
 
     <!-- Payment apps -->

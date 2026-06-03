@@ -355,6 +355,19 @@ private fun SheetBody(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // ----- notes (kept right under the Merchant field) -----
+            OutlinedTextField(
+                value = state.notes,
+                onValueChange = viewModel::onNotesChanged,
+                label = { Text(stringResource(R.string.txn_notes_label)) },
+                minLines = 2,
+                maxLines = 4,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             // ----- payment app -----
             PaymentAppPicker(
                 selected = state.paymentApp,
@@ -395,19 +408,6 @@ private fun SheetBody(
             ReceiptPicker(
                 uri = state.receiptUri,
                 onPicked = viewModel::onReceiptPicked,
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // ----- notes -----
-            OutlinedTextField(
-                value = state.notes,
-                onValueChange = viewModel::onNotesChanged,
-                label = { Text(stringResource(R.string.txn_notes_label)) },
-                minLines = 2,
-                maxLines = 4,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(modifier = Modifier.height(24.dp))
