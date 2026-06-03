@@ -185,6 +185,7 @@ class AddTransactionViewModel(
     ) {
         editingTransactionId = transaction.id
         editingCreatedAt = transaction.createdAt
+        editingOriginalType = transaction.type
         _state.update {
             it.copy(
                 tab = transaction.type.toTab(),
@@ -209,6 +210,13 @@ class AddTransactionViewModel(
 
     private var editingTransactionId: String? = null
     private var editingCreatedAt: Long? = null
+
+    /**
+     * The type of the transaction being edited. The INVEST tab can only emit INVESTMENT_BUY,
+     * so without this an edited INVESTMENT_SELL would be silently rewritten to a BUY —
+     * inverting both the account leg and the invested amount. Preserve SELL across edit.
+     */
+    private var editingOriginalType: TransactionType? = null
 
     private fun TransactionType.toTab(): TransactionTab = when (this) {
         TransactionType.INCOME -> TransactionTab.INCOME
@@ -434,9 +442,20 @@ class AddTransactionViewModel(
         _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val now = clock()
+            val isEditing = editingTransactionId != null
             val id = editingTransactionId ?: UUID.randomUUID().toString()
             val created = editingCreatedAt ?: now
-            val effectiveType = override?.type ?: snapshot.effectiveType
+            val tabType = override?.type ?: snapshot.effectiveType
+            // The INVEST tab always yields INVESTMENT_BUY; if we're editing a row that was an
+            // INVESTMENT_SELL, keep it a SELL so its direction isn't inverted on save.
+            val effectiveType =
+                if (tabType == TransactionType.INVESTMENT_BUY &&
+                    editingOriginalType == TransactionType.INVESTMENT_SELL
+                ) {
+                    TransactionType.INVESTMENT_SELL
+                } else {
+                    tabType
+                }
             val effectiveDestination = override?.destination ?: snapshot.destination
             val baseTxn = Transaction(
                 id = id,
@@ -467,16 +486,21 @@ class AddTransactionViewModel(
                 createdAt = created,
                 updatedAt = now,
             )
-            // Apply the Rules Engine before persisting. The engine may rewrite type,
-            // category, tax section, and add tags/people. PromptSpouse / ExcludeFromExpense
-            // signals are produced too but ignored here for now — the spouse path is
-            // already handled by interceptSaveIfNeeded() above; exclude-from-expense is a
-            // future enhancement for the MonthlyAggregator hint table.
-            val activeRules = transactionRuleRepository.observeActive()
-                .let { runCatching { it.first() }.getOrDefault(emptyList()) }
-            val knownPeople = people.value
-            val engineResult = RuleEngine.apply(baseTxn, activeRules, knownPeople)
-            transactionRepository.save(engineResult.transaction)
+            // Apply the Rules Engine only on CREATE. On edit we persist the user's values
+            // verbatim — re-running rules would re-overwrite a field the user just manually
+            // corrected (e.g. a type/category the rule originally mis-set). The engine may
+            // rewrite type, category, tax section, and add tags/people. PromptSpouse /
+            // ExcludeFromExpense signals are produced too but ignored here for now — the spouse
+            // path is already handled by interceptSaveIfNeeded() above; exclude-from-expense is
+            // a future enhancement for the MonthlyAggregator hint table.
+            val toSave = if (isEditing) {
+                baseTxn
+            } else {
+                val activeRules = transactionRuleRepository.observeActive()
+                    .let { runCatching { it.first() }.getOrDefault(emptyList()) }
+                RuleEngine.apply(baseTxn, activeRules, people.value).transaction
+            }
+            transactionRepository.save(toSave)
             _state.update { it.copy(isSaving = false, savedAndClose = true) }
         }
     }

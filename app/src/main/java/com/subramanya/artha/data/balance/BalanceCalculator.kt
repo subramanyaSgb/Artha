@@ -73,6 +73,121 @@ object BalanceCalculator {
     // Card credits (outstanding decreases) reuse MONEY_INTO_SOURCE — any money landing on the
     // card pays it down, mirroring how those same types add to an account balance.
 
+    /** invested principal + posted interest for one investment, returned together. */
+    data class InvestmentTotals(val invested: Double, val interest: Double)
+
+    /**
+     * Balances for MANY accounts in a SINGLE pass over [transactions].
+     *
+     * Equivalent to calling [computeAccountBalance] once per account (pinned by
+     * BalanceBatchTest) but O(transactions + accounts) instead of O(accounts × transactions).
+     * This is the hot path: every account balance is recomputed whenever the transaction log
+     * changes, so the live flows use this batch form to avoid re-scanning the whole log per
+     * account. [openingBalanceById] supplies each account's opening balance and also defines
+     * which accounts to compute (transactions referencing other ids are ignored).
+     */
+    fun computeAccountBalances(
+        openingBalanceById: Map<String, Double>,
+        transactions: List<TransactionEntity>,
+    ): Map<String, Double> {
+        val balances = HashMap(openingBalanceById)
+        for (txn in transactions) {
+            if (txn.sourceType == SourceKind.ACCOUNT) {
+                val id = txn.sourceId
+                val current = if (id != null) balances[id] else null
+                if (id != null && current != null) {
+                    balances[id] = when (txn.type) {
+                        in MONEY_OUT_OF_SOURCE -> current - txn.amount
+                        in MONEY_INTO_SOURCE -> current + txn.amount
+                        TransactionType.ADJUSTMENT -> current + txn.amount
+                        else -> current
+                    }
+                }
+            }
+            if (txn.destinationType == SourceKind.ACCOUNT && txn.type in MONEY_INTO_DESTINATION) {
+                val id = txn.destinationId
+                val current = if (id != null) balances[id] else null
+                if (id != null && current != null) {
+                    balances[id] = current + txn.amount
+                }
+            }
+        }
+        return balances
+    }
+
+    /**
+     * Outstanding for MANY cards in a SINGLE pass. Equivalent to [computeCardOutstanding] per
+     * card (pinned by BalanceBatchTest), O(transactions + cards). [cardIds] defines which cards
+     * to compute; each starts at 0.0.
+     */
+    fun computeCardOutstandings(
+        cardIds: Collection<String>,
+        transactions: List<TransactionEntity>,
+    ): Map<String, Double> {
+        val outstanding = HashMap<String, Double>(cardIds.size)
+        for (id in cardIds) outstanding[id] = 0.0
+        for (txn in transactions) {
+            if (txn.sourceType == SourceKind.CARD) {
+                val id = txn.sourceId
+                val current = if (id != null) outstanding[id] else null
+                if (id != null && current != null) {
+                    outstanding[id] = when (txn.type) {
+                        in CARD_CHARGES -> current + txn.amount
+                        in MONEY_INTO_SOURCE -> current - txn.amount
+                        TransactionType.ADJUSTMENT -> current + txn.amount
+                        else -> current
+                    }
+                }
+            }
+            if (txn.destinationType == SourceKind.CARD && txn.type == TransactionType.CARD_PAYMENT) {
+                val id = txn.destinationId
+                val current = if (id != null) outstanding[id] else null
+                if (id != null && current != null) {
+                    outstanding[id] = current - txn.amount
+                }
+            }
+        }
+        return outstanding
+    }
+
+    /**
+     * invested (opening + buys − sells) and posted interest for MANY investments in a SINGLE
+     * pass. Equivalent to [computeInvestmentInvested] + [computeInvestmentInterest] per
+     * investment (pinned by BalanceBatchTest). [openingContributionById] supplies each
+     * investment's opening principal and defines which investments to compute.
+     */
+    fun computeInvestmentTotals(
+        openingContributionById: Map<String, Double>,
+        transactions: List<TransactionEntity>,
+    ): Map<String, InvestmentTotals> {
+        val invested = HashMap(openingContributionById)
+        val interest = HashMap<String, Double>(openingContributionById.size)
+        for (id in openingContributionById.keys) interest[id] = 0.0
+        for (txn in transactions) {
+            when (txn.type) {
+                TransactionType.INVESTMENT_BUY -> {
+                    val id = txn.destinationId
+                    val current = if (id != null && txn.destinationType == SourceKind.INVESTMENT) invested[id] else null
+                    if (id != null && current != null) invested[id] = current + txn.amount
+                }
+                TransactionType.INVESTMENT_SELL -> {
+                    val id = txn.sourceId
+                    val current = if (id != null && txn.sourceType == SourceKind.INVESTMENT) invested[id] else null
+                    if (id != null && current != null) invested[id] = current - txn.amount
+                }
+                TransactionType.INTEREST -> {
+                    val id = txn.destinationId
+                    val current = if (id != null && txn.destinationType == SourceKind.INVESTMENT) interest[id] else null
+                    if (id != null && current != null) interest[id] = current + txn.amount
+                }
+                else -> Unit
+            }
+        }
+        return openingContributionById.keys.associateWith { id ->
+            InvestmentTotals(invested = invested.getValue(id), interest = interest.getValue(id))
+        }
+    }
+
     fun computeAccountBalance(
         openingBalance: Double,
         accountId: String,

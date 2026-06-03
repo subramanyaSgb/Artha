@@ -128,7 +128,7 @@ fun TransactionsScreen(
                     )
                 }
 
-                TotalsStrip(grouped = state.grouped)
+                TotalsStrip(inSum = state.inSum, outSum = state.outSum, net = state.net)
 
                 SearchField(query = state.query, onQueryChanged = vm::onQueryChanged)
                 Spacer(Modifier.height(8.dp))
@@ -162,15 +162,11 @@ fun TransactionsScreen(
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(Surface2),
                             ) {
-                                // Map categoryId → Category once per group so the icon lookup
-                                // inside each row is O(1) instead of re-scanning the list.
-                                val categoryById = remember(state.categories) {
-                                    state.categories.associateBy { it.id }
-                                }
+                                // Category lookup map is precomputed once in the ViewModel.
                                 group.transactions.forEachIndexed { i, txn ->
                                     TransactionRow(
                                         txn = txn,
-                                        category = txn.categoryId?.let { categoryById[it] },
+                                        category = txn.categoryId?.let { state.categoriesById[it] },
                                         selected = txn.id in state.selectedIds,
                                         selectionMode = state.isSelectionMode,
                                         onTap = {
@@ -294,12 +290,7 @@ private fun LedgerHeader(
 // ───────────────────────────── In / Out / Net strip ──────────────────────────
 
 @Composable
-private fun TotalsStrip(grouped: List<TransactionsGroup>) {
-    val flat = remember(grouped) { grouped.flatMap { it.transactions } }
-    val inSum = flat.filter { it.type.isIncomeLike() }.sumOf { it.amount }
-    val outSum = flat.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-    val net = inSum - outSum
-
+private fun TotalsStrip(inSum: Double, outSum: Double, net: Double) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -12,11 +12,14 @@ import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Transaction
+import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.utils.DateFormatter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -66,18 +69,35 @@ class TransactionsViewModel(
         val filtered = applyFilters(data.transactions, ui.query, ui.filter)
         val sorted = applySort(filtered, ui.sort)
         val grouped = groupByDay(sorted)
+        // Precompute here (off the UI thread via flowOn below) so the screen never re-derives
+        // these on recomposition: the category lookup map once, and the In/Out/Net totals in a
+        // single pass instead of re-summing the whole list on every keystroke/selection.
+        val categoriesById = data.categories.associateBy { it.id }
+        var inSum = 0.0
+        var outSum = 0.0
+        for (txn in filtered) {
+            when {
+                txn.type in INCOME_LIKE -> inSum += txn.amount
+                txn.type == TransactionType.EXPENSE -> outSum += txn.amount
+            }
+        }
         TransactionsUiState(
             query = ui.query,
             filter = ui.filter,
             sort = ui.sort,
             grouped = grouped,
+            categoriesById = categoriesById,
+            inSum = inSum,
+            outSum = outSum,
+            net = inSum - outSum,
             accounts = data.accounts,
             cards = data.cards,
             categories = data.categories,
             selectedIds = ui.selectedIds,
             showDeleteConfirm = ui.showDeleteConfirm,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TransactionsUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TransactionsUiState())
 
     // ---------- mutators ----------
 
@@ -204,6 +224,18 @@ class TransactionsViewModel(
         val selectedIds: Set<String>,
         val showDeleteConfirm: Boolean,
     )
+
+    private companion object {
+        /** Types that count as "money in" for the In/Out/Net strip (mirrors the row signing). */
+        private val INCOME_LIKE = setOf(
+            TransactionType.INCOME,
+            TransactionType.REFUND,
+            TransactionType.CASHBACK,
+            TransactionType.INTEREST,
+            TransactionType.LOAN_RECEIVED,
+            TransactionType.GIFT_RECEIVED,
+        )
+    }
 }
 
 class TransactionsViewModelFactory(
