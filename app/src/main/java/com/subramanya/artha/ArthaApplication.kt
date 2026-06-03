@@ -64,7 +64,7 @@ class ArthaApplication : Application() {
         InvestmentRepository(database.investmentDao(), database.transactionDao(), appScope)
     }
     val insuranceRepository: InsuranceRepository by lazy {
-        InsuranceRepository(database.insuranceDao())
+        InsuranceRepository(database.insuranceDao(), database.investmentDao())
     }
     val transactionRuleRepository: TransactionRuleRepository by lazy {
         TransactionRuleRepository(database.transactionRuleDao())

@@ -62,6 +62,7 @@ class InsuranceDetailViewModel(
     fun confirmDelete(onDeleted: () -> Unit) {
         val current = state.value.insurance ?: return
         viewModelScope.launch {
+            // InsuranceRepository.delete unlinks any linked investment so it isn't orphaned.
             insuranceRepository.delete(current)
             showDeleteConfirm.update { false }
             onDeleted()
