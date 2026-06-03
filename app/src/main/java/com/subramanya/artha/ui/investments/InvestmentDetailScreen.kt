@@ -15,30 +15,41 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,16 +61,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.InvestmentType
+import com.subramanya.artha.data.entity.enums.SourceKind
+import com.subramanya.artha.data.entity.enums.ValuationMode
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
+import com.subramanya.artha.ui.transaction.AddTransactionSheet
+import com.subramanya.artha.ui.transaction.AddTransactionViewModel
+import com.subramanya.artha.ui.transaction.AddTransactionViewModelFactory
+import com.subramanya.artha.ui.transaction.FundsEndpoint
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
 
@@ -82,6 +101,8 @@ fun InvestmentDetailScreen(
     )
     val state by vm.state.collectAsStateWithLifecycle()
     var editing: Investment? by remember { mutableStateOf(null) }
+    var showPostInterest by remember { mutableStateOf(false) }
+    var showAddContribution by remember { mutableStateOf(false) }
 
     Surface(
         color = com.subramanya.artha.ui.theme.Surface1,
@@ -137,9 +158,19 @@ fun InvestmentDetailScreen(
             Column(modifier = Modifier.fillMaxSize()) {
                 HeroBlock(
                     investment = inv,
+                    value = state.value,
                     invested = state.investedAmount,
+                    interest = state.interest,
                     gain = state.absoluteGain,
                     pctGain = state.percentGain,
+                )
+
+                ActionRow(
+                    // "Post interest" only makes sense for DERIVED deposits, where value
+                    // is grown by posted interest rather than a manual current value.
+                    showPostInterest = inv.valuationMode == ValuationMode.DERIVED,
+                    onPostInterest = { showPostInterest = true },
+                    onAddContribution = { showAddContribution = true },
                 )
 
                 MetaBlock(investment = inv)
@@ -188,12 +219,178 @@ fun InvestmentDetailScreen(
             onCancel = vm::dismissDeleteConfirm,
         )
     }
+
+    if (showPostInterest) {
+        PostInterestDialog(
+            onConfirm = { amount, dateMillis ->
+                vm.postInterest(amount, dateMillis)
+                showPostInterest = false
+            },
+            onDismiss = { showPostInterest = false },
+        )
+    }
+
+    // "Add contribution" reuses the existing Add Transaction sheet, pre-filled on the
+    // Invest tab with this investment as the destination. The user picks the funding
+    // account and amount, then saves through the normal transaction path.
+    if (showAddContribution) {
+        val invSnapshot = state.investment
+        val txnVm: AddTransactionViewModel = viewModel(
+            factory = AddTransactionViewModelFactory(
+                accountRepository = app.accountRepository,
+                cardRepository = app.cardRepository,
+                categoryRepository = app.categoryRepository,
+                personRepository = app.personRepository,
+                tagRepository = app.tagRepository,
+                transactionRepository = app.transactionRepository,
+                transactionRuleRepository = app.transactionRuleRepository,
+                investmentRepository = app.investmentRepository,
+                settingsPreferences = app.settingsPreferences,
+            ),
+        )
+        LaunchedEffect(invSnapshot?.id) {
+            if (invSnapshot != null) {
+                txnVm.applyInvestContributionPrefill(
+                    investment = FundsEndpoint(
+                        kind = SourceKind.INVESTMENT,
+                        id = invSnapshot.id,
+                        displayName = invSnapshot.name,
+                    ),
+                )
+            }
+        }
+        AddTransactionSheet(viewModel = txnVm, onDismiss = { showAddContribution = false })
+    }
+}
+
+/**
+ * Action row beneath the hero. "Post interest" is gated to DERIVED investments by the
+ * caller; "Add contribution" is always available.
+ */
+@Composable
+private fun ActionRow(
+    showPostInterest: Boolean,
+    onPostInterest: () -> Unit,
+    onAddContribution: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (showPostInterest) {
+            OutlinedButton(onClick = onPostInterest, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Filled.Percent, contentDescription = null)
+                Spacer(Modifier.size(6.dp))
+                Text(stringResource(R.string.investment_detail_action_post_interest))
+            }
+        }
+        OutlinedButton(onClick = onAddContribution, modifier = Modifier.weight(1f)) {
+            Icon(Icons.Filled.Add, contentDescription = null)
+            Spacer(Modifier.size(6.dp))
+            Text(stringResource(R.string.investment_detail_action_add_contribution))
+        }
+    }
+}
+
+/**
+ * Small dialog for posting an interest credit: numeric amount + a date (default today,
+ * via the same Material 3 DatePicker the Add Transaction sheet uses). Confirm is
+ * disabled until the amount parses to a positive number.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PostInterestDialog(
+    onConfirm: (Double, Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var amountText by remember { mutableStateOf("") }
+    var dateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val amount = amountText.toDoubleOrNull()?.takeIf { it > 0.0 }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.investment_post_interest_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { value ->
+                        // Allow digits and a single decimal point only.
+                        amountText = value.filterIndexed { index, c ->
+                            c.isDigit() || (c == '.' && value.indexOf('.') == index)
+                        }
+                    },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.investment_post_interest_amount_label)) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.investment_post_interest_date_label),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Spacer(Modifier.height(8.dp))
+                AssistChip(
+                    onClick = { showDatePicker = true },
+                    label = { Text(DateFormatter.longDate(dateMillis)) },
+                    leadingIcon = { Icon(Icons.Filled.CalendarMonth, contentDescription = null) },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { amount?.let { onConfirm(it, dateMillis) } },
+                enabled = amount != null,
+            ) {
+                Text(stringResource(R.string.investment_post_interest_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        },
+    )
+
+    if (showDatePicker) {
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = dateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { dateMillis = it }
+                    showDatePicker = false
+                }) {
+                    Text(stringResource(R.string.common_save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
 }
 
 // ---------------- pieces ----------------
 
 @Composable
-private fun HeroBlock(investment: Investment, invested: Double, gain: Double, pctGain: Double) {
+private fun HeroBlock(
+    investment: Investment,
+    value: Double,
+    invested: Double,
+    interest: Double,
+    gain: Double,
+    pctGain: Double,
+) {
     val positive = gain >= 0.0
     val gainColor =
         if (positive) MaterialTheme.colorScheme.primary else com.subramanya.artha.ui.theme.Danger
@@ -235,39 +432,60 @@ private fun HeroBlock(investment: Investment, invested: Double, gain: Double, pc
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
+            // Headline is the per-mode computed value (MARKET → current price;
+            // DERIVED → contributions + posted interest).
             Text(
-                text = IndianNumberFormat.format(investment.currentValue),
+                text = IndianNumberFormat.format(value),
                 style = ArthaAmountStyles.display,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (positive) Icons.AutoMirrored.Filled.TrendingUp
-                    else Icons.AutoMirrored.Filled.TrendingDown,
-                    contentDescription = null,
-                    tint = gainColor,
-                )
-                Spacer(Modifier.size(6.dp))
-                Text(
-                    text = IndianNumberFormat.format(gain),
-                    style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
-                    color = gainColor,
-                )
-                Spacer(Modifier.size(8.dp))
-                Text(
-                    text = if (pctGain.isNaN()) "—" else "%+.2f%%".format(pctGain),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = gainColor,
-                )
+            // Subline branches on valuation mode, mirroring the list screen:
+            //  - DERIVED: the gain IS the posted interest (always additive), so we label
+            //    it "Interest" and show no percentage.
+            //  - MARKET:  show gain ₹ and its percent, guarding the NaN case (invested == 0).
+            when (investment.valuationMode) {
+                ValuationMode.DERIVED -> {
+                    Text(
+                        text = stringResource(
+                            R.string.investment_detail_subline_interest,
+                            IndianNumberFormat.format(invested),
+                            IndianNumberFormat.format(interest),
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+                ValuationMode.MARKET -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (positive) Icons.AutoMirrored.Filled.TrendingUp
+                            else Icons.AutoMirrored.Filled.TrendingDown,
+                            contentDescription = null,
+                            tint = gainColor,
+                        )
+                        Spacer(Modifier.size(6.dp))
+                        Text(
+                            text = if (pctGain.isNaN()) {
+                                stringResource(
+                                    R.string.investment_detail_subline_gain_no_pct,
+                                    IndianNumberFormat.format(invested),
+                                    IndianNumberFormat.format(gain),
+                                )
+                            } else {
+                                stringResource(
+                                    R.string.investment_detail_subline_gain,
+                                    IndianNumberFormat.format(invested),
+                                    IndianNumberFormat.format(gain),
+                                    "%+.2f%%".format(pctGain),
+                                )
+                            },
+                            style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
+                            color = gainColor,
+                        )
+                    }
+                }
             }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.investments_hero_invested) +
-                    ": " + IndianNumberFormat.format(invested),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
         }
     }
 }

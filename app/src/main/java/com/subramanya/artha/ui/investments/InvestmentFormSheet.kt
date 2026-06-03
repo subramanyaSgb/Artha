@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.InvestmentType
+import com.subramanya.artha.data.entity.enums.ValuationMode
+import com.subramanya.artha.data.entity.enums.defaultValuationMode
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.ui.common.ArthaSheetHandle
 import com.subramanya.artha.ui.common.ArthaTextField
@@ -79,6 +81,11 @@ fun InvestmentFormSheet(
     var currentValueText by remember(editing) {
         mutableStateOf(editing?.currentValue?.toPlainString() ?: "")
     }
+    // Opening contribution: for DERIVED deposits this is "what's in the deposit now",
+    // for MARKET instruments it's the optional "invested so far" amount.
+    var openingContributionText by remember(editing) {
+        mutableStateOf(editing?.openingContribution?.toPlainString() ?: "")
+    }
     var unitsText by remember(editing) {
         mutableStateOf(editing?.units?.toPlainString() ?: "")
     }
@@ -105,7 +112,20 @@ fun InvestmentFormSheet(
     val parsedNav = remember(navText) {
         if (navText.isBlank()) null else navText.toDoubleOrNull()
     }
-    val isValid = name.isNotBlank() && parsedCurrentValue != null
+    val parsedOpeningContribution = remember(openingContributionText) {
+        if (openingContributionText.isBlank()) 0.0 else openingContributionText.toDoubleOrNull()
+    }
+
+    // Valuation mode is derived from the selected type and re-derives whenever the
+    // type changes — DERIVED deposits compute their value from contributions + interest,
+    // MARKET instruments use the manually-entered current value.
+    val valuationMode = remember(type) { type.defaultValuationMode() }
+    val isDerived = valuationMode == ValuationMode.DERIVED
+
+    // For DERIVED, the opening-contribution field is the primary amount and must parse;
+    // for MARKET, the current-value field is the one that must parse.
+    val isValid = name.isNotBlank() &&
+        if (isDerived) parsedOpeningContribution != null else parsedCurrentValue != null
 
     val showUnitsAndNav = type in setOf(
         InvestmentType.SIP, InvestmentType.MUTUAL_FUND, InvestmentType.EQUITY,
@@ -182,22 +202,67 @@ fun InvestmentFormSheet(
                 )
             }
 
-            FieldRow(label = stringResource(R.string.investment_form_current_value_label)) {
-                ArthaTextField(
-                    value = currentValueText,
-                    onValueChange = { v ->
-                        currentValueText = v.filterIndexed { i, c ->
-                            c.isDigit() || (c == '.' && v.indexOf('.') == i)
-                        }
-                    },
-                    placeholder = "124300",
-                    suffix = "₹",
-                    isError = showErrors && parsedCurrentValue == null,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Next,
-                    ),
-                )
+            // Type-aware value field:
+            //   DERIVED (FD/RD/PPF/EPF/Bonds) → one "amount in the deposit" field bound to
+            //     openingContribution; the displayed value is computed elsewhere from
+            //     contributions + interest, so we never ask for a manual current value.
+            //   MARKET (everything else) → the manual "Current value" field plus an optional
+            //     "Invested so far" field used only to show a return %.
+            if (isDerived) {
+                FieldRow(label = stringResource(R.string.investment_form_opening_contribution_label)) {
+                    ArthaTextField(
+                        value = openingContributionText,
+                        onValueChange = { v ->
+                            openingContributionText = v.filterIndexed { i, c ->
+                                c.isDigit() || (c == '.' && v.indexOf('.') == i)
+                            }
+                        },
+                        placeholder = "60000",
+                        suffix = "₹",
+                        isError = showErrors && parsedOpeningContribution == null,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Next,
+                        ),
+                    )
+                }
+            } else {
+                FieldRow(label = stringResource(R.string.investment_form_current_value_label)) {
+                    ArthaTextField(
+                        value = currentValueText,
+                        onValueChange = { v ->
+                            currentValueText = v.filterIndexed { i, c ->
+                                c.isDigit() || (c == '.' && v.indexOf('.') == i)
+                            }
+                        },
+                        placeholder = "124300",
+                        suffix = "₹",
+                        isError = showErrors && parsedCurrentValue == null,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Next,
+                        ),
+                    )
+                }
+                FieldRow(
+                    label = stringResource(R.string.investment_form_invested_so_far_label),
+                    optional = true,
+                ) {
+                    ArthaTextField(
+                        value = openingContributionText,
+                        onValueChange = { v ->
+                            openingContributionText = v.filterIndexed { i, c ->
+                                c.isDigit() || (c == '.' && v.indexOf('.') == i)
+                            }
+                        },
+                        placeholder = "100000",
+                        suffix = "₹",
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Next,
+                        ),
+                    )
+                }
             }
 
             if (showUnitsAndNav) {
@@ -295,12 +360,18 @@ fun InvestmentFormSheet(
                         return@SavePrimaryButton
                     }
                     val now = System.currentTimeMillis()
+                    val openingContribution = parsedOpeningContribution ?: 0.0
                     val resolved = Investment(
                         id = editing?.id ?: UUID.randomUUID().toString(),
                         name = name.trim(),
                         type = type,
                         institution = institution.trim().takeIf { it.isNotBlank() },
-                        currentValue = parsedCurrentValue ?: 0.0,
+                        // DERIVED rows compute their value, so currentValue is unused for
+                        // display — we mirror openingContribution into it (harmless). MARKET
+                        // rows keep the manually-entered current value.
+                        currentValue = if (isDerived) openingContribution else (parsedCurrentValue ?: 0.0),
+                        valuationMode = valuationMode,
+                        openingContribution = openingContribution,
                         units = if (showUnitsAndNav) parsedUnits else editing?.units,
                         nav = if (showUnitsAndNav) parsedNav else editing?.nav,
                         startDate = startDate,

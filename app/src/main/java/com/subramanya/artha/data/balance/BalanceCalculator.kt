@@ -3,6 +3,7 @@ package com.subramanya.artha.data.balance
 import com.subramanya.artha.data.entity.TransactionEntity
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
+import com.subramanya.artha.data.entity.enums.ValuationMode
 
 /**
  * Pure-Kotlin balance derivation. Account balances and credit-card outstandings are
@@ -102,8 +103,13 @@ object BalanceCalculator {
      * transaction log so the user never has to maintain a running total manually.
      *
      * Rules:
+     *   - `openingContribution` seeds the running total (principal already in the
+     *     investment before the first logged transaction — e.g. a migrated balance).
      *   - INVESTMENT_BUY with destination = this investment → adds to invested
      *   - INVESTMENT_SELL with source = this investment       → subtracts from invested
+     *
+     * Note: posted INTEREST is NOT counted here (it is growth, not contributed
+     * principal) — see [computeInvestmentInterest].
      *
      * Returns can be negative if the user has sold more than they bought (rare;
      * indicates partial profit-taking past the original principal).
@@ -111,8 +117,9 @@ object BalanceCalculator {
     fun computeInvestmentInvested(
         investmentId: String,
         transactions: List<TransactionEntity>,
+        openingContribution: Double = 0.0,
     ): Double {
-        var invested = 0.0
+        var invested = openingContribution
         for (txn in transactions) {
             when (txn.type) {
                 TransactionType.INVESTMENT_BUY -> {
@@ -129,6 +136,43 @@ object BalanceCalculator {
             }
         }
         return invested
+    }
+
+    /** Interest credited INTO this investment (compounding deposits). */
+    fun computeInvestmentInterest(
+        investmentId: String,
+        transactions: List<TransactionEntity>,
+    ): Double {
+        var interest = 0.0
+        for (txn in transactions) {
+            if (txn.type == TransactionType.INTEREST &&
+                txn.destinationType == SourceKind.INVESTMENT &&
+                txn.destinationId == investmentId
+            ) {
+                interest += txn.amount
+            }
+        }
+        return interest
+    }
+
+    /**
+     * Displayed value of an investment, per its valuation mode. Pass all params
+     * regardless of mode; each mode reads only the subset it needs:
+     *   - MARKET  → returns the manually-entered [currentValue] (the others are ignored).
+     *   - DERIVED → contributions (opening + buys − sells) + posted interest
+     *               (ignores [currentValue]).
+     */
+    fun computeInvestmentValue(
+        mode: ValuationMode,
+        currentValue: Double,
+        openingContribution: Double,
+        investmentId: String,
+        transactions: List<TransactionEntity>,
+    ): Double = when (mode) {
+        ValuationMode.MARKET -> currentValue
+        ValuationMode.DERIVED ->
+            computeInvestmentInvested(investmentId, transactions, openingContribution) +
+                computeInvestmentInterest(investmentId, transactions)
     }
 
     fun computeCardOutstanding(

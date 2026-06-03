@@ -18,6 +18,7 @@ import com.subramanya.artha.data.entity.enums.SubscriptionFrequency
 import com.subramanya.artha.data.entity.enums.SubscriptionStatus
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
+import com.subramanya.artha.data.entity.enums.ValuationMode
 
 class Converters {
     @TypeConverter fun fromAccountType(v: AccountType): String = v.name
@@ -52,6 +53,9 @@ class Converters {
 
     @TypeConverter fun fromInvestmentType(v: InvestmentType): String = v.name
     @TypeConverter fun toInvestmentType(v: String): InvestmentType = InvestmentType.valueOf(v)
+
+    @TypeConverter fun fromValuationMode(v: ValuationMode): String = v.name
+    @TypeConverter fun toValuationMode(v: String): ValuationMode = ValuationMode.valueOf(v)
 
     @TypeConverter fun fromInsuranceType(v: InsuranceType): String = v.name
     @TypeConverter fun toInsuranceType(v: String): InsuranceType = InsuranceType.valueOf(v)

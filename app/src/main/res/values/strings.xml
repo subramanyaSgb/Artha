@@ -627,6 +627,10 @@
     <string name="investments_view_by_type">By type</string>
     <string name="investments_hero_current">Current value</string>
     <string name="investments_hero_invested">Invested</string>
+    <!-- Row sublines. %1$s = invested amount, %2$s = interest/gain amount, %3$s = gain percent. -->
+    <string name="investments_subline_interest">Invested %1$s · Interest %2$s</string>
+    <string name="investments_subline_gain">Invested %1$s · Gain %2$s (%3$s)</string>
+    <string name="investments_subline_gain_no_pct">Invested %1$s · Gain %2$s</string>
 
     <!-- Investment types -->
     <string name="investment_type_fd">FD</string>
@@ -652,6 +656,12 @@
     <string name="investment_form_institution_label">Institution / AMC (optional)</string>
     <string name="investment_form_institution_placeholder">e.g. Zerodha, HDFC AMC</string>
     <string name="investment_form_current_value_label">Current value</string>
+    <!-- DERIVED types (FD/RD/PPF/EPF/Bonds): the value is computed from contributions
+         + posted interest, so the user enters how much is in the deposit right now. -->
+    <string name="investment_form_opening_contribution_label">Amount currently in this deposit</string>
+    <!-- MARKET types (mutual funds, equity, …): optional total the user has put in,
+         used only to show a return %. The displayed value stays the manual current value. -->
+    <string name="investment_form_invested_so_far_label">Invested so far</string>
     <string name="investment_form_units_label">Units</string>
     <string name="investment_form_nav_label">NAV / Price per unit</string>
     <string name="investment_form_start_date_label">Start date</string>
@@ -673,6 +683,21 @@
     <string name="investment_detail_meta_units">Units</string>
     <string name="investment_detail_meta_nav">NAV</string>
     <string name="investment_detail_meta_tax_section">Tax section</string>
+
+    <!-- Investment detail hero sublines. %1$s = invested, %2$s = interest/gain, %3$s = gain percent. -->
+    <string name="investment_detail_subline_interest">Invested %1$s · Interest %2$s</string>
+    <string name="investment_detail_subline_gain">Invested %1$s · Gain %2$s (%3$s)</string>
+    <string name="investment_detail_subline_gain_no_pct">Invested %1$s · Gain %2$s</string>
+
+    <!-- Investment detail actions -->
+    <string name="investment_detail_action_post_interest">Post interest</string>
+    <string name="investment_detail_action_add_contribution">Add contribution</string>
+
+    <!-- Post-interest dialog -->
+    <string name="investment_post_interest_title">Post interest</string>
+    <string name="investment_post_interest_amount_label">Interest amount</string>
+    <string name="investment_post_interest_date_label">Date</string>
+    <string name="investment_post_interest_confirm">Post</string>
 
     <!-- Investment delete -->
     <string name="investment_delete_confirm_title">Delete this investment?</string>

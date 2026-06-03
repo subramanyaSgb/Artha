@@ -63,11 +63,27 @@ android {
         buildConfig = true
     }
 
+    // Room exports each schema version as JSON into app/schemas. These are committed so
+    // MigrationTestHelper can validate that a migration lands on the expected schema, and
+    // so future schema diffs are reviewable. Wired to ksp via room.schemaLocation below.
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDirs("$projectDir/schemas")
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+// Export Room schemas to app/schemas/<dbVersion>.json so MigrationTestHelper can validate
+// migrations against the real generated schema. Must be paired with exportSchema = true on
+// @Database (see AppDatabase).
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -128,6 +144,8 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    // MigrationTestHelper for instrumented Room migration tests.
+    androidTestImplementation(libs.androidx.room.testing)
 
     // Debug-only tooling
     debugImplementation(libs.androidx.compose.ui.tooling)

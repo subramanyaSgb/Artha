@@ -3,6 +3,8 @@ package com.subramanya.artha.data.repository
 import com.subramanya.artha.data.balance.BalanceCalculator
 import com.subramanya.artha.data.dao.InvestmentDao
 import com.subramanya.artha.data.dao.TransactionDao
+import com.subramanya.artha.data.entity.InvestmentEntity
+import com.subramanya.artha.data.entity.TransactionEntity
 import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Investment
@@ -30,22 +32,53 @@ class InvestmentRepository(
 
     fun observeActiveWithMetrics(): Flow<List<InvestmentWithMetrics>> =
         combine(investmentDao.observeActive(), transactionDao.observeAll()) { investments, txns ->
-            investments.map { entity ->
-                val invested = BalanceCalculator.computeInvestmentInvested(entity.id, txns)
-                val gain = entity.currentValue - invested
-                val pct = if (invested == 0.0) Double.NaN else (gain / invested) * 100.0
-                InvestmentWithMetrics(
-                    investment = entity.toDomain(),
-                    investedAmount = invested,
-                    absoluteGain = gain,
-                    percentGain = pct,
-                )
-            }
+            investments.map { entity -> metricsFor(entity, txns) }
         }
 
+    /**
+     * Map of EVERY investment id (active AND archived) → its computed per-mode value
+     * (MARKET → manual currentValue, DERIVED → contributions + posted interest).
+     *
+     * Single source of truth for "what an investment is worth" so aggregate consumers
+     * (net worth, goals, reports) never re-implement the formula or sum the stale raw
+     * `currentValue`. Covers all investments because consumers differ in scope —
+     * dashboard/reports want active-only, goals filter by linked ids, search shows all —
+     * so each consumer filters the map by the ids it cares about.
+     */
+    fun observeValuesByInvestmentId(): Flow<Map<String, Double>> =
+        combine(investmentDao.observeAll(), transactionDao.observeAll()) { investments, txns ->
+            investments.associate { entity -> entity.id to valueFor(entity, txns) }
+        }
+
+    /** The one place the per-mode value formula is applied to an entity. */
+    private fun valueFor(entity: InvestmentEntity, txns: List<TransactionEntity>): Double =
+        BalanceCalculator.computeInvestmentValue(
+            entity.valuationMode,
+            entity.currentValue,
+            entity.openingContribution,
+            entity.id,
+            txns,
+        )
+
+    /** Full metric bundle for one entity. Reuses [valueFor] so value math lives once. */
+    private fun metricsFor(entity: InvestmentEntity, txns: List<TransactionEntity>): InvestmentWithMetrics {
+        val invested =
+            BalanceCalculator.computeInvestmentInvested(entity.id, txns, entity.openingContribution)
+        val value = valueFor(entity, txns)
+        val gain = value - invested
+        val pct = if (invested == 0.0) Double.NaN else (gain / invested) * 100.0
+        return InvestmentWithMetrics(
+            investment = entity.toDomain(),
+            investedAmount = invested,
+            value = value,
+            absoluteGain = gain,
+            percentGain = pct,
+        )
+    }
+
     fun observeInvested(id: String): Flow<Double> =
-        transactionDao.observeAll().map { txns ->
-            BalanceCalculator.computeInvestmentInvested(id, txns)
+        combine(investmentDao.observeById(id), transactionDao.observeAll()) { entity, txns ->
+            BalanceCalculator.computeInvestmentInvested(id, txns, entity?.openingContribution ?: 0.0)
         }
 
     suspend fun getById(id: String): Investment? = investmentDao.getById(id)?.toDomain()

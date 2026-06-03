@@ -136,6 +136,25 @@ class AddTransactionViewModel(
         }
     }
 
+    /**
+     * Investment Detail "Add contribution" flow: pre-fill the sheet on the Invest tab
+     * with the given investment pre-selected as the destination. The user still picks
+     * the funding account (source) and the amount. Idempotent — safe to call from
+     * LaunchedEffect.
+     */
+    fun applyInvestContributionPrefill(investment: FundsEndpoint) {
+        _state.update {
+            it.copy(
+                tab = TransactionTab.INVEST,
+                destination = investment,
+                categoryId = null,
+                categoryDisplay = null,
+                subCategoryId = null,
+                subCategoryDisplay = null,
+            )
+        }
+    }
+
     fun applyPayBillPrefill(toCard: FundsEndpoint) {
         _state.update {
             it.copy(

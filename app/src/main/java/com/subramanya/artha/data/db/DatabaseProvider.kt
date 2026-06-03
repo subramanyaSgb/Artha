@@ -2,6 +2,7 @@ package com.subramanya.artha.data.db
 
 import android.content.Context
 import androidx.room.Room
+import com.subramanya.artha.BuildConfig
 import com.subramanya.artha.data.db.seed.CategorySeederCallback
 import com.subramanya.artha.data.db.seed.RuleSeederCallback
 
@@ -19,12 +20,26 @@ object DatabaseProvider {
             instance ?: build(context.applicationContext).also { instance = it }
         }
 
-    private fun build(appContext: Context): AppDatabase =
-        Room.databaseBuilder(appContext, AppDatabase::class.java, AppDatabase.DB_NAME)
-            .addCallback(CategorySeederCallback())
-            .addCallback(RuleSeederCallback())
-            // Debug-friendly: schema changes wipe local data. Phase 2 bumps schema to v2 — the
-            // bundled bank-import auto-runs again on next launch so the user doesn't lose history.
-            .fallbackToDestructiveMigration()
-            .build()
+    private fun build(appContext: Context): AppDatabase {
+        val builder =
+            Room.databaseBuilder(appContext, AppDatabase::class.java, AppDatabase.DB_NAME)
+                .addCallback(CategorySeederCallback())
+                .addCallback(RuleSeederCallback())
+                // Real, data-preserving migrations run first. v3->v4 adds investment valuation
+                // columns and back-fills existing rows (see MIGRATION_3_4).
+                .addMigrations(MIGRATION_3_4)
+
+        // Destructive fallback in DEBUG ONLY. During development a schema gap not covered by an
+        // explicit migration resets the local DB instead of crashing — convenient for iteration.
+        //
+        // In RELEASE we deliberately omit it: a missing/failed migration then crashes loudly
+        // rather than SILENTLY WIPING the user's financial data (there is no cloud backup).
+        // So: always add a MIGRATION_n_n+1 to addMigrations(...) above BEFORE bumping the
+        // @Database version, or release builds will fail to open the DB.
+        if (BuildConfig.DEBUG) {
+            builder.fallbackToDestructiveMigration()
+        }
+
+        return builder.build()
+    }
 }

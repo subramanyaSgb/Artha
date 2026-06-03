@@ -28,7 +28,7 @@ class InvestmentsViewModel(
             rows = metrics,
             grouped = metrics.groupBy { it.investment.type },
             totalInvested = metrics.sumOf { it.investedAmount },
-            totalCurrentValue = metrics.sumOf { it.investment.currentValue },
+            totalCurrentValue = metrics.sumOf { it.value },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InvestmentsUiState())
 

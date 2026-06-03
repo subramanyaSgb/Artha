@@ -256,7 +256,9 @@ fun SearchScreen(
                                 title = inv.name,
                                 subtitle = listOfNotNull(inv.institution, inv.taxSection).joinToString(" · "),
                                 onClick = { onOpenInvestment(inv.id) },
-                                trailing = "₹${IndianNumberFormat.format(inv.currentValue)}",
+                                // Computed per-mode value (DERIVED → contributions + interest),
+                                // falling back to raw currentValue if not in the map.
+                                trailing = "₹${IndianNumberFormat.format(r.investmentValuesById[inv.id] ?: inv.currentValue)}",
                             )
                         }
                     }
