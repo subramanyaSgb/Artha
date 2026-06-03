@@ -59,6 +59,9 @@ object MaterialIcons {
         return registry[name.lowercase().trim()] ?: Icons.Filled.Category
     }
 
+    /** All known icon keys — the catalogue the "add icon" picker offers. */
+    val keys: List<String> get() = registry.keys.toList()
+
     private val registry: Map<String, ImageVector> = mapOf(
         // Expense parents
         "restaurant" to Icons.Filled.Restaurant,

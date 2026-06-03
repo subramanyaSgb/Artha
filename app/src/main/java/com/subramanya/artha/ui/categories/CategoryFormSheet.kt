@@ -82,6 +82,12 @@ fun CategoryFormSheet(
     val customColours by app.settingsPreferences.customColours
         .collectAsStateWithLifecycle(initialValue = emptyList())
     var pickingColour by remember { mutableStateOf(false) }
+    val customIcons by app.settingsPreferences.customIcons
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    var pickingIcon by remember { mutableStateOf(false) }
+    val iconChoices = ICONS + customIcons.map {
+        IconChoice(it, com.subramanya.artha.utils.MaterialIcons.resolve(it))
+    }
 
     val isSystem = editing?.isSystem == true
     val isValid = name.isNotBlank()
@@ -156,8 +162,9 @@ fun CategoryFormSheet(
             FieldRow(label = stringResource(R.string.category_form_icon_label)) {
                 IconChipRow(
                     value = icon,
-                    icons = ICONS,
+                    icons = iconChoices,
                     onChange = { icon = it },
+                    onAdd = { pickingIcon = true },
                 )
             }
             FieldRow(label = stringResource(R.string.category_form_color_label)) {
@@ -216,6 +223,34 @@ fun CategoryFormSheet(
             confirmButton = {},
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { pickingColour = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+
+    if (pickingIcon) {
+        val already = iconChoices.map { it.key }.toSet()
+        val catalogue = com.subramanya.artha.utils.MaterialIcons.keys
+            .filter { it !in already }
+            .map { IconChoice(it, com.subramanya.artha.utils.MaterialIcons.resolve(it)) }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pickingIcon = false },
+            title = { Text(stringResource(R.string.picklist_add_icon_title)) },
+            text = {
+                IconChipRow(
+                    value = "",
+                    icons = catalogue,
+                    onChange = { picked ->
+                        pickScope.launch { app.settingsPreferences.addCustomIcon(picked) }
+                        icon = picked
+                        pickingIcon = false
+                    },
+                )
+            },
+            confirmButton = {},
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pickingIcon = false }) {
                     Text(stringResource(R.string.common_cancel))
                 }
             },
