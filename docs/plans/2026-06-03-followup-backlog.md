@@ -79,7 +79,12 @@ A 4-angle audit (data-flow, compose-perf, correctness, Room/DB) ran on 2026-06-0
 fixes were merged in `9a8b33f` (batch balances off-main; Ledger/Dashboard/Reports off-main; Rules `SetType`
 direction guard + create-only; INVESTMENT_SELL edit preserved). These remain open:
 
-**Correctness — need a product decision (change money behaviour / hard to reverse):**
+**Correctness — D1/D2/D3 DONE (merged `18e81f8`, 2026-06-03):** D1 blocks hard-delete when transactions
+reference the entity (routes to Archive); D2 records debit/prepaid card spends against the linked account
+(no phantom outstanding); D3 added a complete all-tables `BackupCodec` for both export paths + an atomic
+Room `withTransaction` restore (round-trip unit-tested, reviewed). Residual: D2 doesn't retro-fix existing
+debit-card rows / unlinked debit cards; D3 restore has no instrumented (device) test yet. Original notes:
+
 - **D1 — Hard-delete orphans transactions.** Deleting an account/card/investment (the Delete action on the
   detail screens, separate from Archive) leaves its transactions with dangling `sourceId`/`destinationId`;
   they still count in reports/totals and a TRANSFER's surviving leg references a missing counterpart. Fix:
