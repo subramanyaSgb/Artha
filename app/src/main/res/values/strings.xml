@@ -328,6 +328,16 @@
     <string name="account_delete_confirm_title">Delete this account?</string>
     <string name="account_delete_confirm_body">This permanently removes the account. Existing transactions that referenced it are kept for history but their account will appear blank. Use Archive instead if you might want it back.</string>
     <string name="account_delete_confirm_yes">Delete permanently</string>
+    <!-- Shown when delete is blocked because transactions still reference the entity. %1$d = count. -->
+    <string name="account_delete_blocked_title">Can\'t delete this account</string>
+    <string name="account_delete_blocked_body">%1$d transactions still reference this account. Deleting it would leave them orphaned and distort your reports. Archive it instead — its history stays intact.</string>
+    <string name="account_delete_blocked_archive">Archive instead</string>
+    <string name="card_delete_blocked_title">Can\'t delete this card</string>
+    <string name="card_delete_blocked_body">%1$d transactions still reference this card. Deleting it would leave them orphaned and distort your reports. Archive it instead — its history stays intact.</string>
+    <string name="card_delete_blocked_archive">Archive instead</string>
+    <string name="investment_delete_blocked_title">Can\'t delete this investment</string>
+    <string name="investment_delete_blocked_body">%1$d transactions still reference this investment. Deleting it would leave them orphaned and distort your reports. Archive it instead — its history stays intact.</string>
+    <string name="investment_delete_blocked_archive">Archive instead</string>
 
     <!-- Cards screen -->
     <string name="cards_title">Cards</string>
