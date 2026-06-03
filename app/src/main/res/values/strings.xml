@@ -661,7 +661,7 @@
     <string name="investment_form_opening_contribution_label">Amount currently in this deposit</string>
     <!-- MARKET types (mutual funds, equity, …): optional total the user has put in,
          used only to show a return %. The displayed value stays the manual current value. -->
-    <string name="investment_form_invested_so_far_label">Invested so far (optional)</string>
+    <string name="investment_form_invested_so_far_label">Invested so far</string>
     <string name="investment_form_units_label">Units</string>
     <string name="investment_form_nav_label">NAV / Price per unit</string>
     <string name="investment_form_start_date_label">Start date</string>
