@@ -73,6 +73,7 @@ class TransactionsViewModel(
         // these on recomposition: the category lookup map once, and the In/Out/Net totals in a
         // single pass instead of re-summing the whole list on every keystroke/selection.
         val categoriesById = data.categories.associateBy { it.id }
+        val rows = flattenRows(grouped, categoriesById)
         var inSum = 0.0
         var outSum = 0.0
         for (txn in filtered) {
@@ -85,7 +86,7 @@ class TransactionsViewModel(
             query = ui.query,
             filter = ui.filter,
             sort = ui.sort,
-            grouped = grouped,
+            rows = rows,
             categoriesById = categoriesById,
             inSum = inSum,
             outSum = outSum,
@@ -208,6 +209,38 @@ class TransactionsViewModel(
             }
             TransactionsGroup(headerKey = day.toString(), headerDisplay = display, transactions = txns)
         }
+    }
+
+    /** Flatten day groups into a single keyed list: a header followed by its entries, each entry
+     *  carrying its resolved category + first/last-in-day flags for the day-card rounding. */
+    private fun flattenRows(
+        groups: List<TransactionsGroup>,
+        categoriesById: Map<String, Category>,
+    ): List<LedgerListItem> = buildList {
+        groups.forEach { group ->
+            val daySum = group.transactions.sumOf { signedDelta(it) }
+            add(LedgerListItem.DayHeader(group.headerKey, group.headerDisplay, daySum))
+            val lastIndex = group.transactions.lastIndex
+            group.transactions.forEachIndexed { i, txn ->
+                add(
+                    LedgerListItem.Entry(
+                        txn = txn,
+                        category = txn.categoryId?.let { categoriesById[it] },
+                        isFirstInDay = i == 0,
+                        isLastInDay = i == lastIndex,
+                    ),
+                )
+            }
+        }
+    }
+
+    /** For day totals: positive for income-like, negative for outflow, zero otherwise. */
+    private fun signedDelta(txn: Transaction): Double = when {
+        txn.type in INCOME_LIKE -> txn.amount
+        txn.type == TransactionType.EXPENSE ||
+            txn.type == TransactionType.LOAN_GIVEN ||
+            txn.type == TransactionType.GIFT_SENT -> -txn.amount
+        else -> 0.0
     }
 
     private data class DataSnapshot(
