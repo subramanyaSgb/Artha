@@ -139,7 +139,10 @@ object BalanceCalculator {
     }
 
     /** Interest credited INTO this investment (compounding deposits). */
-    fun computeInvestmentInterest(investmentId: String, transactions: List<TransactionEntity>): Double {
+    fun computeInvestmentInterest(
+        investmentId: String,
+        transactions: List<TransactionEntity>,
+    ): Double {
         var interest = 0.0
         for (txn in transactions) {
             if (txn.type == TransactionType.INTEREST &&
@@ -152,7 +155,13 @@ object BalanceCalculator {
         return interest
     }
 
-    /** Displayed value of an investment, per its valuation mode. */
+    /**
+     * Displayed value of an investment, per its valuation mode. Pass all params
+     * regardless of mode; each mode reads only the subset it needs:
+     *   - MARKET  → returns the manually-entered [currentValue] (the others are ignored).
+     *   - DERIVED → contributions (opening + buys − sells) + posted interest
+     *               (ignores [currentValue]).
+     */
     fun computeInvestmentValue(
         mode: ValuationMode,
         currentValue: Double,

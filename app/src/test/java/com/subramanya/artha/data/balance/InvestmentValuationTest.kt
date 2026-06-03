@@ -74,11 +74,7 @@ class InvestmentValuationTest {
             idOverride = idx?.let { "txn-buy-$it" },
         )
 
-    /**
-     * An INTEREST credit posted INTO an investment (source = EXTERNAL, the bank/scheme).
-     * Positional `interest(investmentX, 400.0)` and named `interest(to = ..., amount = ...)`
-     * both resolve to this signature.
-     */
+    /** An INTEREST credit posted INTO an investment (source = EXTERNAL, the bank/scheme). */
     private fun interest(to: String, amount: Double): TransactionEntity =
         txn(
             type = TransactionType.INTEREST,
