@@ -28,7 +28,8 @@ class GoalRepository(
         goalDao.observeAll(),
         accountRepository.observeActiveWithBalances(),
         investmentRepository.observeActive(),
-    ) { goals, accountsWithBal, investments ->
+        investmentRepository.observeValuesByInvestmentId(),
+    ) { goals, accountsWithBal, investments, investmentValuesById ->
         val tz = TimeZone.currentSystemDefault()
         val today = Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds())
             .toLocalDateTime(tz).date
@@ -37,9 +38,11 @@ class GoalRepository(
             val acctSum = accountsWithBal
                 .filter { it.account.id in g.linkedAccountIds }
                 .sumOf { it.currentBalance }
+            // Linkage + active-only scope preserved: only active linked investments count,
+            // but each contributes its COMPUTED value (DERIVED → contributions + interest).
             val invSum = investments
                 .filter { it.id in g.linkedInvestmentIds }
-                .sumOf { it.currentValue }
+                .sumOf { investmentValuesById[it.id] ?: it.currentValue }
             val current = acctSum + invSum
             val pct = if (g.targetAmount == 0.0) 0.0 else (current / g.targetAmount) * 100.0
             val daysLeft = g.targetDate?.let {

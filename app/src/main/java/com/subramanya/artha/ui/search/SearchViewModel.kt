@@ -41,6 +41,8 @@ data class SearchResults(
     val tags: List<Tag> = emptyList(),
     val investments: List<Investment> = emptyList(),
     val insurances: List<Insurance> = emptyList(),
+    /** Computed per-mode value keyed by investment id, for displaying live worth. */
+    val investmentValuesById: Map<String, Double> = emptyMap(),
 ) {
     val isEmpty: Boolean = transactions.isEmpty() && accounts.isEmpty() && cards.isEmpty() &&
         people.isEmpty() && categories.isEmpty() && tags.isEmpty() &&
@@ -96,14 +98,24 @@ class SearchViewModel(
         val tags: List<Tag>,
         val investments: List<Investment>,
         val insurances: List<Insurance>,
+        /** id → computed per-mode value, so a DERIVED row shows live worth not stale currentValue. */
+        val investmentValuesById: Map<String, Double>,
     )
+
+    // Fold the investments list with its computed-value map first, keeping the outer
+    // combine inside the 5-arg cap. observeValuesByInvestmentId() covers ALL investments
+    // (active + archived) — search shows both, so every result has a value.
+    private val investmentsWithValues = combine(
+        investmentRepository.observeAll(),
+        investmentRepository.observeValuesByInvestmentId(),
+    ) { inv, valuesById -> inv to valuesById }
 
     private val restSource = combine(
         categoryRepository.observeAll(),
         tagRepository.observeAll(),
-        investmentRepository.observeAll(),
+        investmentsWithValues,
         insuranceRepository.observeAll(),
-    ) { c, t, inv, ins -> Rest(c, t, inv, ins) }
+    ) { c, t, (inv, valuesById), ins -> Rest(c, t, inv, ins, valuesById) }
 
     private val bagSource = combine(
         transactionRepository.observeAll(),
@@ -146,6 +158,7 @@ class SearchViewModel(
                 insurances = bag.rest.insurances
                     .filter { it.matches(needle) }
                     .take(MAX_PER_GROUP),
+                investmentValuesById = bag.rest.investmentValuesById,
             )
             SearchUiState(query = q, results = results, isEmpty = results.isEmpty)
         }

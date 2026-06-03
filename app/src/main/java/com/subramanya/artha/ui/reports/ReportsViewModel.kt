@@ -29,6 +29,13 @@ import kotlinx.datetime.toLocalDateTime
 
 enum class ReportRange { THIS_MONTH, LAST_MONTH, FISCAL_YEAR }
 
+/** Holder folding the three investment/category sources into one combine slot. */
+private data class InvestmentsAndCategories(
+    val investments: List<com.subramanya.artha.domain.model.Investment>,
+    val categories: List<com.subramanya.artha.domain.model.Category>,
+    val valuesById: Map<String, Double>,
+)
+
 data class CategorySlice(val categoryId: String, val displayName: String, val total: Double)
 data class MerchantRow(val name: String, val total: Double, val count: Int)
 data class TaxSectionRow(val section: String, val used: Double, val limit: Double?)
@@ -60,14 +67,18 @@ class ReportsViewModel(
         transactionRepository.observeAll(),
         accountRepository.observeActiveWithBalances(),
         cardRepository.observeActiveWithBalances(),
-        // 4th source folds investments + categories into a Pair so the outer
-        // combine stays inside the 5-arg arity cap.
+        // 4th source folds investments + categories + computed-value map into a
+        // holder so the outer combine stays inside the 5-arg arity cap.
         combine(
             investmentRepository.observeActive(),
             categoryRepository.observeAll(),
-        ) { invs, cats -> invs to cats },
+            investmentRepository.observeValuesByInvestmentId(),
+        ) { invs, cats, valuesById -> InvestmentsAndCategories(invs, cats, valuesById) },
         range,
-    ) { txns, accounts, cards, (investments, categories), currentRange ->
+    ) { txns, accounts, cards, invCat, currentRange ->
+        val investments = invCat.investments
+        val categories = invCat.categories
+        val investmentValuesById = invCat.valuesById
         val window = windowFor(currentRange)
         val inWindow = txns.filter { it.date in window.first..window.second }
 
@@ -112,11 +123,13 @@ class ReportsViewModel(
             .sortedByDescending { it.total }
             .take(10)
 
-        val taxSections = buildTaxSections(inWindow, investments)
+        val taxSections = buildTaxSections(inWindow, investments, investmentValuesById)
 
+        // Active-only scope preserved (observeActive); each investment contributes its
+        // COMPUTED per-mode value rather than the stale raw currentValue.
         val netWorth = accounts.sumOf { it.currentBalance } -
             cards.sumOf { it.currentOutstanding } +
-            investments.sumOf { it.currentValue }
+            investments.sumOf { investmentValuesById[it.id] ?: it.currentValue }
 
         ReportsUiState(
             range = currentRange,
@@ -163,13 +176,15 @@ class ReportsViewModel(
     private fun buildTaxSections(
         txns: List<Transaction>,
         investments: List<com.subramanya.artha.domain.model.Investment>,
+        investmentValuesById: Map<String, Double>,
     ): List<TaxSectionRow> {
         // Aggregate by section across BOTH investments (taxSection field) and any
         // transactions explicitly tagged with a tax section (set by rules engine).
         val totals = mutableMapOf<String, Double>()
         investments.forEach { inv ->
             inv.taxSection?.takeIf { it.isNotBlank() }?.let {
-                totals.merge(it.uppercase(), inv.currentValue) { a, b -> a + b }
+                val value = investmentValuesById[inv.id] ?: inv.currentValue
+                totals.merge(it.uppercase(), value) { a, b -> a + b }
             }
         }
         txns.forEach { txn ->

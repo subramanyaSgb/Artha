@@ -43,10 +43,13 @@ class DashboardViewModel(
      *  primary combine() under the 5-arg ceiling without nesting two layers. */
     private val phase2Bag = combine(
         investmentRepository.observeActive(),
+        investmentRepository.observeValuesByInvestmentId(),
         insuranceRepository.observeDueWithin(weekFromNow()),
-    ) { investments, duePolicies ->
+    ) { investments, valuesById, duePolicies ->
         Phase2Bag(
-            investmentTotalValue = investments.sumOf { it.currentValue },
+            // Active-only scope preserved: sum each active investment's COMPUTED value
+            // (DERIVED rows reflect contributions + interest, not the stale currentValue).
+            investmentTotalValue = investments.sumOf { valuesById[it.id] ?: it.currentValue },
             premiumsDueThisWeek = duePolicies,
         )
     }
