@@ -148,6 +148,13 @@ class SettingsPreferences(context: Context) {
         }
     }
 
+    suspend fun removeCustomIcon(key: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[Keys.CUSTOM_ICONS]?.split(',')?.filter { it.isNotBlank() }.orEmpty()
+            prefs[Keys.CUSTOM_ICONS] = (current - key).joinToString(",")
+        }
+    }
+
     suspend fun setUserName(name: String) {
         dataStore.edit { it[Keys.USER_NAME] = name.trim() }
     }
