@@ -391,9 +391,12 @@ fun InsuranceFormSheet(
                                     name = name.trim(),
                                     type = InvestmentType.ULIP,
                                     institution = provider.trim().takeIf { it.isNotBlank() },
-                                    currentValue = 0.0,
+                                    // Seed the linked ULIP's value from the first premium so it
+                                    // doesn't show ₹0 forever (MARKET value is the manual figure;
+                                    // the user updates it as the fund grows).
+                                    currentValue = resolved.premiumAmount,
                                     valuationMode = InvestmentType.ULIP.defaultValuationMode(),
-                                    openingContribution = 0.0,
+                                    openingContribution = resolved.premiumAmount,
                                     units = null,
                                     nav = null,
                                     startDate = startDate,

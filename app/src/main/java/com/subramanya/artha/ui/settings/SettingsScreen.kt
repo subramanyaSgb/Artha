@@ -162,7 +162,20 @@ fun SettingsScreen(
                 SecuritySection(
                     biometric = state.biometricLockEnabled,
                     smsImport = state.smsAutoImportEnabled,
-                    onBiometricChanged = vm::onBiometricLockChanged,
+                    onBiometricChanged = { enabled ->
+                        // Don't let the user enable the lock on a device that can't actually
+                        // prompt (no enrolled biometric / no secure lock screen) — that would be
+                        // a false sense of security since the gate silently skips when incapable.
+                        if (enabled && !com.subramanya.artha.ui.lock.canPrompt(context)) {
+                            Toast.makeText(
+                                context,
+                                R.string.settings_security_biometric_unavailable,
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        } else {
+                            vm.onBiometricLockChanged(enabled)
+                        }
+                    },
                     onSmsImportChanged = vm::onSmsAutoImportChanged,
                 )
 

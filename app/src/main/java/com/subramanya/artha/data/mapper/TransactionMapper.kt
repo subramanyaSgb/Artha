@@ -35,6 +35,7 @@ fun TransactionEntity.toDomain(
         source = source,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        excludedFromExpenseTotal = excludedFromExpenseTotal,
     )
 
 fun Transaction.toEntity(): TransactionEntity =
@@ -64,4 +65,5 @@ fun Transaction.toEntity(): TransactionEntity =
         source = source,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        excludedFromExpenseTotal = excludedFromExpenseTotal,
     )

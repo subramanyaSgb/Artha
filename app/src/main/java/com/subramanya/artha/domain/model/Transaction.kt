@@ -41,4 +41,6 @@ data class Transaction(
     val source: TransactionSource,
     val createdAt: Long,
     val updatedAt: Long,
+    /** A rule's ExcludeFromExpenseTotal action marked this — the monthly aggregator skips it. */
+    val excludedFromExpenseTotal: Boolean = false,
 )
