@@ -19,6 +19,9 @@ import com.subramanya.artha.data.repository.SubscriptionRepository
 import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.data.repository.TransactionRuleRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 
 /**
@@ -32,11 +35,18 @@ class ArthaApplication : Application() {
 
     val settingsPreferences: SettingsPreferences by lazy { SettingsPreferences(this) }
 
+    /**
+     * Process-lifetime scope for repository-held shared flows (`shareIn`). Lives as long as the
+     * app does — the shared balance flows use `WhileSubscribed`, so they only do work while a
+     * screen is collecting, and idle otherwise.
+     */
+    private val appScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     val accountRepository: AccountRepository by lazy {
-        AccountRepository(database.accountDao(), database.transactionDao())
+        AccountRepository(database.accountDao(), database.transactionDao(), appScope)
     }
     val cardRepository: CardRepository by lazy {
-        CardRepository(database.cardDao(), database.transactionDao())
+        CardRepository(database.cardDao(), database.transactionDao(), appScope)
     }
     val categoryRepository: CategoryRepository by lazy {
         CategoryRepository(database.categoryDao())
@@ -51,7 +61,7 @@ class ArthaApplication : Application() {
         TransactionRepository(database.transactionDao())
     }
     val investmentRepository: InvestmentRepository by lazy {
-        InvestmentRepository(database.investmentDao(), database.transactionDao())
+        InvestmentRepository(database.investmentDao(), database.transactionDao(), appScope)
     }
     val insuranceRepository: InsuranceRepository by lazy {
         InsuranceRepository(database.insuranceDao())

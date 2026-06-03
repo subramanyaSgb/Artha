@@ -9,16 +9,20 @@ import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.domain.model.InvestmentWithMetrics
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 
 class InvestmentRepository(
     private val investmentDao: InvestmentDao,
     private val transactionDao: TransactionDao,
+    private val scope: CoroutineScope,
 ) {
 
     fun observeAll(): Flow<List<Investment>> =
@@ -33,7 +37,7 @@ class InvestmentRepository(
     fun observeById(id: String): Flow<Investment?> =
         investmentDao.observeById(id).map { it?.toDomain() }
 
-    fun observeActiveWithMetrics(): Flow<List<InvestmentWithMetrics>> =
+    private val activeWithMetrics: Flow<List<InvestmentWithMetrics>> =
         combine(investmentDao.observeActive(), transactionDao.observeAll()) { investments, txns ->
             // One pass over the log computes invested + interest for ALL investments.
             val totals = BalanceCalculator.computeInvestmentTotals(
@@ -41,7 +45,11 @@ class InvestmentRepository(
                 txns,
             )
             investments.map { entity -> metricsFor(entity, totals.getValue(entity.id)) }
-        }.flowOn(Dispatchers.Default).distinctUntilChanged()
+        }.flowOn(Dispatchers.Default)
+            .distinctUntilChanged()
+            .shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    fun observeActiveWithMetrics(): Flow<List<InvestmentWithMetrics>> = activeWithMetrics
 
     /**
      * Map of EVERY investment id (active AND archived) → its computed per-mode value
@@ -53,7 +61,7 @@ class InvestmentRepository(
      * dashboard/reports want active-only, goals filter by linked ids, search shows all —
      * so each consumer filters the map by the ids it cares about.
      */
-    fun observeValuesByInvestmentId(): Flow<Map<String, Double>> =
+    private val valuesByInvestmentId: Flow<Map<String, Double>> =
         combine(investmentDao.observeAll(), transactionDao.observeAll()) { investments, txns ->
             val totals = BalanceCalculator.computeInvestmentTotals(
                 investments.associate { it.id to it.openingContribution },
@@ -62,7 +70,13 @@ class InvestmentRepository(
             investments.associate { entity ->
                 entity.id to valueFor(entity, totals.getValue(entity.id))
             }
-        }.flowOn(Dispatchers.Default).distinctUntilChanged()
+        }.flowOn(Dispatchers.Default)
+            .distinctUntilChanged()
+            // Collected by dashboard, reports, goals AND search — share so the per-mode value map
+            // is computed once per change instead of four times.
+            .shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    fun observeValuesByInvestmentId(): Flow<Map<String, Double>> = valuesByInvestmentId
 
     /**
      * The one place the per-mode value formula is applied, now from pre-computed [totals]

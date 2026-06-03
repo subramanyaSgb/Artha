@@ -7,16 +7,20 @@ import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.AccountWithBalance
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 
 class AccountRepository(
     private val accountDao: AccountDao,
     private val transactionDao: TransactionDao,
+    private val scope: CoroutineScope,
 ) {
 
     fun observeAll(): Flow<List<Account>> =
@@ -37,7 +41,9 @@ class AccountRepository(
             else BalanceCalculator.computeAccountBalance(account.openingBalance, accountId, txns)
         }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
-    fun observeActiveWithBalances(): Flow<List<AccountWithBalance>> =
+    // Shared across all consumers (dashboard, reports, goals) so the single-pass balance compute
+    // runs ONCE per change, not once per screen. WhileSubscribed → idle when nothing observes.
+    private val activeWithBalances: Flow<List<AccountWithBalance>> =
         combine(accountDao.observeActive(), transactionDao.observeAll()) { accounts, txns ->
             // Single pass over the whole log for ALL accounts (O(txns + accounts)) instead of
             // one full scan per account, and off the main thread via flowOn below.
@@ -51,7 +57,11 @@ class AccountRepository(
                     currentBalance = balances.getValue(entity.id),
                 )
             }
-        }.flowOn(Dispatchers.Default).distinctUntilChanged()
+        }.flowOn(Dispatchers.Default)
+            .distinctUntilChanged()
+            .shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    fun observeActiveWithBalances(): Flow<List<AccountWithBalance>> = activeWithBalances
 
     suspend fun getById(id: String): Account? = accountDao.getById(id)?.toDomain()
 
