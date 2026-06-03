@@ -98,6 +98,8 @@
 
     <!-- Add Transaction sheet -->
     <string name="txn_title_new">New transaction</string>
+    <string name="txn_title_edit">Edit transaction</string>
+    <string name="txn_update_fmt">Update · %1$s</string>
     <string name="txn_tab_expense">Expense</string>
     <string name="txn_tab_income">Income</string>
     <string name="txn_tab_transfer">Transfer</string>
@@ -975,6 +977,7 @@
     <string name="subscriptions_form_amount_label">Amount per cycle</string>
     <string name="subscriptions_form_frequency_label">Billing frequency</string>
     <string name="subscriptions_form_status_label">Status</string>
+    <string name="subscriptions_form_next_due_label">Next due</string>
     <string name="subscriptions_delete_confirm_title">Delete this subscription?</string>
     <string name="subscriptions_delete_confirm_body">Removes the subscription. Past transactions are kept.</string>
     <string name="subscriptions_delete_confirm_yes">Delete</string>

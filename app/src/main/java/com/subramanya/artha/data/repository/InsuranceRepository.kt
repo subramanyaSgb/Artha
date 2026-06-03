@@ -1,6 +1,7 @@
 package com.subramanya.artha.data.repository
 
 import com.subramanya.artha.data.dao.InsuranceDao
+import com.subramanya.artha.data.dao.InvestmentDao
 import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Insurance
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.map
 
 class InsuranceRepository(
     private val insuranceDao: InsuranceDao,
+    private val investmentDao: InvestmentDao,
 ) {
 
     fun observeAll(): Flow<List<Insurance>> =
@@ -37,5 +39,9 @@ class InsuranceRepository(
     suspend fun restore(insurance: Insurance) =
         insuranceDao.update(insurance.toEntity().copy(isArchived = false))
 
-    suspend fun delete(insurance: Insurance) = insuranceDao.delete(insurance.toEntity())
+    suspend fun delete(insurance: Insurance) {
+        // Clear any linked investment's back-link first so it isn't orphaned, then delete.
+        investmentDao.unlinkInsurance(insurance.id)
+        insuranceDao.delete(insurance.toEntity())
+    }
 }

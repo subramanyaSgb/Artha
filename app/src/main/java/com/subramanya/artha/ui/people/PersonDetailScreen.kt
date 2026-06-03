@@ -365,13 +365,13 @@ private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
     }
 }
 
+// Only the types that actually move a person's net balance render as a signed row, so the row
+// signs agree with the Net / "they owe" / "you owe" hero figures. REFUND/CASHBACK/INTEREST are
+// deliberately omitted — they don't count toward a person ledger (see PeopleViewModel net math).
 private val INCOMEISH: Set<TransactionType> = setOf(
     TransactionType.INCOME,
     TransactionType.LOAN_RECEIVED,
     TransactionType.GIFT_RECEIVED,
-    TransactionType.REFUND,
-    TransactionType.CASHBACK,
-    TransactionType.INTEREST,
 )
 
 private val OUTFLOWISH: Set<TransactionType> = setOf(

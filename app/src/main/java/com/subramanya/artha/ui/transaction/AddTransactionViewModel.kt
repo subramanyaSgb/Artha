@@ -190,6 +190,7 @@ class AddTransactionViewModel(
         editingExcludedFromExpense = transaction.excludedFromExpenseTotal
         _state.update {
             it.copy(
+                isEditing = true,
                 tab = transaction.type.toTab(),
                 amountText = transaction.amount.toPlainString(),
                 dateTimeMillis = transaction.date,

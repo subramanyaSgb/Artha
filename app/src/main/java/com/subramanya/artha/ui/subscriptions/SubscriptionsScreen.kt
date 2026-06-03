@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material3.AlertDialog
@@ -337,6 +338,8 @@ private fun SubscriptionFormSheet(
     var amountText by remember(editing) { mutableStateOf(editing?.amount?.toPlainString() ?: "") }
     var freq by remember(editing) { mutableStateOf(editing?.frequency ?: SubscriptionFrequency.MONTHLY) }
     var status by remember(editing) { mutableStateOf(editing?.status ?: SubscriptionStatus.ACTIVE) }
+    var nextDue by remember(editing) { mutableStateOf(editing?.nextDueDate ?: System.currentTimeMillis()) }
+    var pickingDue by remember { mutableStateOf(false) }
 
     val freqOptions = listOf(
         com.subramanya.artha.ui.common.PillOption(SubscriptionFrequency.MONTHLY, stringResource(R.string.subscription_freq_monthly)),
@@ -409,6 +412,18 @@ private fun SubscriptionFormSheet(
                     onChange = { status = it },
                 )
             }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.subscriptions_form_next_due_label)) {
+                androidx.compose.material3.AssistChip(
+                    onClick = { pickingDue = true },
+                    label = { androidx.compose.material3.Text(com.subramanya.artha.utils.DateFormatter.longDate(nextDue)) },
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            Icons.Filled.CalendarMonth,
+                            contentDescription = null,
+                        )
+                    },
+                )
+            }
 
             Spacer(Modifier.height(28.dp))
             com.subramanya.artha.ui.common.SavePrimaryButton(
@@ -426,7 +441,7 @@ private fun SubscriptionFormSheet(
                             provider = provider.trim().takeIf { it.isNotBlank() },
                             amount = amount,
                             frequency = freq,
-                            nextDueDate = editing?.nextDueDate ?: now,
+                            nextDueDate = nextDue,
                             lastPaidDate = editing?.lastPaidDate,
                             categoryId = editing?.categoryId,
                             paymentMethodType = editing?.paymentMethodType,
@@ -442,6 +457,24 @@ private fun SubscriptionFormSheet(
             )
             Spacer(Modifier.height(20.dp))
         }
+    }
+
+    if (pickingDue) {
+        val pickerState = androidx.compose.material3.rememberDatePickerState(initialSelectedDateMillis = nextDue)
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { pickingDue = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { nextDue = it }
+                    pickingDue = false
+                }) { androidx.compose.material3.Text(stringResource(R.string.common_save)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pickingDue = false }) {
+                    androidx.compose.material3.Text(stringResource(R.string.common_cancel))
+                }
+            },
+        ) { androidx.compose.material3.DatePicker(state = pickerState) }
     }
 }
 

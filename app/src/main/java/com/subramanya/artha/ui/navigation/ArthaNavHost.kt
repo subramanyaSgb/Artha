@@ -72,7 +72,6 @@ object SubRoutes {
 
     // Phase 5
     const val REPORTS = "reports"
-    const val PENDING_SMS = "pending_sms"
 
     /** Global search — opened from the Dashboard header search icon. */
     const val SEARCH = "search"

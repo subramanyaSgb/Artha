@@ -139,27 +139,6 @@ fun ReportsScreen(
     }
 }
 
-@Composable
-private fun EditorialHeader() {
-    Column {
-        Text(
-            text = stringResource(R.string.reports_eyebrow).uppercase(),
-            style = EyebrowStyle,
-            color = Teal300,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.reports_title),
-            style = TextStyle(
-                fontFamily = InstrumentSerif,
-                fontSize = 26.sp,
-                lineHeight = 30.sp,
-                fontWeight = FontWeight.Normal,
-                color = Text1,
-            ),
-        )
-    }
-}
 
 @Composable
 private fun RangePicker(current: ReportRange, onChange: (ReportRange) -> Unit) {

@@ -172,7 +172,7 @@ fun CategoryFormSheet(
                             id = editing?.id ?: UUID.randomUUID().toString(),
                             name = name.trim(),
                             parentId = parentId,
-                            type = if (isSystem) editing!!.type else type,
+                            type = if (isSystem) (editing?.type ?: type) else type,
                             icon = icon,
                             color = color,
                             isSystem = editing?.isSystem ?: false,

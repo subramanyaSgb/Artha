@@ -29,6 +29,11 @@ interface InvestmentDao {
     @Query("SELECT * FROM investments WHERE linked_insurance_id = :insuranceId LIMIT 1")
     suspend fun findByLinkedInsurance(insuranceId: String): InvestmentEntity?
 
+    /** Clear the back-link when the linked insurance is deleted, so the investment isn't left
+     *  pointing at a non-existent policy (the investment row itself is kept). */
+    @Query("UPDATE investments SET linked_insurance_id = NULL WHERE linked_insurance_id = :insuranceId")
+    suspend fun unlinkInsurance(insuranceId: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(investment: InvestmentEntity)
 
