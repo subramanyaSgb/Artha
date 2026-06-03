@@ -26,6 +26,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -358,6 +360,8 @@ fun ColorSwatchRow(
     swatches: List<Long>,
     onChange: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    /** When non-null, renders a trailing "+" tile to add a custom swatch. */
+    onAdd: (() -> Unit)? = null,
 ) {
     FlowRow(
         modifier = modifier,
@@ -386,6 +390,25 @@ fun ColorSwatchRow(
                         .background(Color(c))
                         .clickable { onChange(c) },
                 )
+            }
+        }
+        onAdd?.let { add ->
+            Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, Line1, CircleShape)
+                        .clickable { add() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = null,
+                        tint = Text2,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
         }
     }
