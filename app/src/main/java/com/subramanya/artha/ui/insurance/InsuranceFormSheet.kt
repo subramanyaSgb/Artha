@@ -44,6 +44,7 @@ import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.InsuranceType
 import com.subramanya.artha.data.entity.enums.InvestmentType
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
+import com.subramanya.artha.data.entity.enums.defaultValuationMode
 import com.subramanya.artha.domain.model.Insurance
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.ui.common.ArthaSheetHandle
@@ -391,6 +392,8 @@ fun InsuranceFormSheet(
                                     type = InvestmentType.ULIP,
                                     institution = provider.trim().takeIf { it.isNotBlank() },
                                     currentValue = 0.0,
+                                    valuationMode = InvestmentType.ULIP.defaultValuationMode(),
+                                    openingContribution = 0.0,
                                     units = null,
                                     nav = null,
                                     startDate = startDate,

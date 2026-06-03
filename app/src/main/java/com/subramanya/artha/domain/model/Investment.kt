@@ -1,6 +1,7 @@
 package com.subramanya.artha.domain.model
 
 import com.subramanya.artha.data.entity.enums.InvestmentType
+import com.subramanya.artha.data.entity.enums.ValuationMode
 
 data class Investment(
     val id: String,
@@ -8,6 +9,8 @@ data class Investment(
     val type: InvestmentType,
     val institution: String?,
     val currentValue: Double,
+    val valuationMode: ValuationMode,
+    val openingContribution: Double,
     val units: Double?,
     val nav: Double?,
     val startDate: Long,

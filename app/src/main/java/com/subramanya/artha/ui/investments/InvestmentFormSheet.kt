@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.InvestmentType
+import com.subramanya.artha.data.entity.enums.defaultValuationMode
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.ui.common.ArthaSheetHandle
 import com.subramanya.artha.ui.common.ArthaTextField
@@ -301,6 +302,10 @@ fun InvestmentFormSheet(
                         type = type,
                         institution = institution.trim().takeIf { it.isNotBlank() },
                         currentValue = parsedCurrentValue ?: 0.0,
+                        // TODO(Task 8): surface valuationMode/openingContribution in the form.
+                        // For now keep behavior-preserving defaults.
+                        valuationMode = editing?.valuationMode ?: type.defaultValuationMode(),
+                        openingContribution = editing?.openingContribution ?: (parsedCurrentValue ?: 0.0),
                         units = if (showUnitsAndNav) parsedUnits else editing?.units,
                         nav = if (showUnitsAndNav) parsedNav else editing?.nav,
                         startDate = startDate,
