@@ -500,6 +500,8 @@
     <string name="settings_security_sms">SMS auto-import (Phase 5)</string>
     <string name="settings_security_sms_body">Listen for bank transaction SMS and pre-fill them for your review. Requires SMS permissions; flipping this off revokes the listener.</string>
     <string name="settings_section_ai">AI Quick Entry</string>
+    <string name="settings_ai_enable_title">Enable AI Quick Entry</string>
+    <string name="settings_ai_enable_body">Show the \"Quick add with Gemini\" card on the Dashboard. Off by default.</string>
     <string name="settings_ai_key_add">Add Gemini API key</string>
     <string name="settings_ai_key_change">Change Gemini API key</string>
     <string name="settings_ai_key_present_subtitle">A working key is saved on this device. AI Quick Entry is active.</string>

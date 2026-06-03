@@ -170,6 +170,8 @@ fun SettingsScreen(
                 SectionHeader(stringResource(R.string.settings_section_ai))
                 var showKeyDialog by remember { mutableStateOf(false) }
                 AiQuickEntrySection(
+                    enabled = state.aiQuickEntryEnabled,
+                    onEnabledChanged = vm::onAiQuickEntryEnabledChanged,
                     hasKey = state.hasAiKey,
                     inFlight = state.aiKeySaveInFlight,
                     onAddOrChange = { showKeyDialog = true },
@@ -561,12 +563,22 @@ private fun DataSection(
  */
 @Composable
 private fun AiQuickEntrySection(
+    enabled: Boolean,
+    onEnabledChanged: (Boolean) -> Unit,
     hasKey: Boolean,
     inFlight: Boolean,
     onAddOrChange: () -> Unit,
     onClear: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        // Master toggle — off by default keeps the "Quick add with Gemini" card off the Dashboard.
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_ai_enable_title)) },
+            supportingContent = { Text(stringResource(R.string.settings_ai_enable_body)) },
+            trailingContent = {
+                com.subramanya.artha.ui.common.ArthaSwitch(checked = enabled, onCheckedChange = onEnabledChanged)
+            },
+        )
         ListItem(
             modifier = Modifier
                 .fillMaxWidth()

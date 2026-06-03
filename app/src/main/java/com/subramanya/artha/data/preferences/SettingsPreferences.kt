@@ -94,6 +94,14 @@ class SettingsPreferences(context: Context) {
         dataStore.edit { it[Keys.SMS_AUTO_IMPORT] = value }
     }
 
+    /** Master on/off for AI Quick Entry (the "Quick add with Gemini" card on the Dashboard).
+     *  Default OFF — the feature stays hidden until the user explicitly turns it on in Settings.
+     *  Independent of [geminiApiKey]: the user can enable the toggle and then add a key. */
+    val aiQuickEntryEnabled: Flow<Boolean> = dataStore.data.map { it[Keys.AI_QUICK_ENTRY_ENABLED] ?: false }
+    suspend fun setAiQuickEntryEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.AI_QUICK_ENTRY_ENABLED] = value }
+    }
+
     /** User-supplied Gemini API key for AI Quick Entry. Empty = AI disabled.
      *  Stored only locally (never synced). The Settings flow validates a new key
      *  against the Gemini endpoint before persisting it — see SettingsViewModel. */
@@ -138,6 +146,7 @@ class SettingsPreferences(context: Context) {
         val BUNDLED_IMPORT_VERSION = intPreferencesKey("bundled_import_version")
         val BIOMETRIC_LOCK = booleanPreferencesKey("biometric_lock_enabled")
         val SMS_AUTO_IMPORT = booleanPreferencesKey("sms_auto_import_enabled")
+        val AI_QUICK_ENTRY_ENABLED = booleanPreferencesKey("ai_quick_entry_enabled")
         val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
     }
 }
