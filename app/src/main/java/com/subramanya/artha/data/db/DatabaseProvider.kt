@@ -29,6 +29,11 @@ object DatabaseProvider {
             // Last-resort backstop: any schema gap NOT covered by an explicit migration wipes
             // local data rather than crashing. Kept intentionally below addMigrations so a
             // declared migration always takes precedence over destruction.
+            //
+            // WARNING: this is a last-resort backstop. Any FUTURE @Database version bump that
+            // ships WITHOUT a matching Migration here will SILENTLY WIPE all user data (no cloud
+            // backup exists). Always add the MIGRATION_n_n+1 to addMigrations(...) above before
+            // bumping the version.
             .fallbackToDestructiveMigration()
             .build()
 }
