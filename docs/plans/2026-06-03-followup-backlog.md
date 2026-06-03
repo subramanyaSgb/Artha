@@ -46,3 +46,20 @@ reuse the shared add-transaction state/VM pattern, new strings in `strings.xml` 
 description). No new transaction logic — pure UI entry-point.
 
 **Branch:** `feat/ledger-add-transaction-fab` (off `main` after valuation merges).
+
+---
+
+## Item C — Balance-flow fan-out perf (deferred optimization)
+
+Surfaced during the investment-valuation Task 9 review. `InvestmentRepository.observeValuesByInvestmentId()`
+and `observeActiveWithMetrics()` each do `combine(observeAll(), transactionDao.observeAll())` and recompute
+**every** investment's value on **any** transaction change — O(investments × transactions × 2 passes:
+`computeInvestmentInvested` + `computeInvestmentInterest`). Multiple consumers (Dashboard, Goals, Reports,
+Search) each collect their own copy, so the whole map recomputes N times per change. Negligible at
+personal-app scale (tens of investments, low-thousands of txns), and it mirrors the pre-existing
+`observeActiveWithMetrics` behaviour — so NOT fixed in the valuation branch.
+
+**If/when it matters:** expose the value map as a single shared hot flow (`shareIn`/`stateIn(WhileSubscribed)`
+on a repository-held scope) and precompute a `Map<investmentId, List<txn>>` index once instead of re-scanning
+the full transaction list per investment. This is the "balance-flow fan-out" perf refactor already noted in
+the session backlog.
