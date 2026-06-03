@@ -23,8 +23,12 @@ object DatabaseProvider {
         Room.databaseBuilder(appContext, AppDatabase::class.java, AppDatabase.DB_NAME)
             .addCallback(CategorySeederCallback())
             .addCallback(RuleSeederCallback())
-            // Debug-friendly: schema changes wipe local data. Phase 2 bumps schema to v2 — the
-            // bundled bank-import auto-runs again on next launch so the user doesn't lose history.
+            // Real, data-preserving migrations run first. v3->v4 adds investment valuation
+            // columns and back-fills existing rows (see MIGRATION_3_4).
+            .addMigrations(MIGRATION_3_4)
+            // Last-resort backstop: any schema gap NOT covered by an explicit migration wipes
+            // local data rather than crashing. Kept intentionally below addMigrations so a
+            // declared migration always takes precedence over destruction.
             .fallbackToDestructiveMigration()
             .build()
 }
