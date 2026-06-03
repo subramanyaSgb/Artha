@@ -428,6 +428,8 @@ fun IconChipRow(
     icons: List<IconChoice>,
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** When non-null, renders a trailing "+" tile to add a custom icon. */
+    onAdd: (() -> Unit)? = null,
 ) {
     FlowRow(
         modifier = modifier,
@@ -453,6 +455,24 @@ fun IconChipRow(
                     imageVector = choice.icon,
                     contentDescription = null,
                     tint = if (isSelected) Teal300 else Text2,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        onAdd?.let { add ->
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(Surface2)
+                    .border(1.dp, Line1, RoundedCornerShape(11.dp))
+                    .clickable { add() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = null,
+                    tint = Text2,
                     modifier = Modifier.size(18.dp),
                 )
             }

@@ -656,6 +656,7 @@
     <string name="investments_view_all">All</string>
     <string name="investments_view_by_type">By type</string>
     <string name="picklist_add_colour_title">Add a colour</string>
+    <string name="picklist_add_icon_title">Add an icon</string>
     <string name="investments_hero_current">Current value</string>
     <string name="investments_hero_invested">Invested</string>
     <!-- Row sublines. %1$s = invested amount, %2$s = interest/gain amount, %3$s = gain percent. -->
