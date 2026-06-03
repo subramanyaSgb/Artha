@@ -499,6 +499,7 @@
     <string name="settings_section_security">Security</string>
     <string name="settings_security_biometric">Biometric / device-credential lock</string>
     <string name="settings_security_biometric_body">Prompt for fingerprint, face, or screen-lock on app open. Falls back to your device PIN/pattern if biometrics aren\'t enrolled.</string>
+    <string name="settings_security_biometric_unavailable">Set up a screen lock or fingerprint in your device settings first — this phone can\'t prompt yet.</string>
     <string name="settings_security_sms">SMS auto-import (Phase 5)</string>
     <string name="settings_security_sms_body">Listen for bank transaction SMS and pre-fill them for your review. Requires SMS permissions; flipping this off revokes the listener.</string>
     <string name="settings_section_ai">AI Quick Entry</string>

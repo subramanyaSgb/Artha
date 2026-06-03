@@ -195,7 +195,9 @@ fun BiometricLockGate(content: @Composable () -> Unit) {
     }
 }
 
-private fun canPrompt(context: android.content.Context): Boolean {
+/** True if the device can actually prompt (enrolled biometric or a device credential). Used by
+ *  the lock gate AND the Settings toggle so enabling the lock on an incapable device is blocked. */
+internal fun canPrompt(context: android.content.Context): Boolean {
     val mgr = BiometricManager.from(context)
     val flag = BiometricManager.Authenticators.BIOMETRIC_STRONG or
         BiometricManager.Authenticators.DEVICE_CREDENTIAL
