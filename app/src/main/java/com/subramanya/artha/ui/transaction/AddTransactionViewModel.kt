@@ -434,6 +434,7 @@ class AddTransactionViewModel(
         _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val now = clock()
+            val isEditing = editingTransactionId != null
             val id = editingTransactionId ?: UUID.randomUUID().toString()
             val created = editingCreatedAt ?: now
             val effectiveType = override?.type ?: snapshot.effectiveType
@@ -467,16 +468,21 @@ class AddTransactionViewModel(
                 createdAt = created,
                 updatedAt = now,
             )
-            // Apply the Rules Engine before persisting. The engine may rewrite type,
-            // category, tax section, and add tags/people. PromptSpouse / ExcludeFromExpense
-            // signals are produced too but ignored here for now — the spouse path is
-            // already handled by interceptSaveIfNeeded() above; exclude-from-expense is a
-            // future enhancement for the MonthlyAggregator hint table.
-            val activeRules = transactionRuleRepository.observeActive()
-                .let { runCatching { it.first() }.getOrDefault(emptyList()) }
-            val knownPeople = people.value
-            val engineResult = RuleEngine.apply(baseTxn, activeRules, knownPeople)
-            transactionRepository.save(engineResult.transaction)
+            // Apply the Rules Engine only on CREATE. On edit we persist the user's values
+            // verbatim — re-running rules would re-overwrite a field the user just manually
+            // corrected (e.g. a type/category the rule originally mis-set). The engine may
+            // rewrite type, category, tax section, and add tags/people. PromptSpouse /
+            // ExcludeFromExpense signals are produced too but ignored here for now — the spouse
+            // path is already handled by interceptSaveIfNeeded() above; exclude-from-expense is
+            // a future enhancement for the MonthlyAggregator hint table.
+            val toSave = if (isEditing) {
+                baseTxn
+            } else {
+                val activeRules = transactionRuleRepository.observeActive()
+                    .let { runCatching { it.first() }.getOrDefault(emptyList()) }
+                RuleEngine.apply(baseTxn, activeRules, people.value).transaction
+            }
+            transactionRepository.save(toSave)
             _state.update { it.copy(isSaving = false, savedAndClose = true) }
         }
     }

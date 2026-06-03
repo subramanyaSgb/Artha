@@ -162,6 +162,57 @@ class RuleEngineTest {
         assertEquals(1, result.transaction.tagIds.count { it == "tag-x" })
     }
 
+    @Test fun `SetType cannot flip an income into an outflow`() {
+        // The real bug: a keyword rule (e.g. "LIC") fires on an actual INCOME (an LIC maturity
+        // payout) and rewrites it to INVESTMENT_BUY — flipping the account from credit to debit.
+        val income = expense(description = "LIC maturity payout").copy(type = TransactionType.INCOME)
+        val rule = rule(
+            name = "LIC = investment",
+            conditions = RuleConditions(items = listOf(RuleCondition.DescriptionContains("lic"))),
+            actions = RuleActions(items = listOf(RuleAction.SetType(TransactionType.INVESTMENT_BUY))),
+        )
+        val result = RuleEngine.apply(income, listOf(rule), emptyList())
+        assertEquals(TransactionType.INCOME, result.transaction.type)
+    }
+
+    @Test fun `SetType cannot flip a transfer into a refund`() {
+        val transfer = expense(description = "refund settlement").copy(
+            type = TransactionType.TRANSFER,
+            destinationType = SourceKind.ACCOUNT,
+            destinationId = "acct-b",
+        )
+        val rule = rule(
+            name = "refund",
+            conditions = RuleConditions(items = listOf(RuleCondition.DescriptionContains("refund"))),
+            actions = RuleActions(items = listOf(RuleAction.SetType(TransactionType.REFUND))),
+        )
+        val result = RuleEngine.apply(transfer, listOf(rule), emptyList())
+        assertEquals(TransactionType.TRANSFER, result.transaction.type)
+    }
+
+    @Test fun `SetType still reclassifies an expense freely (intended behaviour preserved)`() {
+        val txn = expense(description = "ELSS SIP")
+        val rule = rule(
+            name = "ELSS = investment",
+            conditions = RuleConditions(items = listOf(RuleCondition.DescriptionContains("elss"))),
+            actions = RuleActions(items = listOf(RuleAction.SetType(TransactionType.INVESTMENT_BUY))),
+        )
+        val result = RuleEngine.apply(txn, listOf(rule), emptyList())
+        assertEquals(TransactionType.INVESTMENT_BUY, result.transaction.type)
+    }
+
+    @Test fun `SetType allows same-direction retype on a non-expense`() {
+        // INCOME -> INTEREST are both inflows; reclassifying within a direction is safe.
+        val income = expense(description = "FD interest credit").copy(type = TransactionType.INCOME)
+        val rule = rule(
+            name = "interest",
+            conditions = RuleConditions(items = listOf(RuleCondition.DescriptionContains("interest"))),
+            actions = RuleActions(items = listOf(RuleAction.SetType(TransactionType.INTEREST))),
+        )
+        val result = RuleEngine.apply(income, listOf(rule), emptyList())
+        assertEquals(TransactionType.INTEREST, result.transaction.type)
+    }
+
     // ---------- helpers ----------
 
     private fun expense(amount: Double = 100.0, description: String = "test"): Transaction =

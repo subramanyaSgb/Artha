@@ -57,7 +57,10 @@ object RuleEngine {
             applied += rule.name
             for (action in rule.actions.items) {
                 when (action) {
-                    is RuleAction.SetType -> current = current.copy(type = action.type)
+                    is RuleAction.SetType ->
+                        if (canRetype(current.type, action.type)) {
+                            current = current.copy(type = action.type)
+                        }
                     is RuleAction.SetCategory -> current = current.copy(
                         categoryId = action.categoryId,
                         subCategoryId = action.subCategoryId ?: current.subCategoryId,
@@ -85,6 +88,32 @@ object RuleEngine {
             appliedRuleNames = applied,
         )
     }
+
+    // ---------- SetType safety guard ----------
+
+    private enum class Direction { OUT, IN, TWO_LEG, NEUTRAL }
+
+    /** The cashflow direction a type implies for the affected account/card. */
+    private fun directionClass(type: TransactionType): Direction = when (type) {
+        TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
+        TransactionType.INVESTMENT_BUY -> Direction.OUT
+        TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
+        TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
+        TransactionType.INVESTMENT_SELL -> Direction.IN
+        TransactionType.TRANSFER, TransactionType.CARD_PAYMENT -> Direction.TWO_LEG
+        TransactionType.ADJUSTMENT -> Direction.NEUTRAL
+    }
+
+    /**
+     * Whether a `SetType` rule may rewrite [current] → [target]. Keyword rules
+     * (e.g. "LIC", "refund", "salary") are designed to refine an EXPENSE the user logged, so an
+     * EXPENSE may be reclassified freely. But the same keyword must NEVER silently flip a
+     * non-expense across the cashflow boundary — turning a real INCOME into INVESTMENT_BUY
+     * (credit → debit) or a TRANSFER into a REFUND (dropping the destination leg) corrupts
+     * balances by ~2× the amount. For any non-expense, only same-direction retyping is allowed.
+     */
+    private fun canRetype(current: TransactionType, target: TransactionType): Boolean =
+        current == TransactionType.EXPENSE || directionClass(current) == directionClass(target)
 
     // ---------- condition matcher ----------
 
