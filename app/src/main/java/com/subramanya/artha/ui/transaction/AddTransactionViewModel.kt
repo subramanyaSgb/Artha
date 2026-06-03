@@ -185,6 +185,7 @@ class AddTransactionViewModel(
     ) {
         editingTransactionId = transaction.id
         editingCreatedAt = transaction.createdAt
+        editingOriginalType = transaction.type
         _state.update {
             it.copy(
                 tab = transaction.type.toTab(),
@@ -209,6 +210,13 @@ class AddTransactionViewModel(
 
     private var editingTransactionId: String? = null
     private var editingCreatedAt: Long? = null
+
+    /**
+     * The type of the transaction being edited. The INVEST tab can only emit INVESTMENT_BUY,
+     * so without this an edited INVESTMENT_SELL would be silently rewritten to a BUY —
+     * inverting both the account leg and the invested amount. Preserve SELL across edit.
+     */
+    private var editingOriginalType: TransactionType? = null
 
     private fun TransactionType.toTab(): TransactionTab = when (this) {
         TransactionType.INCOME -> TransactionTab.INCOME
@@ -437,7 +445,17 @@ class AddTransactionViewModel(
             val isEditing = editingTransactionId != null
             val id = editingTransactionId ?: UUID.randomUUID().toString()
             val created = editingCreatedAt ?: now
-            val effectiveType = override?.type ?: snapshot.effectiveType
+            val tabType = override?.type ?: snapshot.effectiveType
+            // The INVEST tab always yields INVESTMENT_BUY; if we're editing a row that was an
+            // INVESTMENT_SELL, keep it a SELL so its direction isn't inverted on save.
+            val effectiveType =
+                if (tabType == TransactionType.INVESTMENT_BUY &&
+                    editingOriginalType == TransactionType.INVESTMENT_SELL
+                ) {
+                    TransactionType.INVESTMENT_SELL
+                } else {
+                    tabType
+                }
             val effectiveDestination = override?.destination ?: snapshot.destination
             val baseTxn = Transaction(
                 id = id,
