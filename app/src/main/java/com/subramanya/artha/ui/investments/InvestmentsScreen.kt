@@ -61,6 +61,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.InvestmentType
+import com.subramanya.artha.data.entity.enums.ValuationMode
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.domain.model.InvestmentWithMetrics
 import com.subramanya.artha.ui.common.EditorialSubScreenHeader
@@ -266,7 +267,7 @@ private fun HeroCard(invested: Double, currentValue: Double) {
  */
 @Composable
 private fun AllocationBar(rows: List<com.subramanya.artha.domain.model.InvestmentWithMetrics>) {
-    val total = rows.sumOf { it.investment.currentValue }
+    val total = rows.sumOf { it.value }
     if (total <= 0.0) return
     val palette = listOf(
         com.subramanya.artha.ui.theme.AccTeal,
@@ -290,7 +291,7 @@ private fun AllocationBar(rows: List<com.subramanya.artha.domain.model.Investmen
                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp)),
         ) {
             rows.forEachIndexed { i, row ->
-                val weight = (row.investment.currentValue / total).toFloat().coerceAtLeast(0.001f)
+                val weight = (row.value / total).toFloat().coerceAtLeast(0.001f)
                 val tone = palette[i % palette.size]
                 Box(
                     modifier = Modifier
@@ -410,16 +411,52 @@ private fun InvestmentRow(
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(horizontalAlignment = Alignment.End) {
+                    // Headline amount is the per-mode computed value (MARKET → current
+                    // price; DERIVED → contributions + posted interest).
                     Text(
-                        text = IndianNumberFormat.format(row.investment.currentValue),
+                        text = IndianNumberFormat.format(row.value),
                         style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
                     )
-                    val pct = row.percentGain
-                    Text(
-                        text = if (pct.isNaN()) "—" else "%+.1f%%".format(pct),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = gainColor,
-                    )
+                    // Secondary line branches on valuation mode:
+                    //  - DERIVED: the gain IS the posted interest (always additive), so we
+                    //    label it "Interest" and never show a percentage (interest % is noisy).
+                    //  - MARKET:  show gain ₹ and its percent, guarding the NaN case
+                    //    (invested == 0) by hiding the percent.
+                    when (row.investment.valuationMode) {
+                        ValuationMode.DERIVED -> {
+                            Text(
+                                text = stringResource(
+                                    R.string.investments_subline_interest,
+                                    IndianNumberFormat.format(row.investedAmount),
+                                    IndianNumberFormat.format(row.absoluteGain),
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        ValuationMode.MARKET -> {
+                            val pct = row.percentGain
+                            val text = if (pct.isNaN()) {
+                                stringResource(
+                                    R.string.investments_subline_gain_no_pct,
+                                    IndianNumberFormat.format(row.investedAmount),
+                                    IndianNumberFormat.format(row.absoluteGain),
+                                )
+                            } else {
+                                stringResource(
+                                    R.string.investments_subline_gain,
+                                    IndianNumberFormat.format(row.investedAmount),
+                                    IndianNumberFormat.format(row.absoluteGain),
+                                    "%+.1f%%".format(pct),
+                                )
+                            }
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = gainColor,
+                            )
+                        }
+                    }
                 }
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
