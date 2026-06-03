@@ -7,8 +7,11 @@ import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.CardWithBalance
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
 class CardRepository(
@@ -31,17 +34,19 @@ class CardRepository(
     fun observeCurrentOutstanding(cardId: String): Flow<Double> =
         transactionDao.observeAll().map { txns ->
             BalanceCalculator.computeCardOutstanding(cardId, txns)
-        }
+        }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     fun observeActiveWithBalances(): Flow<List<CardWithBalance>> =
         combine(cardDao.observeActive(), transactionDao.observeAll()) { cards, txns ->
+            // One pass over the log for ALL cards (O(txns + cards)), off the main thread.
+            val outstanding = BalanceCalculator.computeCardOutstandings(cards.map { it.id }, txns)
             cards.map { entity ->
                 CardWithBalance(
                     card = entity.toDomain(),
-                    currentOutstanding = BalanceCalculator.computeCardOutstanding(entity.id, txns),
+                    currentOutstanding = outstanding.getValue(entity.id),
                 )
             }
-        }
+        }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     suspend fun getById(id: String): Card? = cardDao.getById(id)?.toDomain()
 

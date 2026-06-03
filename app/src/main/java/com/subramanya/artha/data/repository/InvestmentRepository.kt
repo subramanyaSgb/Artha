@@ -4,13 +4,16 @@ import com.subramanya.artha.data.balance.BalanceCalculator
 import com.subramanya.artha.data.dao.InvestmentDao
 import com.subramanya.artha.data.dao.TransactionDao
 import com.subramanya.artha.data.entity.InvestmentEntity
-import com.subramanya.artha.data.entity.TransactionEntity
+import com.subramanya.artha.data.entity.enums.ValuationMode
 import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.domain.model.InvestmentWithMetrics
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
 class InvestmentRepository(
@@ -32,8 +35,13 @@ class InvestmentRepository(
 
     fun observeActiveWithMetrics(): Flow<List<InvestmentWithMetrics>> =
         combine(investmentDao.observeActive(), transactionDao.observeAll()) { investments, txns ->
-            investments.map { entity -> metricsFor(entity, txns) }
-        }
+            // One pass over the log computes invested + interest for ALL investments.
+            val totals = BalanceCalculator.computeInvestmentTotals(
+                investments.associate { it.id to it.openingContribution },
+                txns,
+            )
+            investments.map { entity -> metricsFor(entity, totals.getValue(entity.id)) }
+        }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     /**
      * Map of EVERY investment id (active AND archived) → its computed per-mode value
@@ -47,24 +55,33 @@ class InvestmentRepository(
      */
     fun observeValuesByInvestmentId(): Flow<Map<String, Double>> =
         combine(investmentDao.observeAll(), transactionDao.observeAll()) { investments, txns ->
-            investments.associate { entity -> entity.id to valueFor(entity, txns) }
+            val totals = BalanceCalculator.computeInvestmentTotals(
+                investments.associate { it.id to it.openingContribution },
+                txns,
+            )
+            investments.associate { entity ->
+                entity.id to valueFor(entity, totals.getValue(entity.id))
+            }
+        }.flowOn(Dispatchers.Default).distinctUntilChanged()
+
+    /**
+     * The one place the per-mode value formula is applied, now from pre-computed [totals]
+     * (so the transaction log is scanned once, not once per investment). Mirrors
+     * [BalanceCalculator.computeInvestmentValue]'s MARKET/DERIVED branches.
+     */
+    private fun valueFor(entity: InvestmentEntity, totals: BalanceCalculator.InvestmentTotals): Double =
+        when (entity.valuationMode) {
+            ValuationMode.MARKET -> entity.currentValue
+            ValuationMode.DERIVED -> totals.invested + totals.interest
         }
 
-    /** The one place the per-mode value formula is applied to an entity. */
-    private fun valueFor(entity: InvestmentEntity, txns: List<TransactionEntity>): Double =
-        BalanceCalculator.computeInvestmentValue(
-            entity.valuationMode,
-            entity.currentValue,
-            entity.openingContribution,
-            entity.id,
-            txns,
-        )
-
-    /** Full metric bundle for one entity. Reuses [valueFor] so value math lives once. */
-    private fun metricsFor(entity: InvestmentEntity, txns: List<TransactionEntity>): InvestmentWithMetrics {
-        val invested =
-            BalanceCalculator.computeInvestmentInvested(entity.id, txns, entity.openingContribution)
-        val value = valueFor(entity, txns)
+    /** Full metric bundle for one entity, from its pre-computed [totals]. */
+    private fun metricsFor(
+        entity: InvestmentEntity,
+        totals: BalanceCalculator.InvestmentTotals,
+    ): InvestmentWithMetrics {
+        val invested = totals.invested
+        val value = valueFor(entity, totals)
         val gain = value - invested
         val pct = if (invested == 0.0) Double.NaN else (gain / invested) * 100.0
         return InvestmentWithMetrics(
@@ -79,7 +96,7 @@ class InvestmentRepository(
     fun observeInvested(id: String): Flow<Double> =
         combine(investmentDao.observeById(id), transactionDao.observeAll()) { entity, txns ->
             BalanceCalculator.computeInvestmentInvested(id, txns, entity?.openingContribution ?: 0.0)
-        }
+        }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     suspend fun getById(id: String): Investment? = investmentDao.getById(id)?.toDomain()
     suspend fun findByLinkedInsurance(insuranceId: String): Investment? =

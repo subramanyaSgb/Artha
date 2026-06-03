@@ -7,8 +7,11 @@ import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.AccountWithBalance
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
 class AccountRepository(
@@ -32,21 +35,23 @@ class AccountRepository(
         combine(accountDao.observeById(accountId), transactionDao.observeAll()) { account, txns ->
             if (account == null) 0.0
             else BalanceCalculator.computeAccountBalance(account.openingBalance, accountId, txns)
-        }
+        }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     fun observeActiveWithBalances(): Flow<List<AccountWithBalance>> =
         combine(accountDao.observeActive(), transactionDao.observeAll()) { accounts, txns ->
+            // Single pass over the whole log for ALL accounts (O(txns + accounts)) instead of
+            // one full scan per account, and off the main thread via flowOn below.
+            val balances = BalanceCalculator.computeAccountBalances(
+                accounts.associate { it.id to it.openingBalance },
+                txns,
+            )
             accounts.map { entity ->
                 AccountWithBalance(
                     account = entity.toDomain(),
-                    currentBalance = BalanceCalculator.computeAccountBalance(
-                        openingBalance = entity.openingBalance,
-                        accountId = entity.id,
-                        transactions = txns,
-                    ),
+                    currentBalance = balances.getValue(entity.id),
                 )
             }
-        }
+        }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     suspend fun getById(id: String): Account? = accountDao.getById(id)?.toDomain()
 
