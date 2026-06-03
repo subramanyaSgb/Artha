@@ -31,12 +31,21 @@ class InvestmentRepository(
     fun observeActiveWithMetrics(): Flow<List<InvestmentWithMetrics>> =
         combine(investmentDao.observeActive(), transactionDao.observeAll()) { investments, txns ->
             investments.map { entity ->
-                val invested = BalanceCalculator.computeInvestmentInvested(entity.id, txns)
-                val gain = entity.currentValue - invested
+                val invested =
+                    BalanceCalculator.computeInvestmentInvested(entity.id, txns, entity.openingContribution)
+                val value = BalanceCalculator.computeInvestmentValue(
+                    entity.valuationMode,
+                    entity.currentValue,
+                    entity.openingContribution,
+                    entity.id,
+                    txns,
+                )
+                val gain = value - invested
                 val pct = if (invested == 0.0) Double.NaN else (gain / invested) * 100.0
                 InvestmentWithMetrics(
                     investment = entity.toDomain(),
                     investedAmount = invested,
+                    value = value,
                     absoluteGain = gain,
                     percentGain = pct,
                 )
@@ -44,8 +53,8 @@ class InvestmentRepository(
         }
 
     fun observeInvested(id: String): Flow<Double> =
-        transactionDao.observeAll().map { txns ->
-            BalanceCalculator.computeInvestmentInvested(id, txns)
+        combine(investmentDao.observeById(id), transactionDao.observeAll()) { entity, txns ->
+            BalanceCalculator.computeInvestmentInvested(id, txns, entity?.openingContribution ?: 0.0)
         }
 
     suspend fun getById(id: String): Investment? = investmentDao.getById(id)?.toDomain()

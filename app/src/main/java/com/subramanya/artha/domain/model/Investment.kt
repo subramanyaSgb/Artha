@@ -29,7 +29,9 @@ data class InvestmentWithMetrics(
     val investment: Investment,
     /** Sum of BUY transactions minus SELL transactions — what the user actually put in. */
     val investedAmount: Double,
-    /** currentValue − investedAmount */
+    /** Displayed value per the investment's valuation mode (MARKET → currentValue, DERIVED → contributions + interest). */
+    val value: Double,
+    /** value − invested */
     val absoluteGain: Double,
     /** Percent gain. NaN when investedAmount is 0 — UI shows "—" in that case. */
     val percentGain: Double,
