@@ -678,6 +678,21 @@
     <string name="investment_detail_meta_nav">NAV</string>
     <string name="investment_detail_meta_tax_section">Tax section</string>
 
+    <!-- Investment detail hero sublines. %1$s = invested, %2$s = interest/gain, %3$s = gain percent. -->
+    <string name="investment_detail_subline_interest">Invested %1$s · Interest %2$s</string>
+    <string name="investment_detail_subline_gain">Invested %1$s · Gain %2$s (%3$s)</string>
+    <string name="investment_detail_subline_gain_no_pct">Invested %1$s · Gain %2$s</string>
+
+    <!-- Investment detail actions -->
+    <string name="investment_detail_action_post_interest">Post interest</string>
+    <string name="investment_detail_action_add_contribution">Add contribution</string>
+
+    <!-- Post-interest dialog -->
+    <string name="investment_post_interest_title">Post interest</string>
+    <string name="investment_post_interest_amount_label">Interest amount</string>
+    <string name="investment_post_interest_date_label">Date</string>
+    <string name="investment_post_interest_confirm">Post</string>
+
     <!-- Investment delete -->
     <string name="investment_delete_confirm_title">Delete this investment?</string>
     <string name="investment_delete_confirm_body">This permanently removes the investment. Transactions that referenced it stay in the log for history but will no longer roll up here.</string>
