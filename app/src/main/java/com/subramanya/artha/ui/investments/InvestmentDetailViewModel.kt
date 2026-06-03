@@ -94,6 +94,12 @@ class InvestmentDetailViewModel(
 
     fun confirmDelete(onDeleted: () -> Unit) {
         val current = state.value.investment ?: return
+        // Never hard-delete an investment that still has transactions — it would orphan them.
+        // The UI routes to Archive instead; this is the defensive backstop.
+        if (state.value.transactions.isNotEmpty()) {
+            showDeleteConfirm.update { false }
+            return
+        }
         viewModelScope.launch {
             investmentRepository.delete(current)
             showDeleteConfirm.update { false }

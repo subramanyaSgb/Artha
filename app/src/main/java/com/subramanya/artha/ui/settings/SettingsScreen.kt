@@ -2,6 +2,8 @@
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -215,9 +217,18 @@ fun SettingsScreen(
                 HorizontalDivider()
                 SectionHeader(stringResource(R.string.settings_section_data))
                 var passwordDialog by remember { mutableStateOf(false) }
+                var restoreConfirm by remember { mutableStateOf(false) }
+
+                // ACTION_OPEN_DOCUMENT picker. We accept any type because Storage Access
+                // Framework can mislabel .json/.artha; the VM sniffs the real format.
+                val restorePicker = rememberLauncherForActivityResult(
+                    ActivityResultContracts.OpenDocument(),
+                ) { uri -> if (uri != null) vm.prepareRestore(context, uri) }
+
                 DataSection(
                     onExport = { vm.exportData(context) },
                     onEncryptedExport = { passwordDialog = true },
+                    onRestore = { restoreConfirm = true },
                     onReset = vm::requestReset,
                 )
                 if (passwordDialog) {
@@ -228,6 +239,41 @@ fun SettingsScreen(
                         },
                         onDismiss = { passwordDialog = false },
                     )
+                }
+                if (restoreConfirm) {
+                    com.subramanya.artha.ui.common.ArthaAlertDialog(
+                        onDismissRequest = { restoreConfirm = false },
+                        title = stringResource(R.string.settings_data_restore_confirm_title),
+                        text = stringResource(R.string.settings_data_restore_confirm_body),
+                        confirmLabel = stringResource(R.string.settings_data_restore_confirm_yes),
+                        confirmDestructive = true,
+                        onConfirm = {
+                            restoreConfirm = false
+                            restorePicker.launch(arrayOf("*/*"))
+                        },
+                        cancelLabel = stringResource(R.string.common_cancel),
+                        onCancel = { restoreConfirm = false },
+                    )
+                }
+                // Encrypted backup picked -> ask for its password.
+                state.pendingEncryptedRestoreUri?.let { uri ->
+                    RestorePasswordDialog(
+                        onConfirm = { pwd -> vm.importDataEncrypted(context, uri, pwd.toCharArray()) },
+                        onDismiss = vm::cancelEncryptedRestore,
+                    )
+                }
+                // Surface restore outcome once, then acknowledge so it doesn't re-fire.
+                LaunchedEffect(state.restoreResult) {
+                    val msg = when (state.restoreResult) {
+                        RestoreResult.Idle -> null
+                        RestoreResult.Success -> R.string.settings_data_restore_success
+                        RestoreResult.WrongPassword -> R.string.settings_data_restore_wrong_password
+                        RestoreResult.InvalidFile -> R.string.settings_data_restore_invalid_file
+                    }
+                    if (msg != null) {
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                        vm.acknowledgeRestore()
+                    }
                 }
 
                 HorizontalDivider()
@@ -461,7 +507,12 @@ private fun SecuritySection(
 }
 
 @Composable
-private fun DataSection(onExport: () -> Unit, onEncryptedExport: () -> Unit, onReset: () -> Unit) {
+private fun DataSection(
+    onExport: () -> Unit,
+    onEncryptedExport: () -> Unit,
+    onRestore: () -> Unit,
+    onReset: () -> Unit,
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         ListItem(
             modifier = Modifier
@@ -477,6 +528,14 @@ private fun DataSection(onExport: () -> Unit, onEncryptedExport: () -> Unit, onR
                 .clickable(onClick = onEncryptedExport),
             headlineContent = { Text(stringResource(R.string.settings_data_export_encrypted)) },
             supportingContent = { Text(stringResource(R.string.settings_data_export_encrypted_subtitle)) },
+            trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
+        )
+        ListItem(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onRestore),
+            headlineContent = { Text(stringResource(R.string.settings_data_restore)) },
+            supportingContent = { Text(stringResource(R.string.settings_data_restore_subtitle)) },
             trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
         )
         ListItem(
@@ -657,6 +716,49 @@ private fun EncryptedExportPasswordDialog(
                 onClick = { onConfirm(password) },
                 enabled = match,
             ) { Text(stringResource(R.string.common_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        },
+    )
+}
+
+/**
+ * Single-field password prompt for restoring an encrypted `.artha` backup. Unlike the
+ * export dialog there's no confirm field — we're entering an existing password, and a
+ * wrong one is reported (no data loss) rather than needing prevention.
+ */
+@Composable
+private fun RestorePasswordDialog(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var password by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_data_restore_password_title)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.settings_data_restore_password_body),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.settings_data_export_encrypted_password)) },
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(password) },
+                enabled = password.isNotBlank(),
+            ) { Text(stringResource(R.string.settings_data_restore_confirm_yes)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }

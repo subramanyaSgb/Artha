@@ -208,16 +208,32 @@ fun InvestmentDetailScreen(
     }
 
     if (state.showDeleteConfirm) {
-        com.subramanya.artha.ui.common.ArthaAlertDialog(
-            onDismissRequest = vm::dismissDeleteConfirm,
-            title = stringResource(R.string.investment_delete_confirm_title),
-            text = stringResource(R.string.investment_delete_confirm_body),
-            confirmLabel = stringResource(R.string.investment_delete_confirm_yes),
-            confirmDestructive = true,
-            onConfirm = { vm.confirmDelete(onDeleted = onBack) },
-            cancelLabel = stringResource(R.string.common_cancel),
-            onCancel = vm::dismissDeleteConfirm,
-        )
+        if (state.transactions.isNotEmpty()) {
+            com.subramanya.artha.ui.common.ArthaAlertDialog(
+                onDismissRequest = vm::dismissDeleteConfirm,
+                title = stringResource(R.string.investment_delete_blocked_title),
+                text = stringResource(R.string.investment_delete_blocked_body, state.transactions.size),
+                confirmLabel = stringResource(R.string.investment_delete_blocked_archive),
+                confirmDestructive = false,
+                onConfirm = {
+                    vm.dismissDeleteConfirm()
+                    vm.archive(onArchived = onBack)
+                },
+                cancelLabel = stringResource(R.string.common_cancel),
+                onCancel = vm::dismissDeleteConfirm,
+            )
+        } else {
+            com.subramanya.artha.ui.common.ArthaAlertDialog(
+                onDismissRequest = vm::dismissDeleteConfirm,
+                title = stringResource(R.string.investment_delete_confirm_title),
+                text = stringResource(R.string.investment_delete_confirm_body),
+                confirmLabel = stringResource(R.string.investment_delete_confirm_yes),
+                confirmDestructive = true,
+                onConfirm = { vm.confirmDelete(onDeleted = onBack) },
+                cancelLabel = stringResource(R.string.common_cancel),
+                onCancel = vm::dismissDeleteConfirm,
+            )
+        }
     }
 
     if (showPostInterest) {

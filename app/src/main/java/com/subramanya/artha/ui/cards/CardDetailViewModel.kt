@@ -103,6 +103,12 @@ class CardDetailViewModel(
     fun dismissDeleteConfirm() = showDeleteConfirm.update { false }
     fun confirmDelete(onDeleted: () -> Unit) {
         val current = state.value.card ?: return
+        // Never hard-delete a card that still has transactions — it would orphan them. The UI
+        // routes to Archive instead; this is the defensive backstop.
+        if (state.value.transactions.isNotEmpty()) {
+            showDeleteConfirm.update { false }
+            return
+        }
         viewModelScope.launch {
             cardRepository.delete(current)
             showDeleteConfirm.update { false }

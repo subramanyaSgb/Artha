@@ -3,6 +3,7 @@ package com.subramanya.artha.ui.transaction
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.subramanya.artha.data.entity.enums.CardType
 import com.subramanya.artha.data.entity.enums.CategoryType
 import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
@@ -457,6 +458,13 @@ class AddTransactionViewModel(
                     tabType
                 }
             val effectiveDestination = override?.destination ?: snapshot.destination
+            // Debit/prepaid cards are conduits to a bank account, not credit lines. Record the
+            // transaction against the linked account so the account is debited/credited and no
+            // phantom card "outstanding" accrues. Credit cards keep their own endpoints (and
+            // their outstanding). Resolved AFTER effectiveType so credit-card CARD_PAYMENT
+            // detection on the Transfer tab is unaffected.
+            val resolvedSource = resolveCardAlias(snapshot.source!!)
+            val resolvedDestination = effectiveDestination?.let { resolveCardAlias(it) }
             val baseTxn = Transaction(
                 id = id,
                 type = effectiveType,
@@ -466,10 +474,10 @@ class AddTransactionViewModel(
                 description = snapshot.description.trim(),
                 categoryId = snapshot.categoryId,
                 subCategoryId = snapshot.subCategoryId,
-                sourceType = snapshot.source!!.kind,
-                sourceId = snapshot.source.id,
-                destinationType = effectiveDestination?.kind,
-                destinationId = effectiveDestination?.id,
+                sourceType = resolvedSource.kind,
+                sourceId = resolvedSource.id,
+                destinationType = resolvedDestination?.kind,
+                destinationId = resolvedDestination?.id,
                 paymentApp = snapshot.paymentApp,
                 place = snapshot.place.trim().takeIf { it.isNotBlank() },
                 latitude = null,
@@ -503,6 +511,19 @@ class AddTransactionViewModel(
             transactionRepository.save(toSave)
             _state.update { it.copy(isSaving = false, savedAndClose = true) }
         }
+    }
+
+    /**
+     * Maps a DEBIT/PREPAID card endpoint to its linked bank account. A debit/prepaid card draws
+     * from an account, so spends/credits on it should move the account — not accrue a fictitious
+     * card "outstanding". Credit cards (and cards with no linked account) are returned unchanged.
+     */
+    private suspend fun resolveCardAlias(endpoint: FundsEndpoint): FundsEndpoint {
+        if (endpoint.kind != SourceKind.CARD) return endpoint
+        val card = cardRepository.getById(endpoint.id) ?: return endpoint
+        if (card.type == CardType.CREDIT) return endpoint
+        val linkedAccountId = card.linkedAccountId ?: return endpoint
+        return endpoint.copy(kind = SourceKind.ACCOUNT, id = linkedAccountId, isCreditCard = false)
     }
 
     /** Called by the host after consuming `savedAndClose`, in case the sheet is reused. */

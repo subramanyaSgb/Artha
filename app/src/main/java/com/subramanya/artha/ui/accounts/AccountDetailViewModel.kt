@@ -115,6 +115,13 @@ class AccountDetailViewModel(
 
     fun confirmDelete(onDeleted: () -> Unit) {
         val current = state.value.account ?: return
+        // Never hard-delete an account that still has transactions — doing so would orphan
+        // them (dangling source/destination ids that still distort reports and balances).
+        // The UI routes the user to Archive instead; this is the defensive backstop.
+        if (state.value.transactions.isNotEmpty()) {
+            showDeleteConfirm.update { false }
+            return
+        }
         viewModelScope.launch {
             accountRepository.delete(current)
             showDeleteConfirm.update { false }

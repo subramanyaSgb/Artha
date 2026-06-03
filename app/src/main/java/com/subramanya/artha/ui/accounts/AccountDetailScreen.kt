@@ -156,16 +156,33 @@ fun AccountDetailScreen(
     }
 
     if (state.showDeleteConfirm) {
-        com.subramanya.artha.ui.common.ArthaAlertDialog(
-            onDismissRequest = vm::dismissDeleteConfirm,
-            title = stringResource(R.string.account_delete_confirm_title),
-            text = stringResource(R.string.account_delete_confirm_body),
-            confirmLabel = stringResource(R.string.account_delete_confirm_yes),
-            confirmDestructive = true,
-            onConfirm = { vm.confirmDelete(onDeleted = onBack) },
-            cancelLabel = stringResource(R.string.common_cancel),
-            onCancel = vm::dismissDeleteConfirm,
-        )
+        if (state.transactions.isNotEmpty()) {
+            // Deleting would orphan these transactions — steer the user to Archive instead.
+            com.subramanya.artha.ui.common.ArthaAlertDialog(
+                onDismissRequest = vm::dismissDeleteConfirm,
+                title = stringResource(R.string.account_delete_blocked_title),
+                text = stringResource(R.string.account_delete_blocked_body, state.transactions.size),
+                confirmLabel = stringResource(R.string.account_delete_blocked_archive),
+                confirmDestructive = false,
+                onConfirm = {
+                    vm.dismissDeleteConfirm()
+                    vm.confirmArchive(onArchived = onBack)
+                },
+                cancelLabel = stringResource(R.string.common_cancel),
+                onCancel = vm::dismissDeleteConfirm,
+            )
+        } else {
+            com.subramanya.artha.ui.common.ArthaAlertDialog(
+                onDismissRequest = vm::dismissDeleteConfirm,
+                title = stringResource(R.string.account_delete_confirm_title),
+                text = stringResource(R.string.account_delete_confirm_body),
+                confirmLabel = stringResource(R.string.account_delete_confirm_yes),
+                confirmDestructive = true,
+                onConfirm = { vm.confirmDelete(onDeleted = onBack) },
+                cancelLabel = stringResource(R.string.common_cancel),
+                onCancel = vm::dismissDeleteConfirm,
+            )
+        }
     }
 
     val currentlyEditing = editing
