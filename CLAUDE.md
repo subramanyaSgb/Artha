@@ -9,8 +9,11 @@ Artha is a native Android personal finance app for an Indian user (Subramanya GB
 ## Project Memory (MANDATORY — read at start, update as we go)
 
 A persistent memory lives at
-`C:\Users\DSI-LPT-081\.claude\projects\c--Users-DSI-LPT-081-Desktop-SubramanyaGB-Test-Projects-Artha\memory\`.
+`C:\Users\DSI-LPT-081\.claude\projects\d--SubramanyaGB-Test-Projects-Artha\memory\`.
 `MEMORY.md` there is the index (one line per memory).
+(Project was moved from `…\Desktop\SubramanyaGB\Test_Projects\Artha` to
+`d:\SubramanyaGB\Test_Projects\Artha` on 2026-06-03; memory migrated with it. The
+old `c--…Desktop…` memory dir is the historical copy.)
 
 - **Every session, before planning:** read `memory/MEMORY.md` and open any memory
   file whose description looks relevant. Treat these as standing context alongside
