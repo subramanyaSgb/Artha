@@ -63,3 +63,41 @@ personal-app scale (tens of investments, low-thousands of txns), and it mirrors 
 on a repository-held scope) and precompute a `Map<investmentId, List<txn>>` index once instead of re-scanning
 the full transaction list per investment. This is the "balance-flow fan-out" perf refactor already noted in
 the session backlog.
+
+**Update 2026-06-03:** the optimisation pass (merged `9a8b33f`) did the pre-indexing/batch part
+(`BalanceCalculator.computeAccountBalances/computeCardOutstandings/computeInvestmentTotals`, one pass for all
+entities) + `.flowOn(Default).distinctUntilChanged()`. STILL DEFERRED: cross-consumer **sharing** (`shareIn`
+on an app-scoped `CoroutineScope` so Dashboard/Reports/Goals/Search collect one computation, not N), and the
+**SQL-aggregate** rewrite (push `WHERE source_id=:id`/`GROUP BY`/`SUM` into DAO queries — the indices already
+exist and are currently unused). Both are larger/riskier; the batch+flowOn already collapsed the worst cost.
+
+---
+
+## Audit findings still open (from the 2026-06-03 deep-dive; NOT yet fixed)
+
+A 4-angle audit (data-flow, compose-perf, correctness, Room/DB) ran on 2026-06-03. The high-impact, safe
+fixes were merged in `9a8b33f` (batch balances off-main; Ledger/Dashboard/Reports off-main; Rules `SetType`
+direction guard + create-only; INVESTMENT_SELL edit preserved). These remain open:
+
+**Correctness — need a product decision (change money behaviour / hard to reverse):**
+- **D1 — Hard-delete orphans transactions.** Deleting an account/card/investment (the Delete action on the
+  detail screens, separate from Archive) leaves its transactions with dangling `sourceId`/`destinationId`;
+  they still count in reports/totals and a TRANSFER's surviving leg references a missing counterpart. Fix:
+  block hard-delete when transactions reference the entity (offer Archive), or cascade/reassign inside a Room
+  `@Transaction`. **Decision needed:** block-or-cascade.
+- **D2 — Debit/prepaid card spend creates a phantom "outstanding" and never debits the linked account.**
+  Picking a debit card as the spend source records EXPENSE with `source = CARD`; `computeCardOutstanding`
+  treats it as card debt and nothing flows to the card's `linkedAccountId`. Fix: resolve debit/prepaid charges
+  to the linked account, or exclude non-credit cards from the source picker. **Decision needed:** model choice.
+- **D3 — Backup is incomplete + has no restore.** `exportDataEncrypted` writes only accounts+transactions;
+  the plain export omits investments/insurance/budgets/goals/subs/recurring/rules and the people/tag cross-ref
+  tables; there is no import path at all. A user who trusts "backup" loses most data. Fix: serialise all
+  tables (incl. cross-refs) and implement a validated restore (`BackupCrypto.decrypt` → Room). Larger feature.
+
+**Perf — safe follow-ups (no decision needed):**
+- **P-People** — PeopleScreen has no ViewModel and recomputes every person's balance O(people × txns) per
+  frame in the composable. Add a `PeopleViewModel` that precomputes a `Map<personId, Double>` in one pass.
+- **P-Ledger-virtualize** — the Ledger still renders each day's rows in one non-lazy `item` (no per-row
+  virtualization). Flatten to keyed lazy `items` while preserving the day-card visual.
+- **P-flowOn-rest** — apply `.flowOn(Default)` to SearchViewModel / PersonDetailViewModel too (Dashboard,
+  Reports, Ledger already done).
