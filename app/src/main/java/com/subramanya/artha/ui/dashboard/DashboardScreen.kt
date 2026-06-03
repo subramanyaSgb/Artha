@@ -131,6 +131,8 @@ fun DashboardScreen(
     val showAccounts by app.settingsPreferences.dashboardShowAccounts.collectAsStateWithLifecycle(initialValue = true)
     val showCards by app.settingsPreferences.dashboardShowCards.collectAsStateWithLifecycle(initialValue = true)
     val showRecent by app.settingsPreferences.dashboardShowRecent.collectAsStateWithLifecycle(initialValue = true)
+    // AI Quick Entry is opt-in — the card stays hidden until enabled in Settings (default off).
+    val showAiQuickEntry by app.settingsPreferences.aiQuickEntryEnabled.collectAsStateWithLifecycle(initialValue = false)
 
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         RefreshableContent(modifier = Modifier.fillMaxSize()) {
@@ -156,8 +158,10 @@ fun DashboardScreen(
                     FlowStrip(state)
                 }
 
-                Spacer(Modifier.height(14.dp))
-                AiEntryCard(onOpen = { showAiSheet = true })
+                if (showAiQuickEntry) {
+                    Spacer(Modifier.height(14.dp))
+                    AiEntryCard(onOpen = { showAiSheet = true })
+                }
 
                 if (showAccounts) {
                     Spacer(Modifier.height(20.dp))

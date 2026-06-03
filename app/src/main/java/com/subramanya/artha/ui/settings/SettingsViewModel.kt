@@ -39,6 +39,7 @@ data class SettingsUiState(
     val dashboardShowRecent: Boolean = true,
     val biometricLockEnabled: Boolean = false,
     val smsAutoImportEnabled: Boolean = false,
+    val aiQuickEntryEnabled: Boolean = false,
     val showFirstResetDialog: Boolean = false,
     val showFinalResetDialog: Boolean = false,
     val showWipeImportConfirm: Boolean = false,
@@ -140,12 +141,14 @@ class SettingsViewModel(
         aiSaveInFlight,
         aiKeyStatus,
         restoreBag,
-    ) { key, inFlight, status, restore ->
+        settingsPreferences.aiQuickEntryEnabled,
+    ) { key, inFlight, status, restore, enabled ->
         AiBag(
             hasKey = key.isNotBlank(),
             inFlight = inFlight,
             status = status,
             restore = restore,
+            enabled = enabled,
         )
     }
 
@@ -173,6 +176,7 @@ class SettingsViewModel(
             biometricLockEnabled = bag.security.biometric,
             smsAutoImportEnabled = bag.security.smsImport,
             hasAiKey = ai.hasKey,
+            aiQuickEntryEnabled = ai.enabled,
             aiKeySaveInFlight = ai.inFlight,
             aiKeyStatus = ai.status,
             isRestoring = ai.restore.isRestoring,
@@ -192,6 +196,7 @@ class SettingsViewModel(
         val inFlight: Boolean,
         val status: AiKeyStatus,
         val restore: RestoreBag,
+        val enabled: Boolean,
     )
 
     private data class DashboardVisibility(val monthly: Boolean, val accounts: Boolean, val cards: Boolean, val recent: Boolean)
@@ -241,6 +246,10 @@ class SettingsViewModel(
 
     fun onBiometricLockChanged(enabled: Boolean) {
         viewModelScope.launch { settingsPreferences.setBiometricLockEnabled(enabled) }
+    }
+
+    fun onAiQuickEntryEnabledChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsPreferences.setAiQuickEntryEnabled(enabled) }
     }
 
     fun onSmsAutoImportChanged(enabled: Boolean) {
