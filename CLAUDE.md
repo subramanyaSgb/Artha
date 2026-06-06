@@ -150,6 +150,13 @@ the UI nudges the user toward Settings.
   WorkManager, crash reporting, cloud sync. SMS in particular needs a bank-specific
   regex catalogue + runtime-permission UX flow; the Settings toggle + DataStore key
   are already in place so the receiver can drop in cleanly.
+- **Configurable pick-lists done (2026-06-06)** — All three phases shipped:
+  Phase 1 (custom colours/icons + Settings manage-UI), Phase 2 (PaymentApp catalogue,
+  DB v5→v6), Phase 3 (Account/Card/Insurance type catalogues, DB v6→v7). DB is now
+  v7. Four `enum` TypeConverters removed; columns are plain `String` with seeded
+  built-in catalogues. Instrumented migration tests written; pending device-run.
+- **Bug fixes (2026-06-06)** — Receipt thumbnail now renders (BitmapFactory decode
+  from content URI); Investments LazyColumn trailing spacer added to clear FAB.
 
 The app is feature-complete enough for daily use. Treat further work as
 maintenance/extension rather than a fresh phase.

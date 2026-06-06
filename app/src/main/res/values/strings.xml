@@ -1009,7 +1009,11 @@
     <string name="recurring_form_edit_title">Edit recurring rule</string>
     <string name="recurring_form_hint">Note: in this build the rule is stored but auto-firing on schedule is deferred to Phase 5 (needs WorkManager). You\'ll still see it on the list as a reminder.</string>
     <string name="recurring_form_name_label">Rule name</string>
-    <string name="recurring_form_template_label">Transaction template (free-text — used as description)</string>
+    <string name="recurring_form_amount_label">Amount</string>
+    <string name="recurring_form_type_label">Transaction type</string>
+    <string name="recurring_form_source_label">From (account or card)</string>
+    <string name="recurring_form_description_label">Description</string>
+    <string name="recurring_form_category_label">Category</string>
     <string name="recurring_form_frequency_label">Frequency</string>
     <string name="recurring_form_day_of_month">Day of month (1-31)</string>
     <string name="recurring_form_day_of_week">Day of week (1=Mon..7=Sun)</string>
@@ -1017,7 +1021,7 @@
     <string name="recurring_delete_confirm_title">Delete this recurring rule?</string>
     <string name="recurring_delete_confirm_body">Removes the rule. Past transactions it created stay in the log.</string>
     <string name="recurring_delete_confirm_yes">Delete</string>
-    <string name="recurring_banner">Rules stored locally. Auto-firing on schedule turns on with WorkManager in Phase 5 — you\'ll still see entries here as reminders.</string>
+    <string name="recurring_banner">Rules auto-fire on schedule via WorkManager. Auto-confirm saves silently; without it, the transaction is created and you can review it in the Ledger.</string>
     <string name="recurring_eyebrow">Schedule</string>
     <string name="recurring_auto_chip">Auto</string>
     <string name="recurring_day_fmt">Day %1$d</string>
