@@ -11,10 +11,12 @@ import com.subramanya.artha.data.repository.PersonRepository
 import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Transaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -83,7 +85,8 @@ class TransactionDetailViewModel(
             tagNames = hydratedTxn.tagIds.mapNotNull { id -> tags.firstOrNull { it.id == id }?.name },
             showDeleteConfirm = confirm,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TransactionDetailUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TransactionDetailUiState())
 
     fun requestDelete() { if (state.value.transaction != null) showDeleteConfirm.update { true } }
     fun dismissDeleteConfirm() = showDeleteConfirm.update { false }

@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -166,8 +167,9 @@ private fun Body(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item("hero") { Hero(state) }
         item("txnsHeader") {
+            val title = stringResource(R.string.person_detail_txns_title).uppercase()
             Text(
-                text = stringResource(R.string.person_detail_txns_title).uppercase(),
+                text = if (state.transactions.isNotEmpty()) "$title · ${state.transactions.size}" else title,
                 style = EyebrowStyle,
                 color = Text3,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 6.dp),
@@ -298,6 +300,7 @@ private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) {}
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -317,7 +320,9 @@ private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
         Spacer(Modifier.size(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = txn.description.ifBlank { txn.type.name.lowercase().replace('_', ' ') },
+                text = txn.description.ifBlank {
+                    txn.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,

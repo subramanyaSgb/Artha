@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -203,6 +204,8 @@ private fun MoreActionRow(row: MoreRow, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            // One focusable element for TalkBack (title + subtitle read together).
+            .semantics(mergeDescendants = true) {}
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Box(

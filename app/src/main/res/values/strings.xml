@@ -789,6 +789,11 @@
     <string name="investment_detail_txns_empty">No transactions yet for this investment.</string>
     <string name="investment_detail_meta_start">Started</string>
     <string name="investment_detail_meta_maturity">Matures</string>
+    <string name="investment_matured">matured</string>
+    <plurals name="investment_matures_in">
+        <item quantity="one">in %1$d day</item>
+        <item quantity="other">in %1$d days</item>
+    </plurals>
     <string name="investment_detail_meta_units">Units</string>
     <string name="investment_detail_meta_nav">NAV</string>
     <string name="investment_detail_meta_tax_section">Tax section</string>
@@ -882,6 +887,12 @@
     <string name="insurance_detail_end">Ends</string>
     <string name="insurance_detail_nominee">Nominee</string>
     <string name="insurance_detail_agent">Agent</string>
+    <string name="insurance_detail_call_agent">Call agent</string>
+    <string name="insurance_detail_overdue">overdue</string>
+    <plurals name="insurance_detail_due_in">
+        <item quantity="one">in %1$d day</item>
+        <item quantity="other">in %1$d days</item>
+    </plurals>
     <string name="insurance_detail_tax_section">Tax section</string>
     <string name="insurance_detail_linked_investment_title">Linked investment</string>
 

@@ -298,8 +298,11 @@ private fun DetailRow(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 2.dp),
         )
-        Spacer(Modifier.height(1.dp))
-        Text(text = value, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

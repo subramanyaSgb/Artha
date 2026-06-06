@@ -11,11 +11,13 @@ import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Transaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -82,7 +84,8 @@ class AccountDetailViewModel(
             showArchiveConfirm = archiveConfirm,
             showDeleteConfirm = deleteConfirm,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountDetailUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountDetailUiState())
 
     fun requestArchive() {
         if (state.value.account != null) showArchiveConfirm.update { true }

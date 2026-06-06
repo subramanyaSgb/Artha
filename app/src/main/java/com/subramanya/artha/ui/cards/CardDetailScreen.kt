@@ -251,8 +251,9 @@ private fun CardDetailBody(
         }
         item("chart") { ChartSection(state = state) }
         item("txnsHeader") {
+            val title = stringResource(R.string.card_detail_txns_title)
             Text(
-                text = stringResource(R.string.card_detail_txns_title),
+                text = if (state.transactions.isNotEmpty()) "$title · ${state.transactions.size}" else title,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 4.dp),
             )
@@ -266,7 +267,7 @@ private fun CardDetailBody(
             }
         } else {
             items(state.transactions, key = { it.id }) { txn ->
-                TxnRow(txn, onClick = { onOpenTransaction(txn.id) })
+                TxnRow(txn, cardId = card.id, onClick = { onOpenTransaction(txn.id) })
             }
         }
         item("bottomSpacer") { Spacer(modifier = Modifier.height(24.dp)) }
@@ -435,7 +436,8 @@ private fun ChartSection(state: CardDetailUiState) {
 }
 
 @Composable
-private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
+private fun TxnRow(txn: Transaction, cardId: String, onClick: () -> Unit) {
+    val typeLabel = txn.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }
     ListItem(
         modifier = Modifier
             .fillMaxWidth()
@@ -447,31 +449,39 @@ private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
                 tint = MaterialTheme.colorScheme.primary,
             )
         },
-        headlineContent = { Text(txn.description, maxLines = 1) },
+        headlineContent = { Text(txn.description.ifBlank { typeLabel }, maxLines = 1) },
         supportingContent = {
             Text(
-                text = txn.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() },
+                text = typeLabel,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
         trailingContent = {
             Text(
-                text = signedAmount(txn),
+                text = signedAmount(txn, cardId),
                 style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
-                color = amountColor(txn.type),
+                color = amountColor(txn, cardId),
             )
         },
     )
 }
 
+/** True when money was paid INTO this card (destination = card) — i.e. a payment/credit that
+ *  reduces outstanding. Otherwise the txn is a charge that increased outstanding. */
+private fun Transaction.paysCard(cardId: String): Boolean = destinationId == cardId
+
 @Composable
-private fun amountColor(type: TransactionType): Color = when (type) {
+private fun amountColor(txn: Transaction, cardId: String): Color = when (txn.type) {
     TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
     TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
     -> MaterialTheme.colorScheme.primary
     TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
     -> com.subramanya.artha.ui.theme.Danger
+    // A bill payment / transfer onto the card is a credit (reduces what you owe).
+    TransactionType.TRANSFER, TransactionType.CARD_PAYMENT ->
+        if (txn.paysCard(cardId)) MaterialTheme.colorScheme.primary
+        else com.subramanya.artha.ui.theme.Danger
     else -> MaterialTheme.colorScheme.onSurface
 }
 
@@ -480,7 +490,7 @@ private fun iconForType(type: TransactionType) = when (type) {
     else -> Icons.Filled.AccountBalance
 }
 
-private fun signedAmount(txn: Transaction): String {
+private fun signedAmount(txn: Transaction, cardId: String): String {
     val abs = IndianNumberFormat.format(txn.amount)
     return when (txn.type) {
         TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
@@ -488,6 +498,9 @@ private fun signedAmount(txn: Transaction): String {
         -> "+$abs"
         TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
         -> "−$abs"
+        // Payment onto the card → credit (+); a charge/transfer off the card → debit (−).
+        TransactionType.TRANSFER, TransactionType.CARD_PAYMENT ->
+            if (txn.paysCard(cardId)) "+$abs" else "−$abs"
         else -> abs
     }
 }

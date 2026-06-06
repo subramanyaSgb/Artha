@@ -235,8 +235,18 @@ private fun MetaBlock(insurance: Insurance) {
             MetaRow(stringResource(R.string.insurance_detail_policy_number), it)
         }
         MetaRow(stringResource(R.string.insurance_detail_start), DateFormatter.longDate(insurance.startDate))
-        insurance.nextPremiumDate?.let {
-            MetaRow(stringResource(R.string.insurance_detail_next_due), DateFormatter.longDate(it))
+        insurance.nextPremiumDate?.let { nextDue ->
+            // Countdown so the user sees "due in N days" (or "overdue") at a glance.
+            val days = ((nextDue - System.currentTimeMillis()) / 86_400_000L).toInt()
+            val suffix = if (days >= 0) {
+                androidx.compose.ui.res.pluralStringResource(R.plurals.insurance_detail_due_in, days, days)
+            } else {
+                stringResource(R.string.insurance_detail_overdue)
+            }
+            MetaRow(
+                stringResource(R.string.insurance_detail_next_due),
+                "${DateFormatter.longDate(nextDue)} · $suffix",
+            )
         }
         insurance.endDate?.let {
             MetaRow(stringResource(R.string.insurance_detail_end), DateFormatter.longDate(it))
@@ -268,7 +278,7 @@ private fun MetaBlock(insurance: Insurance) {
                             }
                             runCatching { context.startActivity(intent) }
                         }) {
-                            Icon(Icons.Filled.Call, contentDescription = null)
+                            Icon(Icons.Filled.Call, contentDescription = stringResource(R.string.insurance_detail_call_agent))
                         }
                     }
                 }

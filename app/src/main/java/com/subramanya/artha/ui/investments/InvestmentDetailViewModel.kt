@@ -12,10 +12,12 @@ import com.subramanya.artha.data.repository.InvestmentRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.domain.model.Transaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -84,7 +86,8 @@ class InvestmentDetailViewModel(
             transactions = txns,
             showDeleteConfirm = deleteConfirm,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InvestmentDetailUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InvestmentDetailUiState())
 
     fun requestDelete() {
         if (state.value.investment != null) showDeleteConfirm.update { true }

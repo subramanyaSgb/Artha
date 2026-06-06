@@ -9,11 +9,13 @@ import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.Transaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -78,7 +80,8 @@ class CardDetailViewModel(
             showArchiveConfirm = archiveConfirm,
             showDeleteConfirm = deleteConfirm,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CardDetailUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CardDetailUiState())
 
     fun requestArchive() { if (state.value.card != null) showArchiveConfirm.update { true } }
     fun dismissArchiveConfirm() = showArchiveConfirm.update { false }
