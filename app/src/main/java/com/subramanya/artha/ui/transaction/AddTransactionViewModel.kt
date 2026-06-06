@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.data.entity.enums.CardType
 import com.subramanya.artha.data.entity.enums.CategoryType
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
@@ -16,6 +15,7 @@ import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.data.repository.InvestmentRepository
+import com.subramanya.artha.data.repository.PaymentAppRepository
 import com.subramanya.artha.data.repository.PersonRepository
 import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.data.repository.TransactionRepository
@@ -59,11 +59,21 @@ class AddTransactionViewModel(
     private val transactionRuleRepository: TransactionRuleRepository,
     private val investmentRepository: InvestmentRepository,
     private val settingsPreferences: SettingsPreferences,
+    private val paymentAppRepository: PaymentAppRepository,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddTransactionUiState())
     val state: StateFlow<AddTransactionUiState> = _state.asStateFlow()
+
+    init {
+        // Keep the payment-app picker list live (built-ins + custom; hidden removed).
+        viewModelScope.launch {
+            paymentAppRepository.observeVisible().collect { apps ->
+                _state.update { it.copy(paymentApps = apps) }
+            }
+        }
+    }
 
     /**
      * Live lists for the From/To pickers; merged into a single [FundsEndpoint]
@@ -296,8 +306,18 @@ class AddTransactionViewModel(
         _state.update { it.copy(description = value) }
     }
 
-    fun onPaymentAppChanged(app: PaymentApp) {
-        _state.update { it.copy(paymentApp = app) }
+    fun onPaymentAppChanged(appId: String) {
+        _state.update { it.copy(paymentApp = appId) }
+    }
+
+    /** Adds a user-defined payment app and immediately selects it. */
+    fun addCustomPaymentApp(label: String) {
+        val trimmed = label.trim()
+        if (trimmed.isBlank()) return
+        viewModelScope.launch {
+            val id = paymentAppRepository.addCustom(trimmed)
+            _state.update { it.copy(paymentApp = id) }
+        }
     }
 
     fun togglePerson(personId: String) {
@@ -571,6 +591,7 @@ class AddTransactionViewModelFactory(
     private val transactionRuleRepository: TransactionRuleRepository,
     private val investmentRepository: InvestmentRepository,
     private val settingsPreferences: SettingsPreferences,
+    private val paymentAppRepository: PaymentAppRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -587,6 +608,7 @@ class AddTransactionViewModelFactory(
             transactionRuleRepository,
             investmentRepository,
             settingsPreferences,
+            paymentAppRepository,
         ) as T
     }
 }

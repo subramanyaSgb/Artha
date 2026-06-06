@@ -4,7 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
@@ -52,8 +51,10 @@ data class TransactionEntity(
     val destinationType: SourceKind?,
     @ColumnInfo(name = "destination_id")
     val destinationId: String?,
+    /** Catalogue id of the payment app (see PaymentAppEntity). Built-ins use the former
+     *  PaymentApp enum name; custom apps use a UUID. Phase 2 of configurable pick-lists. */
     @ColumnInfo(name = "payment_app")
-    val paymentApp: PaymentApp,
+    val paymentApp: String,
     val place: String?,
     val latitude: Double?,
     val longitude: Double?,

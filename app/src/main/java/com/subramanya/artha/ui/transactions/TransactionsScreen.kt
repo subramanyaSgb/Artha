@@ -239,6 +239,7 @@ fun TransactionsScreen(
                 transactionRuleRepository = app.transactionRuleRepository,
                 investmentRepository = app.investmentRepository,
                 settingsPreferences = app.settingsPreferences,
+                paymentAppRepository = app.paymentAppRepository,
             ),
         )
         AddTransactionSheet(viewModel = txnVm, onDismiss = { showAddSheet = false })

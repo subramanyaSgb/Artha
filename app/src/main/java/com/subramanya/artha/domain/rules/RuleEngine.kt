@@ -158,7 +158,7 @@ object RuleEngine {
             val idMatch = condition.id == null || txn.destinationId == condition.id
             kindMatch && idMatch
         }
-        is RuleCondition.PaymentAppIs -> txn.paymentApp == condition.app
+        is RuleCondition.PaymentAppIs -> txn.paymentApp == condition.appId
         is RuleCondition.TypeIs -> txn.type == condition.type
         is RuleCondition.HasPersonRelation -> {
             val tagged = knownPeople.filter { it.id in txn.peopleIds }

@@ -4,14 +4,18 @@ import android.content.Context
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.entity.AccountEntity
 import com.subramanya.artha.data.entity.TransactionEntity
+import com.subramanya.artha.data.db.seed.SeedPaymentApps
 import com.subramanya.artha.data.entity.enums.AccountType
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
 import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 import java.util.UUID
+
+/** Recognised built-in payment-app ids; an import value outside this set maps to OTHER. */
+private val BUILTIN_PAYMENT_APP_IDS: Set<String> =
+    SeedPaymentApps.BUILTINS.mapTo(HashSet()) { it.first }
 
 /**
  * Loads the bundled `assets/seed/bank_import.json` (generated offline by
@@ -116,8 +120,9 @@ class BankImporter(
                     sourceId = sourceId,
                     destinationType = if (destId != null) SourceKind.ACCOUNT else null,
                     destinationId = destId,
-                    paymentApp = runCatching { PaymentApp.valueOf(t.optString("payment_app", "OTHER")) }
-                        .getOrDefault(PaymentApp.OTHER),
+                    // Payment-app catalogue id: keep a recognised built-in name, else OTHER.
+                    paymentApp = t.optString("payment_app", "OTHER").uppercase()
+                        .takeIf { it in BUILTIN_PAYMENT_APP_IDS } ?: "OTHER",
                     place = null,
                     latitude = null,
                     longitude = null,

@@ -53,7 +53,7 @@ import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.ui.transaction.CategoryPickerSheet
-import com.subramanya.artha.data.entity.enums.PaymentApp
+import com.subramanya.artha.data.db.seed.SeedPaymentApps
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
@@ -304,10 +304,11 @@ private fun ConditionEditor(condition: RuleCondition, onChange: (RuleCondition) 
         )
         is RuleCondition.PaymentAppIs -> EnumPicker(
             label = stringResource(R.string.rules_cond_payment_app_label),
-            current = condition.app,
-            options = PaymentApp.entries,
-            onPick = { onChange(condition.copy(app = it)) },
-            labelFor = { it.name },
+            current = condition.appId,
+            // Rules pick from the built-in apps (custom user apps are out of scope for matching).
+            options = BUILTIN_PAYMENT_APP_IDS,
+            onPick = { onChange(condition.copy(appId = it)) },
+            labelFor = { builtinPaymentAppLabel(it) },
         )
         is RuleCondition.HasPersonRelation -> EnumPicker(
             label = stringResource(R.string.rules_cond_person_relation_label),
@@ -381,6 +382,13 @@ private fun SourceKindEditor(
     }
 }
 
+/** Built-in payment-app ids offered when building a PaymentAppIs rule condition. */
+private val BUILTIN_PAYMENT_APP_IDS: List<String> = SeedPaymentApps.BUILTINS.map { it.first }
+
+/** Resolves a built-in payment-app id to its label; falls back to the raw id (e.g. a custom app). */
+private fun builtinPaymentAppLabel(id: String): String =
+    SeedPaymentApps.BUILTINS.firstOrNull { it.first == id }?.second ?: id
+
 @Composable
 private fun <T> EnumPicker(
     label: String,
@@ -430,7 +438,7 @@ private fun AddConditionButton(onAdd: (RuleCondition) -> Unit) {
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.rules_cond_kind_payment_app)) },
-                onClick = { onAdd(RuleCondition.PaymentAppIs(app = PaymentApp.GPAY)); expanded = false },
+                onClick = { onAdd(RuleCondition.PaymentAppIs(appId = "GPAY")); expanded = false },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.rules_cond_kind_person_relation)) },
@@ -609,7 +617,7 @@ private fun RuleCondition.summary(): String = when (this) {
     is RuleCondition.DescriptionContains -> stringResource(R.string.rules_cond_summary_desc, text)
     is RuleCondition.AmountCompare -> stringResource(R.string.rules_cond_summary_amount, op.label(), value)
     is RuleCondition.TypeIs -> stringResource(R.string.rules_cond_summary_type, type.name)
-    is RuleCondition.PaymentAppIs -> stringResource(R.string.rules_cond_summary_payment_app, app.name)
+    is RuleCondition.PaymentAppIs -> stringResource(R.string.rules_cond_summary_payment_app, builtinPaymentAppLabel(appId))
     is RuleCondition.HasPersonRelation -> stringResource(R.string.rules_cond_summary_person, relation.name)
     is RuleCondition.SourceIs -> stringResource(R.string.rules_cond_summary_source, kind.name, id ?: "*")
     is RuleCondition.DestinationIs -> stringResource(R.string.rules_cond_summary_destination, kind.name, id ?: "*")

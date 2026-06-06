@@ -530,7 +530,7 @@ private fun ParsedCard(
             chipFor(
                 label = stringResource(R.string.ai_quick_entry_preview_payment_app),
                 field = parsed.paymentApp,
-                render = { it?.name ?: "—" },
+                render = { id -> id?.replace('_', ' ')?.lowercase()?.replaceFirstChar { it.titlecase() } ?: "—" },
             )
             chipFor(
                 label = stringResource(R.string.ai_quick_entry_preview_date),

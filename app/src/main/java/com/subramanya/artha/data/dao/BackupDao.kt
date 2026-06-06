@@ -58,4 +58,8 @@ interface BackupDao {
 
     @Query("DELETE FROM accounts")
     suspend fun deleteAllAccounts()
+
+    /** Phase 2: delete all payment-app catalogue rows (for restore — re-inserted from backup). */
+    @Query("DELETE FROM payment_app")
+    suspend fun deleteAllPaymentApps()
 }

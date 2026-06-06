@@ -212,6 +212,7 @@ fun DashboardScreen(
                 transactionRuleRepository = app.transactionRuleRepository,
                 investmentRepository = app.investmentRepository,
                 settingsPreferences = app.settingsPreferences,
+                paymentAppRepository = app.paymentAppRepository,
             ),
         )
         pendingAiPrefill?.let { parsed ->

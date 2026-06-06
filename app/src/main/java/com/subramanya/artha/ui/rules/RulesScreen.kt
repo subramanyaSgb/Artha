@@ -405,7 +405,7 @@ private fun describe(c: RuleCondition): String = when (c) {
     is RuleCondition.AmountCompare -> "AMT ${opLabel(c.op)} ₹${IndianNumberFormat.format(c.value).removePrefix("₹")}"
     is RuleCondition.SourceIs -> "SOURCE = ${c.kind.name}"
     is RuleCondition.DestinationIs -> "DEST = ${c.kind.name}"
-    is RuleCondition.PaymentAppIs -> "APP = ${c.app.name}"
+    is RuleCondition.PaymentAppIs -> "APP = ${c.appId}"
     is RuleCondition.TypeIs -> "TYPE = ${c.type.name}"
     is RuleCondition.HasPersonRelation -> "PERSON = ${c.relation.name}"
     is RuleCondition.TimeOfDayBetween -> "TIME ${fmtMin(c.fromMinuteOfDay)}–${fmtMin(c.toMinuteOfDay)}"

@@ -213,6 +213,7 @@ fun CardDetailScreen(
                 transactionRuleRepository = app.transactionRuleRepository,
                 investmentRepository = app.investmentRepository,
                 settingsPreferences = app.settingsPreferences,
+                paymentAppRepository = app.paymentAppRepository,
             ),
         )
         // Apply the Transfer-to-this-card prefill once the VM is alive.

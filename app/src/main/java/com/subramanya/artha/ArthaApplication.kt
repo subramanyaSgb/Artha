@@ -13,6 +13,7 @@ import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.data.repository.GoalRepository
 import com.subramanya.artha.data.repository.InsuranceRepository
 import com.subramanya.artha.data.repository.InvestmentRepository
+import com.subramanya.artha.data.repository.PaymentAppRepository
 import com.subramanya.artha.data.repository.PersonRepository
 import com.subramanya.artha.data.repository.RecurringRuleRepository
 import com.subramanya.artha.data.repository.SubscriptionRepository
@@ -56,6 +57,9 @@ class ArthaApplication : Application() {
     }
     val tagRepository: TagRepository by lazy {
         TagRepository(database.tagDao())
+    }
+    val paymentAppRepository: PaymentAppRepository by lazy {
+        PaymentAppRepository(database.paymentAppDao())
     }
     val transactionRepository: TransactionRepository by lazy {
         TransactionRepository(database.transactionDao())

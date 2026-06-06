@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.data.balance.BalanceCalculator
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
@@ -153,7 +152,7 @@ class InvestmentDetailViewModel(
                 sourceId = null,
                 destinationType = SourceKind.INVESTMENT,
                 destinationId = current.id,
-                paymentApp = PaymentApp.OTHER,
+                paymentApp = "OTHER",
                 place = null,
                 latitude = null,
                 longitude = null,

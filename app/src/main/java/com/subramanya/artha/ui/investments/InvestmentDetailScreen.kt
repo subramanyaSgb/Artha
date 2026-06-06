@@ -262,6 +262,7 @@ fun InvestmentDetailScreen(
                 transactionRuleRepository = app.transactionRuleRepository,
                 investmentRepository = app.investmentRepository,
                 settingsPreferences = app.settingsPreferences,
+                paymentAppRepository = app.paymentAppRepository,
             ),
         )
         LaunchedEffect(invSnapshot?.id) {

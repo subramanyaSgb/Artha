@@ -1,6 +1,5 @@
 package com.subramanya.artha.domain.rules
 
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
@@ -17,7 +16,7 @@ class RuleSpecJsonTest {
                 RuleCondition.AmountCompare(AmountOp.GTE, 1_000.0),
                 RuleCondition.SourceIs(SourceKind.ACCOUNT, "acct-1"),
                 RuleCondition.DestinationIs(SourceKind.CARD, "card-2"),
-                RuleCondition.PaymentAppIs(PaymentApp.CRED),
+                RuleCondition.PaymentAppIs("CRED"),
                 RuleCondition.TypeIs(TransactionType.CARD_PAYMENT),
                 RuleCondition.HasPersonRelation(PersonRelation.SPOUSE),
                 RuleCondition.TimeOfDayBetween(540, 1080),

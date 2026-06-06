@@ -3,7 +3,7 @@ package com.subramanya.artha.ai
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.Content
 import com.google.ai.client.generativeai.type.content
-import com.subramanya.artha.data.entity.enums.PaymentApp
+import com.subramanya.artha.data.db.seed.SeedPaymentApps
 import com.subramanya.artha.data.entity.enums.TransactionType
 import kotlinx.datetime.Clock
 import org.json.JSONObject
@@ -96,8 +96,12 @@ class GeminiQuickEntryParser(
         val place = json.optString("place").takeIf { it.isNotBlank() }
 
         val type = runCatching { typeStr?.let { TransactionType.valueOf(it.uppercase()) } }.getOrNull()
-        val app = runCatching { paymentAppStr?.let { PaymentApp.valueOf(it.uppercase()) } }
-            .getOrNull() ?: PaymentApp.OTHER
+        // Resolve to a built-in payment-app catalogue id (the model is prompted with these names);
+        // anything unrecognised falls back to OTHER. Custom user apps aren't AI-assigned.
+        val builtinAppIds = SeedPaymentApps.BUILTINS.mapTo(HashSet()) { it.first }
+        val app = paymentAppStr?.uppercase()
+            ?.takeIf { it in builtinAppIds }
+            ?: SeedPaymentApps.DEFAULT_ID
 
         return AiQuickEntryParsed(
             type = AiField(type, type?.let { Confidence.HIGH } ?: Confidence.LOW),
