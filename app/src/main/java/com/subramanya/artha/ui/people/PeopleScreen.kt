@@ -104,7 +104,7 @@ fun PeopleScreen(
                 ExtendedFloatingActionButton(
                     onClick = { formMode = PersonFormMode.Add },
                     containerColor = Teal700,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.people_fab_add)) },
@@ -243,7 +243,7 @@ private fun PersonRow(
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Filled.Delete,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.people_delete_person, person.name),
                     tint = Text3,
                     modifier = Modifier.size(18.dp),
                 )
