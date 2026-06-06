@@ -70,15 +70,7 @@ import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Teal900
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.IndianNumberFormat
 import java.util.UUID
@@ -104,15 +96,15 @@ fun PeopleScreen(
     var formMode: PersonFormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Person? by remember { mutableStateOf(null) }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = PersonFormMode.Add },
                     containerColor = Teal700,
-                    contentColor = Text1,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.people_fab_add)) },
@@ -204,11 +196,11 @@ private fun PersonRow(
         else -> Expense
     }
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
             .clickable(onClick = onTap),
     ) {
         Row(
@@ -221,7 +213,7 @@ private fun PersonRow(
                 Text(
                     text = person.name,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(2.dp))
                 val meta = buildList {
@@ -268,7 +260,7 @@ private fun PersonAvatar(name: String) {
         modifier = Modifier
             .size(40.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Teal900),
+            .background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -276,7 +268,7 @@ private fun PersonAvatar(name: String) {
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.SemiBold,
             ),
-            color = Teal300,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -326,7 +318,7 @@ internal fun PersonFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {

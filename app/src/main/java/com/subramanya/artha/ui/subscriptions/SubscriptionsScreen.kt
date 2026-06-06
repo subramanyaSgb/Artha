@@ -75,16 +75,9 @@ import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
@@ -109,15 +102,15 @@ fun SubscriptionsScreen(
     val monthlyAverage = app.subscriptionRepository.annualisedMonthlyAverage(active)
     val yearly = monthlyAverage * 12.0
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = Text1,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.subscriptions_fab_add)) },
@@ -195,7 +188,7 @@ private sealed interface FormMode {
 @Composable
 private fun SubscriptionsHero(monthly: Double, yearly: Double) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -214,7 +207,7 @@ private fun SubscriptionsHero(monthly: Double, yearly: Double) {
                     fontFamily = InstrumentSerif,
                     fontSize = 40.sp,
                     lineHeight = 46.sp,
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFeatureSettings = "tnum, lnum",
                 ),
             )
@@ -236,13 +229,13 @@ private fun SubscriptionsHero(monthly: Double, yearly: Double) {
 private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -> Unit) {
     val isPaused = sub.status != SubscriptionStatus.ACTIVE
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
                 1.dp,
-                if (isPaused) Line1 else LineTeal.copy(alpha = 0.4f),
+                if (isPaused) MaterialTheme.colorScheme.outlineVariant else LineTeal.copy(alpha = 0.4f),
                 RoundedCornerShape(16.dp),
             )
             .clickable(onClick = onTap),
@@ -253,13 +246,13 @@ private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Surface4),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Subscriptions,
                         contentDescription = null,
-                        tint = if (isPaused) Text3 else Teal300,
+                        tint = if (isPaused) Text3 else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -268,7 +261,7 @@ private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -
                     Text(
                         text = sub.name,
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = if (isPaused) Text2 else Text1,
+                        color = if (isPaused) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(Modifier.height(2.dp))
                     val pieces = buildList {
@@ -292,7 +285,7 @@ private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -
                         style = TextStyle(
                             fontFamily = InstrumentSerif,
                             fontSize = 18.sp,
-                            color = if (isPaused) Text3 else Text1,
+                            color = if (isPaused) Text3 else MaterialTheme.colorScheme.onSurface,
                             fontFeatureSettings = "tnum, lnum",
                         ),
                     )
@@ -353,7 +346,7 @@ private fun SubscriptionFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {

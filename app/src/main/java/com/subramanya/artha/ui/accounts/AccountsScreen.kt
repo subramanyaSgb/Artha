@@ -164,7 +164,7 @@ fun AccountsScreen(
                     onClick = { formMode = FormMode.Add },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     icon = {
                         Icon(Icons.Filled.Add, contentDescription = null)
                     },
@@ -237,9 +237,9 @@ private fun ActiveAccountRow(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onTap, onLongClick = onLongPress),
-        color = com.subramanya.artha.ui.theme.Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, com.subramanya.artha.ui.theme.Line1),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
@@ -250,7 +250,7 @@ private fun ActiveAccountRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = row.account.name,
-                    color = com.subramanya.artha.ui.theme.Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                 )
@@ -284,7 +284,7 @@ private fun ActiveAccountRow(
             } else {
                 Text(
                     text = IndianNumberFormat.format(row.currentBalance),
-                    color = com.subramanya.artha.ui.theme.Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
                 )
                 Box {
@@ -337,9 +337,9 @@ private fun ArchivedAccountRow(
     var menuOpen by remember { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = com.subramanya.artha.ui.theme.Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, com.subramanya.artha.ui.theme.Line1),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -350,7 +350,7 @@ private fun ArchivedAccountRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = row.account.name,
-                    color = com.subramanya.artha.ui.theme.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                 )
@@ -505,7 +505,7 @@ internal fun TotalLiquidCard(accounts: List<com.subramanya.artha.domain.model.Ac
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
-            .background(com.subramanya.artha.ui.theme.Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant,
@@ -516,7 +516,7 @@ internal fun TotalLiquidCard(accounts: List<com.subramanya.artha.domain.model.Ac
             modifier = Modifier
                 .matchParentSize()
                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp)),
-            tint = com.subramanya.artha.ui.theme.Teal300,
+            tint = MaterialTheme.colorScheme.primary,
             alpha = 0.04f,
         )
         Column(modifier = Modifier.padding(20.dp)) {

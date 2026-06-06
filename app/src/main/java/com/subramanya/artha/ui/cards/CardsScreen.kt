@@ -160,7 +160,7 @@ fun CardsScreen(
                     onClick = { formMode = FormMode.Add },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     icon = {
                         Icon(Icons.Filled.Add, contentDescription = null)
                     },
@@ -734,7 +734,7 @@ private fun CardsTotalOutstandingCard(
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
-            .background(com.subramanya.artha.ui.theme.Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant,

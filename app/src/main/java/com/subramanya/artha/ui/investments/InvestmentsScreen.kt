@@ -98,16 +98,16 @@ fun InvestmentsScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Investment? by remember { mutableStateOf(null) }
 
-    Surface(modifier = modifier.fillMaxSize(), color = com.subramanya.artha.ui.theme.Surface1) {
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 androidx.compose.material3.ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.investments_fab_add)) },
                 )
@@ -334,7 +334,7 @@ private fun AllocationBar(rows: List<com.subramanya.artha.domain.model.Investmen
                         text = type.name.lowercase()
                             .replaceFirstChar { it.titlecase() }
                             .replace('_', ' '),
-                        color = com.subramanya.artha.ui.theme.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
                     )
                 }

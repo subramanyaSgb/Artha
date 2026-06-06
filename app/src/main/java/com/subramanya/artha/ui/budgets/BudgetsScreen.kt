@@ -76,13 +76,8 @@ import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Ochre
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
-import com.subramanya.artha.ui.theme.Text1
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.coroutines.launch
@@ -103,15 +98,15 @@ fun BudgetsScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Budget? by remember { mutableStateOf(null) }
 
-    Surface(color = com.subramanya.artha.ui.theme.Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 androidx.compose.material3.ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.budgets_fab_add)) },
@@ -203,14 +198,14 @@ private fun BudgetRow(
         else -> com.subramanya.artha.ui.theme.Income
     }
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 6.dp)
             .border(
                 width = 1.dp,
-                color = if (overspent) LineTeal else Line1,
+                color = if (overspent) LineTeal else MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(16.dp),
             )
             .clickable(onClick = onTap),
@@ -221,13 +216,13 @@ private fun BudgetRow(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Surface4),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.AccountBalanceWallet,
                         contentDescription = null,
-                        tint = Teal300,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -238,7 +233,7 @@ private fun BudgetRow(
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
                         ),
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
@@ -272,7 +267,7 @@ private fun BudgetRow(
                     style = TextStyle(
                         fontFamily = IbmPlexMono,
                         fontSize = 12.sp,
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFeatureSettings = "tnum, lnum",
                     ),
                 )
@@ -316,7 +311,7 @@ private fun StripeOverflowBar(
             .fillMaxWidth()
             .height(barHeightDp)
             .clip(RoundedCornerShape(cornerDp))
-            .background(Surface4),
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {
         // Filled base segment.
         if (baseFraction > 0f) {
@@ -406,7 +401,7 @@ private fun BudgetFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {

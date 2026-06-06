@@ -16,12 +16,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import com.subramanya.artha.ui.theme.Line1
-import com.subramanya.artha.ui.theme.Surface3
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal500
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,9 +53,9 @@ fun SpousePromptDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
-        containerColor = Surface3,
-        titleContentColor = Text1,
-        textContentColor = Text2,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
+        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(20.dp),
         title = {
             Text(
@@ -120,11 +115,11 @@ fun SpousePromptDialog(
                     else -> null
                 }
                 onSave(choice, persist)
-            }) { Text(stringResource(R.string.spouse_prompt_save), color = Teal300) }
+            }) { Text(stringResource(R.string.spouse_prompt_save), color = MaterialTheme.colorScheme.primary) }
         },
         dismissButton = {
             TextButton(onClick = onCancel) {
-                Text(stringResource(R.string.spouse_prompt_cancel), color = Text2)
+                Text(stringResource(R.string.spouse_prompt_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
     )
@@ -151,11 +146,11 @@ private fun ChoiceRow(
             onClick = onSelect,
             colors = RadioButtonDefaults.colors(
                 selectedColor = Teal500,
-                unselectedColor = Line1,
+                unselectedColor = MaterialTheme.colorScheme.outlineVariant,
             ),
         )
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge, color = Text1)
+            Text(text = title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(
                 text = body,
                 style = MaterialTheme.typography.bodySmall,
@@ -179,9 +174,9 @@ private fun CheckboxRow(checked: Boolean, onChange: (Boolean) -> Unit, label: St
             onCheckedChange = onChange,
             colors = CheckboxDefaults.colors(
                 checkedColor = Teal500,
-                uncheckedColor = Line1,
+                uncheckedColor = MaterialTheme.colorScheme.outlineVariant,
             ),
         )
-        Text(text = label, style = MaterialTheme.typography.bodySmall, color = Text2, modifier = Modifier.weight(1f))
+        Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
     }
 }

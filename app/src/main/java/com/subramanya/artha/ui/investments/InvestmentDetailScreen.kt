@@ -105,7 +105,7 @@ fun InvestmentDetailScreen(
     var showAddContribution by remember { mutableStateOf(false) }
 
     Surface(
-        color = com.subramanya.artha.ui.theme.Surface1,
+        color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize(),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -119,7 +119,7 @@ fun InvestmentDetailScreen(
                             Icon(
                                 Icons.Filled.Edit,
                                 contentDescription = stringResource(R.string.account_detail_action_edit),
-                                tint = com.subramanya.artha.ui.theme.Text2,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         if (inv.isArchived) {
@@ -127,7 +127,7 @@ fun InvestmentDetailScreen(
                                 Icon(
                                     Icons.Filled.Unarchive,
                                     contentDescription = stringResource(R.string.account_detail_action_restore),
-                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         } else {
@@ -135,7 +135,7 @@ fun InvestmentDetailScreen(
                                 Icon(
                                     Icons.Filled.Archive,
                                     contentDescription = stringResource(R.string.account_detail_action_archive),
-                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }

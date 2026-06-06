@@ -82,17 +82,9 @@ import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Ochre
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Teal900
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import kotlinx.coroutines.launch
@@ -112,15 +104,15 @@ fun RecurringScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: RecurringRule? by remember { mutableStateOf(null) }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = Text1,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.recurring_fab_add)) },
@@ -217,7 +209,7 @@ private fun OchreInfoBanner(text: String) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
-                color = Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -231,13 +223,13 @@ private fun RecurringRow(
     onDelete: () -> Unit,
 ) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
                 1.dp,
-                if (rule.isActive) LineTeal else Line1,
+                if (rule.isActive) LineTeal else MaterialTheme.colorScheme.outlineVariant,
                 RoundedCornerShape(16.dp),
             )
             .clickable(onClick = onTap),
@@ -247,7 +239,7 @@ private fun RecurringRow(
                 Icon(
                     imageVector = Icons.Filled.Refresh,
                     contentDescription = null,
-                    tint = Teal300,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.size(8.dp))
@@ -257,12 +249,12 @@ private fun RecurringRow(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.5.sp,
                     ),
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 if (rule.autoConfirm) {
                     Surface(
-                        color = Teal900,
+                        color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(4.dp),
                     ) {
                         Text(
@@ -271,7 +263,7 @@ private fun RecurringRow(
                                 fontFamily = IbmPlexMono,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Teal300,
+                                color = MaterialTheme.colorScheme.primary,
                                 letterSpacing = 0.06.em,
                             ),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -283,11 +275,11 @@ private fun RecurringRow(
                     checked = rule.isActive,
                     onCheckedChange = onToggle,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Text1,
+                        checkedThumbColor = MaterialTheme.colorScheme.onSurface,
                         checkedTrackColor = Teal700,
-                        uncheckedThumbColor = Text2,
-                        uncheckedTrackColor = Surface4,
-                        uncheckedBorderColor = Line1,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                     ),
                 )
                 IconButton(onClick = onDelete) {
@@ -305,7 +297,7 @@ private fun RecurringRow(
                     text = "${IndianNumberFormat.format(t.amount)} · ${t.type.name.lowercase().replaceFirstChar { it.titlecase() }}" +
                         if (t.description.isNotBlank()) " · ${t.description}" else "",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -382,7 +374,7 @@ private fun RecurringFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
@@ -509,7 +501,7 @@ private fun RecurringFormSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(com.subramanya.artha.ui.theme.Surface2, RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -517,7 +509,7 @@ private fun RecurringFormSheet(
                     Text(
                         text = stringResource(R.string.recurring_form_auto_confirm),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = com.subramanya.artha.ui.theme.Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Fire and forget · for fixed amounts like rent",

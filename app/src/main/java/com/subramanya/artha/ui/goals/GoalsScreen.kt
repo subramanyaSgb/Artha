@@ -65,15 +65,9 @@ import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Ochre
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal500
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.coroutines.launch
@@ -96,15 +90,15 @@ fun GoalsScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Goal? by remember { mutableStateOf(null) }
 
-    Surface(color = com.subramanya.artha.ui.theme.Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 androidx.compose.material3.ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.goals_fab_add)) },
@@ -179,19 +173,19 @@ private fun GoalRow(row: GoalWithProgress, onTap: () -> Unit, onDelete: () -> Un
     val isComplete = ratio >= 1f
     val tint = when {
         isComplete -> Income
-        ratio >= 0.7f -> Teal300
+        ratio >= 0.7f -> MaterialTheme.colorScheme.primary
         ratio >= 0.4f -> Ochre
-        else -> Text2
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 6.dp)
             .border(
                 width = 1.dp,
-                color = if (isComplete) LineTeal else Line1,
+                color = if (isComplete) LineTeal else MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(16.dp),
             )
             .clickable(onClick = onTap),
@@ -211,7 +205,7 @@ private fun GoalRow(row: GoalWithProgress, onTap: () -> Unit, onDelete: () -> Un
                         modifier = Modifier
                             .size(36.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Surface4),
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -228,7 +222,7 @@ private fun GoalRow(row: GoalWithProgress, onTap: () -> Unit, onDelete: () -> Un
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                             ),
-                            color = Text1,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         val subtitle = buildList {
                             add("Target ${IndianNumberFormat.format(row.goal.targetAmount)}")
@@ -260,7 +254,7 @@ private fun GoalRow(row: GoalWithProgress, onTap: () -> Unit, onDelete: () -> Un
                         .fillMaxWidth()
                         .height(8.dp)
                         .clip(RoundedCornerShape(999.dp))
-                        .background(Surface4),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 ) {
                     Box(
                         modifier = Modifier
@@ -277,7 +271,7 @@ private fun GoalRow(row: GoalWithProgress, onTap: () -> Unit, onDelete: () -> Un
                         style = TextStyle(
                             fontFamily = IbmPlexMono,
                             fontSize = 12.sp,
-                            color = Text1,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontFeatureSettings = "tnum, lnum",
                         ),
                     )
@@ -325,7 +319,7 @@ private fun GoalFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {

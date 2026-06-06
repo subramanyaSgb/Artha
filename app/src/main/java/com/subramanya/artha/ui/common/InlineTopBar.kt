@@ -27,9 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.ui.theme.PlusJakartaSans
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 
 /**
  * HANDOFF chrome.jsx · TopBar — inline scrolling header for sub-screens.
@@ -52,7 +49,7 @@ fun InlineTopBar(
 ) {
     val baseModifier = modifier
         .fillMaxWidth()
-        .background(Surface1)
+        .background(MaterialTheme.colorScheme.background)
         .let { if (statusBars) it.statusBarsPadding() else it }
 
     Row(
@@ -72,7 +69,7 @@ fun InlineTopBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = null,
-                    tint = Text1,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -86,7 +83,7 @@ fun InlineTopBar(
                 fontFamily = PlusJakartaSans,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = (-0.01).em,
             ),
             modifier = Modifier

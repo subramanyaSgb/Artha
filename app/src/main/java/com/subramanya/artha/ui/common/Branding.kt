@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.ui.theme.EyebrowStyle
-import com.subramanya.artha.ui.theme.Line2
 import com.subramanya.artha.ui.theme.Surface4
 import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
@@ -381,7 +380,7 @@ fun ArthaSheetHandle() {
                 .width(36.dp)
                 .height(4.dp)
                 .clip(RoundedCornerShape(2.dp))
-                .background(Line2),
+                .background(MaterialTheme.colorScheme.outline),
         )
     }
 }
@@ -402,7 +401,7 @@ fun LoadingPlaceholder(
         contentAlignment = Alignment.Center,
     ) {
         androidx.compose.material3.CircularProgressIndicator(
-            color = Teal300,
+            color = MaterialTheme.colorScheme.primary,
             strokeWidth = 2.dp,
             modifier = Modifier.size(20.dp),
         )
@@ -464,7 +463,7 @@ fun ArthaAlertDialog(
                     color = if (confirmDestructive)
                         com.subramanya.artha.ui.theme.Danger
                     else
-                        com.subramanya.artha.ui.theme.Teal300,
+                        MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.SemiBold,
                     ),

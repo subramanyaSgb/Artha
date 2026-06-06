@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -39,7 +40,6 @@ import com.subramanya.artha.ui.common.PillRadio
 import com.subramanya.artha.ui.common.SavePrimaryButton
 import com.subramanya.artha.ui.common.SheetTitle
 import com.subramanya.artha.ui.common.SheetWindowInsets
-import com.subramanya.artha.ui.theme.Surface3
 import com.subramanya.artha.ui.theme.Text3
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
@@ -99,7 +99,7 @@ fun CategoryFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {

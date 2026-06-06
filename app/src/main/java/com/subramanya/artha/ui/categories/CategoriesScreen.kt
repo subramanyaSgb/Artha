@@ -47,11 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.height
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -99,15 +95,15 @@ fun CategoriesScreen(
         }
     }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = Text1,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.categories_fab_add)) },
@@ -266,9 +262,9 @@ private fun ParentRow(
         modifier = Modifier
             .fillMaxWidth()
             .let { if (hasChildren) it.clickable(onClick = onToggle) else it },
-        color = com.subramanya.artha.ui.theme.Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, com.subramanya.artha.ui.theme.Line1),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -279,7 +275,7 @@ private fun ParentRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = parent.name,
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                 )
@@ -345,7 +341,7 @@ private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) 
     Row(modifier = Modifier.fillMaxWidth().padding(start = 24.dp)) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = com.subramanya.artha.ui.theme.Surface3,
+            color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(14.dp),
         ) {
             Row(
@@ -356,7 +352,7 @@ private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) 
                 Spacer(Modifier.size(12.dp))
                 Text(
                     text = child.name,
-                    color = Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
                     maxLines = 1,

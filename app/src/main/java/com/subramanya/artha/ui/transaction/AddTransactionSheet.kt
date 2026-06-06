@@ -95,15 +95,8 @@ import com.subramanya.artha.ui.theme.Income
 import com.subramanya.artha.ui.theme.Indigo
 import com.subramanya.artha.ui.theme.IndigoDeep
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface3
-import com.subramanya.artha.ui.theme.Surface4
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.Text4
 import com.subramanya.artha.utils.DateFormatter
@@ -147,7 +140,7 @@ fun AddTransactionSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {
@@ -459,7 +452,7 @@ private fun SegmentedTabs(
     onSelect: (TransactionTab) -> Unit,
 ) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -472,14 +465,14 @@ private fun SegmentedTabs(
             TransactionTab.entries.forEach { tab ->
                 val isActive = tab == selected
                 val activeTint = when (tab) {
-                    TransactionTab.EXPENSE -> Text1
+                    TransactionTab.EXPENSE -> MaterialTheme.colorScheme.onSurface
                     TransactionTab.INCOME -> Income
                     TransactionTab.TRANSFER -> Indigo
                     TransactionTab.INVEST -> Teal500
                 }
                 Surface(
-                    color = if (isActive) Surface4 else Color.Transparent,
-                    contentColor = if (isActive) activeTint else Text2,
+                    color = if (isActive) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent,
+                    contentColor = if (isActive) activeTint else MaterialTheme.colorScheme.onSurfaceVariant,
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
                         .weight(1f)
@@ -513,7 +506,7 @@ private fun AmountInput(
     tab: TransactionTab,
 ) {
     val tint = when (tab) {
-        TransactionTab.EXPENSE -> Text1
+        TransactionTab.EXPENSE -> MaterialTheme.colorScheme.onSurface
         TransactionTab.INCOME -> Income
         TransactionTab.TRANSFER -> Indigo
         TransactionTab.INVEST -> Teal500
@@ -611,9 +604,9 @@ private fun TabTintedSaveButton(
     onClick: () -> Unit,
 ) {
     val (container, content) = when (tab) {
-        TransactionTab.EXPENSE -> Teal700 to Text1
+        TransactionTab.EXPENSE -> Teal700 to MaterialTheme.colorScheme.onSurface
         TransactionTab.INCOME -> Income to Color(0xFF06281C)
-        TransactionTab.TRANSFER -> IndigoDeep to Text1
+        TransactionTab.TRANSFER -> IndigoDeep to MaterialTheme.colorScheme.onSurface
         TransactionTab.INVEST -> Teal500 to Color(0xFF06281C)
     }
     val labelRes = when {
@@ -625,9 +618,9 @@ private fun TabTintedSaveButton(
     }
     // IndianNumberFormat.format already prefixes ₹ — don't double it.
     val priceText = amount?.let { IndianNumberFormat.format(it) } ?: "₹0"
-    Surface(color = Surface1, modifier = Modifier.fillMaxWidth()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxWidth()) {
         Column {
-            HorizontalDivider(color = Line1, thickness = Dp.Hairline)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = Dp.Hairline)
             Button(
                 onClick = onClick,
                 enabled = enabled,
@@ -635,7 +628,7 @@ private fun TabTintedSaveButton(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = container,
                     contentColor = content,
-                    disabledContainerColor = Surface3,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     disabledContentColor = Text3,
                 ),
                 modifier = Modifier

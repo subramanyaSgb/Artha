@@ -43,12 +43,6 @@ import com.subramanya.artha.ui.common.SavePrimaryButton
 import com.subramanya.artha.ui.theme.Danger
 import com.subramanya.artha.ui.theme.InstrumentSerif
 import com.subramanya.artha.ui.theme.PlusJakartaSans
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
-import com.subramanya.artha.ui.theme.Teal900
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 
 /**
  * Wraps the app's UI in a biometric/device-credential prompt. Until the user
@@ -121,7 +115,7 @@ fun BiometricLockGate(content: @Composable () -> Unit) {
         return
     }
 
-    Surface(color = Surface1, modifier = Modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -134,13 +128,13 @@ fun BiometricLockGate(content: @Composable () -> Unit) {
                 modifier = Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Teal900),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Filled.Fingerprint,
                     contentDescription = null,
-                    tint = Teal300,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(36.dp),
                 )
             }
@@ -152,7 +146,7 @@ fun BiometricLockGate(content: @Composable () -> Unit) {
                     fontSize = 28.sp,
                     lineHeight = 32.sp,
                     fontWeight = FontWeight.Normal,
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     letterSpacing = (-0.01).em,
                 ),
             )
@@ -164,7 +158,7 @@ fun BiometricLockGate(content: @Composable () -> Unit) {
                     fontSize = 13.sp,
                     lineHeight = 20.sp,
                 ),
-                color = Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
             )
             errorMessage?.let {
@@ -173,7 +167,7 @@ fun BiometricLockGate(content: @Composable () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Surface4)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 ) {
                     Text(

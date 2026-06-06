@@ -94,7 +94,7 @@ fun CardDetailScreen(
     var payBill by remember { mutableStateOf(false) }
 
     Surface(
-        color = com.subramanya.artha.ui.theme.Surface1,
+        color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize(),
     ) {
         androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
@@ -108,7 +108,7 @@ fun CardDetailScreen(
                             Icon(
                                 Icons.Filled.Edit,
                                 contentDescription = stringResource(R.string.card_detail_action_edit),
-                                tint = com.subramanya.artha.ui.theme.Text2,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         if (card.isArchived) {
@@ -116,7 +116,7 @@ fun CardDetailScreen(
                                 Icon(
                                     Icons.Filled.Unarchive,
                                     contentDescription = stringResource(R.string.card_detail_action_restore),
-                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         } else {
@@ -124,7 +124,7 @@ fun CardDetailScreen(
                                 Icon(
                                     Icons.Filled.Archive,
                                     contentDescription = stringResource(R.string.card_detail_action_archive),
-                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }

@@ -87,7 +87,7 @@ fun TransactionDetailScreen(
     var editing by remember { mutableStateOf(false) }
 
     Surface(
-        color = com.subramanya.artha.ui.theme.Surface1,
+        color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize(),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -101,14 +101,14 @@ fun TransactionDetailScreen(
                             Icon(
                                 Icons.Filled.Edit,
                                 contentDescription = stringResource(R.string.txn_detail_action_edit),
-                                tint = com.subramanya.artha.ui.theme.Text2,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         IconButton(onClick = { vm.duplicate(onDuplicated = onBack) }) {
                             Icon(
                                 Icons.Filled.ContentCopy,
                                 contentDescription = stringResource(R.string.txn_detail_action_duplicate),
-                                tint = com.subramanya.artha.ui.theme.Text2,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         IconButton(onClick = vm::requestDelete) {

@@ -117,7 +117,7 @@ fun RuleFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
@@ -176,7 +176,7 @@ fun RuleFormSheet(
             }
 
             Spacer(Modifier.height(18.dp))
-            HorizontalDivider(color = com.subramanya.artha.ui.theme.Line1, thickness = androidx.compose.ui.unit.Dp.Hairline)
+            HorizontalDivider(color = androidx.compose.material3.MaterialTheme.colorScheme.outlineVariant, thickness = androidx.compose.ui.unit.Dp.Hairline)
 
             // ─── THEN ─────────────────────────────────────────────────────
             com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.rules_form_section_then)) {
