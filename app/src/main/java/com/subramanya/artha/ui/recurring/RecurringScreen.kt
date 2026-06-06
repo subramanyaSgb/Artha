@@ -75,6 +75,7 @@ import com.subramanya.artha.data.entity.enums.RecurringFrequency
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.RecurringRule
+import com.subramanya.artha.domain.recurring.RecurringFireEngine
 import com.subramanya.artha.domain.recurring.RecurringTemplate
 import com.subramanya.artha.domain.recurring.RecurringTemplateCodec
 import com.subramanya.artha.utils.IndianNumberFormat
@@ -98,7 +99,8 @@ fun RecurringScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
-    val rules by app.recurringRuleRepository.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
+    // Nullable so we can tell "still loading" (null → skeleton) from "no rules" (empty → CTA).
+    val rules: List<RecurringRule>? by app.recurringRuleRepository.observeAll().collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
 
     var formMode: FormMode? by remember { mutableStateOf(null) }
@@ -131,22 +133,27 @@ fun RecurringScreen(
                     )
                 }
                 item { OchreInfoBanner(text = stringResource(R.string.recurring_banner)) }
-                if (rules.isEmpty()) {
-                    item {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            EmptyState(icon = Icons.Filled.EventRepeat, title = stringResource(R.string.recurring_empty))
+                val list = rules
+                when {
+                    list == null -> item { RecurringSkeleton() }
+                    list.isEmpty() -> {
+                        item {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                EmptyState(icon = Icons.Filled.EventRepeat, title = stringResource(R.string.recurring_empty))
+                            }
                         }
                     }
-                } else {
-                    items(rules, key = { it.id }) { rule ->
-                        RecurringRow(
-                            rule = rule,
-                            onTap = { formMode = FormMode.Edit(rule) },
-                            onToggle = { active ->
-                                scope.launch { app.recurringRuleRepository.upsert(rule.copy(isActive = active)) }
-                            },
-                            onDelete = { pendingDelete = rule },
-                        )
+                    else -> {
+                        items(list, key = { it.id }) { rule ->
+                            RecurringRow(
+                                rule = rule,
+                                onTap = { formMode = FormMode.Edit(rule) },
+                                onToggle = { active ->
+                                    scope.launch { app.recurringRuleRepository.upsert(rule.copy(isActive = active)) }
+                                },
+                                onDelete = { pendingDelete = rule },
+                            )
+                        }
                     }
                 }
             }
@@ -285,13 +292,16 @@ private fun RecurringRow(
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Filled.Delete,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.recurring_delete_rule, rule.name),
                         tint = Text3,
                         modifier = Modifier.size(18.dp),
                     )
                 }
             }
-            RecurringTemplateCodec.decode(rule.transactionTemplate)?.let { t ->
+            val template = remember(rule.transactionTemplate) {
+                RecurringTemplateCodec.decode(rule.transactionTemplate)
+            }
+            template?.let { t ->
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "${IndianNumberFormat.format(t.amount)} · ${t.type.name.lowercase().replaceFirstChar { it.titlecase() }}" +
@@ -319,6 +329,21 @@ private fun RecurringRow(
                     ),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RecurringSkeleton() {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(88.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
         }
     }
 }
@@ -549,7 +574,10 @@ private fun RecurringFormSheet(
                             transactionTemplate = encodedTemplate,
                             frequency = freq,
                             dayOfPeriod = day,
-                            nextRunDate = editing?.nextRunDate ?: now,
+                            // New rules start at the next scheduled occurrence (this period if the
+                            // chosen day hasn't passed, else next) — not `now`, which would fire on
+                            // the next worker tick regardless of the chosen day.
+                            nextRunDate = editing?.nextRunDate ?: RecurringFireEngine.firstRunDate(freq, day, now),
                             lastRunDate = editing?.lastRunDate,
                             autoConfirm = autoConfirm,
                             isActive = editing?.isActive ?: true,

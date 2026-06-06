@@ -102,6 +102,37 @@ class RecurringFireEngineTest {
         assert(nextNext < next + 35 * ONE_DAY_MS) { "Second fire should be < 35 days from first" }
     }
 
+    // ---- firstRunDate (new-rule seeding) ----
+
+    @Test fun `firstRunDate daily is the creation time`() {
+        assertEquals(NOW_MILLIS, RecurringFireEngine.firstRunDate(RecurringFrequency.DAILY, null, NOW_MILLIS))
+    }
+
+    @Test fun `firstRunDate yearly is the creation time`() {
+        assertEquals(NOW_MILLIS, RecurringFireEngine.firstRunDate(RecurringFrequency.YEARLY, 1, NOW_MILLIS))
+    }
+
+    @Test fun `firstRunDate monthly uses this month when the day has not passed`() {
+        // NOW ≈ 2025-05-23; day-of-month 28 is still ahead → this month's 28th (a few days away).
+        val first = RecurringFireEngine.firstRunDate(RecurringFrequency.MONTHLY, 28, NOW_MILLIS)
+        assert(first > NOW_MILLIS) { "The 28th should be after the 23rd" }
+        assert(first < NOW_MILLIS + 10 * ONE_DAY_MS) { "Should land within this month, was $first" }
+    }
+
+    @Test fun `firstRunDate monthly rolls to next month when the day already passed`() {
+        // Day 1 has already passed on the 23rd → next month's 1st, which is after this month's 28th.
+        val passed = RecurringFireEngine.firstRunDate(RecurringFrequency.MONTHLY, 1, NOW_MILLIS)
+        val thisMonth = RecurringFireEngine.firstRunDate(RecurringFrequency.MONTHLY, 28, NOW_MILLIS)
+        assert(passed > thisMonth) { "Next-month 1st must be after this-month 28th" }
+    }
+
+    @Test fun `firstRunDate weekly lands within the coming week`() {
+        val first = RecurringFireEngine.firstRunDate(RecurringFrequency.WEEKLY, 3, NOW_MILLIS)
+        assert(first in (NOW_MILLIS - ONE_DAY_MS)..(NOW_MILLIS + 7 * ONE_DAY_MS)) {
+            "Weekly first run should be within the coming week, was $first"
+        }
+    }
+
     // ---- helpers ----
 
     private val NOW_MILLIS = 1_748_000_000_000L // ~2025-05-23, a fixed reference point

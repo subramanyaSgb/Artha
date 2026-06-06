@@ -1,6 +1,7 @@
 package com.subramanya.artha.domain.recurring
 
 import com.subramanya.artha.data.entity.TransactionEntity
+import com.subramanya.artha.data.entity.enums.RecurringFrequency
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.domain.model.RecurringRule
 import kotlinx.datetime.DateTimeUnit
@@ -74,6 +75,45 @@ object RecurringFireEngine {
         val transaction: TransactionEntity,
         val nextRunDate: Long,
     )
+
+    /**
+     * The FIRST scheduled fire date for a brand-new rule, computed from [fromMillis] (creation
+     * time). Unlike [nextRunDate] — which always advances PAST the current period — this returns
+     * the next occurrence INCLUDING the current period when the target day hasn't passed yet. So a
+     * rule created on the 1st for day-of-month 5 first fires on the 5th of the SAME month (not next
+     * month), and a rule created on its target day fires that same day. This prevents a new rule
+     * from firing immediately on the next worker tick regardless of its chosen day.
+     *
+     * DAILY/YEARLY have no day-of-period anchor, so the first fire is [fromMillis] itself.
+     */
+    fun firstRunDate(
+        frequency: RecurringFrequency,
+        dayOfPeriod: Int?,
+        fromMillis: Long,
+    ): Long {
+        val tz = TimeZone.currentSystemDefault()
+        val today = Instant.fromEpochMilliseconds(fromMillis).toLocalDateTime(tz).date
+        return when (frequency) {
+            RecurringFrequency.DAILY, RecurringFrequency.YEARLY -> fromMillis
+            RecurringFrequency.WEEKLY -> {
+                val target = (dayOfPeriod ?: 1).coerceIn(1, 7)
+                val todayIso = today.dayOfWeek.ordinal + 1 // MONDAY=1 .. SUNDAY=7
+                val delta = ((target - todayIso) % 7 + 7) % 7 // 0..6, 0 = today
+                today.plus(delta, DateTimeUnit.DAY).atStartOfDayIn(tz).toEpochMilliseconds()
+            }
+            RecurringFrequency.MONTHLY -> {
+                val target = (dayOfPeriod ?: 1).coerceIn(1, 28)
+                if (today.dayOfMonth <= target) {
+                    LocalDate(today.year, today.monthNumber, target)
+                        .atStartOfDayIn(tz).toEpochMilliseconds()
+                } else {
+                    val y = if (today.monthNumber == 12) today.year + 1 else today.year
+                    val m = if (today.monthNumber == 12) 1 else today.monthNumber + 1
+                    LocalDate(y, m, target).atStartOfDayIn(tz).toEpochMilliseconds()
+                }
+            }
+        }
+    }
 
     /**
      * Computes the next scheduled date after [nowMillis]. The rule's [RecurringRule.dayOfPeriod]

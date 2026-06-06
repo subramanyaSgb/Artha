@@ -1120,6 +1120,7 @@
     <string name="recurring_form_day_of_month">Day of month (1-31)</string>
     <string name="recurring_form_day_of_week">Day of week (1=Mon..7=Sun)</string>
     <string name="recurring_form_auto_confirm">Auto-confirm without notification</string>
+    <string name="recurring_delete_rule">Delete %1$s</string>
     <string name="recurring_delete_confirm_title">Delete this recurring rule?</string>
     <string name="recurring_delete_confirm_body">Removes the rule. Past transactions it created stay in the log.</string>
     <string name="recurring_delete_confirm_yes">Delete</string>
