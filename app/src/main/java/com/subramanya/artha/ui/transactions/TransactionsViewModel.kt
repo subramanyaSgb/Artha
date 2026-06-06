@@ -7,10 +7,12 @@ import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
+import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.Category
+import com.subramanya.artha.domain.model.Tag
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.utils.DateFormatter
@@ -42,6 +44,7 @@ class TransactionsViewModel(
     accountRepository: AccountRepository,
     cardRepository: CardRepository,
     categoryRepository: CategoryRepository,
+    tagRepository: TagRepository,
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
@@ -59,8 +62,9 @@ class TransactionsViewModel(
             accountRepository.observeActive(),
             cardRepository.observeActive(),
             categoryRepository.observeAll(),
-        ) { txns, accounts, cards, categories ->
-            DataSnapshot(txns, accounts, cards, categories)
+            tagRepository.observeAll(),
+        ) { txns, accounts, cards, categories, tags ->
+            DataSnapshot(txns, accounts, cards, categories, tags)
         },
         combine(query, filter, sort, selectedIds, showDeleteConfirm) { q, f, s, sel, confirm ->
             UiSnapshot(q, f, s, sel, confirm)
@@ -79,7 +83,7 @@ class TransactionsViewModel(
         for (txn in filtered) {
             when {
                 txn.type in INCOME_LIKE -> inSum += txn.amount
-                txn.type == TransactionType.EXPENSE -> outSum += txn.amount
+                txn.type in OUTFLOW_LIKE -> outSum += txn.amount
             }
         }
         TransactionsUiState(
@@ -94,6 +98,8 @@ class TransactionsViewModel(
             accounts = data.accounts,
             cards = data.cards,
             categories = data.categories,
+            tags = data.tags,
+            count = filtered.size,
             selectedIds = ui.selectedIds,
             showDeleteConfirm = ui.showDeleteConfirm,
         )
@@ -168,6 +174,7 @@ class TransactionsViewModel(
             ) {
                 return@filter false
             }
+            if (f.tagId != null && f.tagId !in txn.tagIds) return@filter false
             if (needle.isNotEmpty() &&
                 !txn.description.lowercase().contains(needle) &&
                 !(txn.notes?.lowercase()?.contains(needle) ?: false) &&
@@ -237,9 +244,7 @@ class TransactionsViewModel(
     /** For day totals: positive for income-like, negative for outflow, zero otherwise. */
     private fun signedDelta(txn: Transaction): Double = when {
         txn.type in INCOME_LIKE -> txn.amount
-        txn.type == TransactionType.EXPENSE ||
-            txn.type == TransactionType.LOAN_GIVEN ||
-            txn.type == TransactionType.GIFT_SENT -> -txn.amount
+        txn.type in OUTFLOW_LIKE -> -txn.amount
         else -> 0.0
     }
 
@@ -248,6 +253,7 @@ class TransactionsViewModel(
         val accounts: List<Account>,
         val cards: List<Card>,
         val categories: List<Category>,
+        val tags: List<Tag>,
     )
 
     private data class UiSnapshot(
@@ -268,6 +274,14 @@ class TransactionsViewModel(
             TransactionType.LOAN_RECEIVED,
             TransactionType.GIFT_RECEIVED,
         )
+
+        /** Types that count as "money out" — must mirror the row sign + day-sum + In/Out/Net strip
+         *  so the three never disagree. Transfers / card payments / investment legs are net-zero here. */
+        private val OUTFLOW_LIKE = setOf(
+            TransactionType.EXPENSE,
+            TransactionType.LOAN_GIVEN,
+            TransactionType.GIFT_SENT,
+        )
     }
 }
 
@@ -276,6 +290,7 @@ class TransactionsViewModelFactory(
     private val accountRepository: AccountRepository,
     private val cardRepository: CardRepository,
     private val categoryRepository: CategoryRepository,
+    private val tagRepository: TagRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -287,6 +302,7 @@ class TransactionsViewModelFactory(
             accountRepository,
             cardRepository,
             categoryRepository,
+            tagRepository,
         ) as T
     }
 }

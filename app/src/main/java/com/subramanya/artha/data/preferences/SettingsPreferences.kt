@@ -51,9 +51,25 @@ class SettingsPreferences(context: Context) {
     val dashboardShowAccounts: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_ACCOUNTS] ?: true }
     val dashboardShowCards: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_CARDS] ?: true }
     val dashboardShowRecent: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_RECENT] ?: true }
+    val dashboardShowSpending: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_SPENDING] ?: true }
+
+    /** Order (top→bottom) of the reorderable dashboard sections, as section keys. Empty when
+     *  the user hasn't customised it — callers merge with their canonical default so adding a
+     *  new section later can't be lost behind a stale saved list. */
+    val dashboardSectionOrder: Flow<List<String>> = dataStore.data.map { prefs ->
+        prefs[Keys.DASH_SECTION_ORDER]?.split(',')?.filter { it.isNotBlank() }.orEmpty()
+    }
 
     suspend fun setDashboardShowMonthly(value: Boolean) {
         dataStore.edit { it[Keys.DASH_SHOW_MONTHLY] = value }
+    }
+
+    suspend fun setDashboardShowSpending(value: Boolean) {
+        dataStore.edit { it[Keys.DASH_SHOW_SPENDING] = value }
+    }
+
+    suspend fun setDashboardSectionOrder(order: List<String>) {
+        dataStore.edit { it[Keys.DASH_SECTION_ORDER] = order.joinToString(",") }
     }
 
     suspend fun setDashboardShowAccounts(value: Boolean) {
@@ -185,6 +201,8 @@ class SettingsPreferences(context: Context) {
         val DASH_SHOW_ACCOUNTS = booleanPreferencesKey("dashboard_show_accounts")
         val DASH_SHOW_CARDS = booleanPreferencesKey("dashboard_show_cards")
         val DASH_SHOW_RECENT = booleanPreferencesKey("dashboard_show_recent")
+        val DASH_SHOW_SPENDING = booleanPreferencesKey("dashboard_show_spending")
+        val DASH_SECTION_ORDER = stringPreferencesKey("dashboard_section_order")
         val BUNDLED_IMPORT_VERSION = intPreferencesKey("bundled_import_version")
         val BIOMETRIC_LOCK = booleanPreferencesKey("biometric_lock_enabled")
         val SMS_AUTO_IMPORT = booleanPreferencesKey("sms_auto_import_enabled")

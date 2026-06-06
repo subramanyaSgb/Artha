@@ -4,6 +4,7 @@ import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.Category
+import com.subramanya.artha.domain.model.Tag
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.utils.TimeRange
 
@@ -16,6 +17,7 @@ data class TransactionsFilter(
     val accountId: String? = null,
     val cardId: String? = null,
     val categoryId: String? = null,
+    val tagId: String? = null,
 )
 
 data class TransactionsUiState(
@@ -37,6 +39,9 @@ data class TransactionsUiState(
     val accounts: List<Account> = emptyList(),
     val cards: List<Card> = emptyList(),
     val categories: List<Category> = emptyList(),
+    val tags: List<Tag> = emptyList(),
+    /** Number of transactions in the visible (filtered) set, for the result-count label. */
+    val count: Int = 0,
     val selectedIds: Set<String> = emptySet(),
     val showDeleteConfirm: Boolean = false,
 ) {

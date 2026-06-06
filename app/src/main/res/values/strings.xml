@@ -6,6 +6,12 @@
     <!-- Top app bar -->
     <string name="greeting_guest">Namaste</string>
     <string name="greeting_named">Namaste, %1$s</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_morning_named">Good morning, %1$s</string>
+    <string name="greeting_afternoon_named">Good afternoon, %1$s</string>
+    <string name="greeting_evening_named">Good evening, %1$s</string>
 
     <!-- Bottom navigation -->
     <string name="nav_dashboard">Home</string>
@@ -211,6 +217,22 @@
     <string name="dashboard_card_due_tomorrow">Due tomorrow</string>
     <string name="dashboard_accounts_empty">Add your first account from More → Accounts.</string>
     <string name="dashboard_recent_empty">No transactions for this range yet.</string>
+    <string name="dashboard_section_recent_activity">Recent activity</string>
+    <string name="dashboard_firstrun_title">Welcome to Artha</string>
+    <string name="dashboard_firstrun_body">Add an account or log your first transaction to get started.</string>
+    <string name="dashboard_firstrun_add_txn">Log a transaction</string>
+    <string name="dashboard_section_spending">Where it went</string>
+    <string name="dashboard_spending_empty">No spending logged this month yet.</string>
+    <string name="dashboard_uncategorized">Uncategorised</string>
+    <string name="dashboard_net_change_suffix">this month</string>
+    <string name="dashboard_breakdown_liquid">Liquid</string>
+    <string name="dashboard_breakdown_invested">Invested</string>
+    <string name="dashboard_breakdown_card_os">Card o/s</string>
+    <string name="dashboard_add_account">Add account</string>
+    <string name="dashboard_add_card">Add card</string>
+    <string name="dashboard_card_outstanding">Outstanding %1$s</string>
+    <string name="dashboard_ai_card_title">Quick add with Gemini</string>
+    <string name="dashboard_ai_card_subtitle">\"Auto to MG Road ₹180\" — type, dictate, snap a receipt</string>
 
     <!-- Transactions screen -->
     <string name="transactions_search_placeholder">Search transactions</string>
@@ -244,6 +266,7 @@
     <string name="transactions_filter_account">Account</string>
     <string name="transactions_filter_card">Card</string>
     <string name="transactions_filter_category">Category</string>
+    <string name="transactions_filter_tag">Tag</string>
     <string name="transactions_filter_clear_all">Clear filters</string>
     <string name="transactions_filter_any">Any</string>
     <string name="transactions_sort_label">Sort</string>
@@ -251,8 +274,21 @@
     <string name="transactions_sort_date_asc">Date — oldest first</string>
     <string name="transactions_sort_amount_desc">Amount — largest first</string>
     <string name="transactions_sort_amount_asc">Amount — smallest first</string>
-    <string name="transactions_empty">No transactions match these filters</string>
+    <string name="transactions_empty">No transactions yet. Tap + to add your first.</string>
+    <string name="transactions_empty_filtered">No transactions match these filters</string>
     <string name="ledger_add_transaction">Add transaction</string>
+    <string name="ledger_title">The Ledger</string>
+    <string name="ledger_total_in">In</string>
+    <string name="ledger_total_out">Out</string>
+    <string name="ledger_total_net">Net</string>
+    <string name="ledger_range_today">Today</string>
+    <string name="ledger_range_week">This week</string>
+    <string name="ledger_range_month">This month</string>
+    <string name="ledger_range_all">All time</string>
+    <plurals name="transactions_count">
+        <item quantity="one">%1$d transaction</item>
+        <item quantity="other">%1$d transactions</item>
+    </plurals>
     <string name="transactions_select_count">%1$d selected</string>
     <string name="transactions_select_delete">Delete</string>
     <string name="transactions_select_clear">Clear selection</string>
@@ -616,7 +652,10 @@
     <string name="settings_dashboard_accounts">Accounts row</string>
     <string name="settings_dashboard_cards">Cards row</string>
     <string name="settings_dashboard_recent">Recent transactions</string>
-    <string name="settings_dashboard_hint">Net Position always stays on top.</string>
+    <string name="settings_dashboard_spending">Spending breakdown</string>
+    <string name="settings_dashboard_hint">Net Position stays pinned on top. Use the arrows to reorder the rest.</string>
+    <string name="settings_dashboard_move_up">Move up</string>
+    <string name="settings_dashboard_move_down">Move down</string>
 
     <!-- Dashboard -->
     <string name="dashboard_section_cards_empty">Add a credit/debit card from More → Cards.</string>

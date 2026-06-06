@@ -24,6 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -45,12 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal500
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -106,7 +103,7 @@ fun SettingsScreen(
         vm.acknowledgeExport()
     }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -125,14 +122,18 @@ fun SettingsScreen(
                 HorizontalDivider()
                 SectionHeader(stringResource(R.string.settings_section_dashboard))
                 DashboardSectionsBlock(
+                    order = com.subramanya.artha.ui.dashboard.DashboardSection.ordered(state.dashboardSectionOrder),
                     showMonthly = state.dashboardShowMonthly,
+                    showSpending = state.dashboardShowSpending,
                     showAccounts = state.dashboardShowAccounts,
                     showCards = state.dashboardShowCards,
                     showRecent = state.dashboardShowRecent,
                     onMonthlyChanged = vm::onDashboardShowMonthlyChanged,
+                    onSpendingChanged = vm::onDashboardShowSpendingChanged,
                     onAccountsChanged = vm::onDashboardShowAccountsChanged,
                     onCardsChanged = vm::onDashboardShowCardsChanged,
                     onRecentChanged = vm::onDashboardShowRecentChanged,
+                    onOrderChanged = vm::onDashboardSectionOrderChanged,
                 )
 
                 HorizontalDivider()
@@ -483,14 +484,18 @@ private fun SpouseChip(
 
 @Composable
 private fun DashboardSectionsBlock(
+    order: List<com.subramanya.artha.ui.dashboard.DashboardSection>,
     showMonthly: Boolean,
+    showSpending: Boolean,
     showAccounts: Boolean,
     showCards: Boolean,
     showRecent: Boolean,
     onMonthlyChanged: (Boolean) -> Unit,
+    onSpendingChanged: (Boolean) -> Unit,
     onAccountsChanged: (Boolean) -> Unit,
     onCardsChanged: (Boolean) -> Unit,
     onRecentChanged: (Boolean) -> Unit,
+    onOrderChanged: (List<String>) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(
@@ -499,19 +504,76 @@ private fun DashboardSectionsBlock(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
         )
-        DashboardSwitchRow(stringResource(R.string.settings_dashboard_monthly), showMonthly, onMonthlyChanged)
-        DashboardSwitchRow(stringResource(R.string.settings_dashboard_accounts), showAccounts, onAccountsChanged)
-        DashboardSwitchRow(stringResource(R.string.settings_dashboard_cards), showCards, onCardsChanged)
-        DashboardSwitchRow(stringResource(R.string.settings_dashboard_recent), showRecent, onRecentChanged)
+        order.forEachIndexed { index, section ->
+            val label: String
+            val checked: Boolean
+            val onChange: (Boolean) -> Unit
+            when (section) {
+                com.subramanya.artha.ui.dashboard.DashboardSection.MONTHLY -> {
+                    label = stringResource(R.string.settings_dashboard_monthly); checked = showMonthly; onChange = onMonthlyChanged
+                }
+                com.subramanya.artha.ui.dashboard.DashboardSection.SPENDING -> {
+                    label = stringResource(R.string.settings_dashboard_spending); checked = showSpending; onChange = onSpendingChanged
+                }
+                com.subramanya.artha.ui.dashboard.DashboardSection.ACCOUNTS -> {
+                    label = stringResource(R.string.settings_dashboard_accounts); checked = showAccounts; onChange = onAccountsChanged
+                }
+                com.subramanya.artha.ui.dashboard.DashboardSection.CARDS -> {
+                    label = stringResource(R.string.settings_dashboard_cards); checked = showCards; onChange = onCardsChanged
+                }
+                com.subramanya.artha.ui.dashboard.DashboardSection.RECENT -> {
+                    label = stringResource(R.string.settings_dashboard_recent); checked = showRecent; onChange = onRecentChanged
+                }
+            }
+            DashboardSectionRow(
+                label = label,
+                checked = checked,
+                onChange = onChange,
+                canMoveUp = index > 0,
+                canMoveDown = index < order.size - 1,
+                onMove = { delta ->
+                    val keys = order.map { it.key }.toMutableList()
+                    val target = index + delta
+                    if (target in keys.indices) {
+                        val moved = keys.removeAt(index)
+                        keys.add(target, moved)
+                        onOrderChanged(keys)
+                    }
+                },
+            )
+        }
     }
 }
 
 @Composable
-private fun DashboardSwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun DashboardSectionRow(
+    label: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMove: (Int) -> Unit,
+) {
     ListItem(
         modifier = Modifier.fillMaxWidth(),
         headlineContent = { Text(label) },
-        trailingContent = { com.subramanya.artha.ui.common.ArthaSwitch(checked = checked, onCheckedChange = onChange) },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.material3.IconButton(onClick = { onMove(-1) }, enabled = canMoveUp) {
+                    Icon(
+                        Icons.Filled.KeyboardArrowUp,
+                        contentDescription = stringResource(R.string.settings_dashboard_move_up),
+                    )
+                }
+                androidx.compose.material3.IconButton(onClick = { onMove(1) }, enabled = canMoveDown) {
+                    Icon(
+                        Icons.Filled.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.settings_dashboard_move_down),
+                    )
+                }
+                com.subramanya.artha.ui.common.ArthaSwitch(checked = checked, onCheckedChange = onChange)
+            }
+        },
     )
 }
 
@@ -659,13 +721,13 @@ private fun PickListCosmeticsSection(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(11.dp))
-                                .background(com.subramanya.artha.ui.theme.Surface2),
+                                .background(MaterialTheme.colorScheme.surfaceContainer),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = com.subramanya.artha.utils.MaterialIcons.resolve(key),
                                 contentDescription = null,
-                                tint = Text2,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp),
                             )
                         }

@@ -170,7 +170,11 @@ private fun MainApp(
             if (isBottomNavRoute) {
                 ArthaTopBar(
                     userName = userName,
-                    onSearchClick = { navController.navigate(SubRoutes.SEARCH) },
+                    // launchSingleTop so a rapid double-tap can't stack two Search
+                    // destinations on the back stack.
+                    onSearchClick = {
+                        navController.navigate(SubRoutes.SEARCH) { launchSingleTop = true }
+                    },
                 )
             }
         },

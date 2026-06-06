@@ -44,7 +44,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -81,15 +84,8 @@ import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.PlusJakartaSans
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal500
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.Text4
 import com.subramanya.artha.utils.DateFormatter
@@ -133,6 +129,12 @@ fun SearchScreen(
         ),
     )
     val state by vm.state.collectAsStateWithLifecycle()
+    // The text field is driven by LOCAL state so it updates synchronously with every
+    // keystroke. Routing the field through the ViewModel's StateFlow (which only emits
+    // after a full-DB search on a background dispatcher) made the IME composing region
+    // lag on fast typing and reorder characters. We forward each change to the VM purely
+    // to run the search; the results may lag a frame, but the visible text never does.
+    var query by rememberSaveable { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
 
@@ -141,7 +143,7 @@ fun SearchScreen(
     }
 
     Surface(
-        color = Surface1,
+        color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize(),
     ) {
         Column(
@@ -151,20 +153,26 @@ fun SearchScreen(
                 .imePadding(),
         ) {
             SearchInputBar(
-                value = state.query,
-                onValueChange = vm::onQueryChanged,
+                value = query,
+                onValueChange = {
+                    query = it
+                    vm.onQueryChanged(it)
+                },
                 onBack = {
                     keyboard?.hide()
                     onBack()
                 },
-                onClear = vm::clear,
+                onClear = {
+                    query = ""
+                    vm.clear()
+                },
                 focusRequester = focusRequester,
             )
 
-            if (state.query.isBlank()) {
+            if (query.isBlank()) {
                 EmptyHint()
             } else if (state.isEmpty) {
-                NoResults(query = state.query)
+                NoResults(query = query)
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -309,7 +317,7 @@ private fun SearchInputBar(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.search_back),
-                tint = Text1,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -318,8 +326,8 @@ private fun SearchInputBar(
                 .weight(1f)
                 .height(48.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Surface2)
-                .border(1.dp, Line1, RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -335,7 +343,7 @@ private fun SearchInputBar(
                     value = value,
                     onValueChange = onValueChange,
                     singleLine = true,
-                    cursorBrush = SolidColor(Teal300),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences,
                         imeAction = ImeAction.Search,
@@ -343,7 +351,7 @@ private fun SearchInputBar(
                     textStyle = TextStyle(
                         fontFamily = PlusJakartaSans,
                         fontSize = 15.sp,
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                     ),
                     decorationBox = { inner ->
                         if (value.isEmpty()) {
@@ -366,14 +374,14 @@ private fun SearchInputBar(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(Surface4)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                         .clickable(onClick = onClear),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = stringResource(R.string.search_clear),
-                        tint = Text2,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(14.dp),
                     )
                 }
@@ -422,11 +430,11 @@ private fun EntityRow(
     trailing: String? = null,
 ) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(14.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick),
     ) {
         Row(
@@ -437,13 +445,13 @@ private fun EntityRow(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Surface4),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Teal300,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -452,7 +460,7 @@ private fun EntityRow(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -478,7 +486,7 @@ private fun EntityRow(
                     style = TextStyle(
                         fontFamily = InstrumentSerif,
                         fontSize = 16.sp,
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFeatureSettings = "tnum, lnum",
                     ),
                 )
@@ -498,11 +506,11 @@ private fun TransactionResultRow(txn: Transaction, onClick: () -> Unit) {
     val signed = (if (incomey) "" else "–") + "₹" + IndianNumberFormat.format(txn.amount).removePrefix("–₹").removePrefix("₹")
 
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(14.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick),
     ) {
         Row(
@@ -513,13 +521,13 @@ private fun TransactionResultRow(txn: Transaction, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Surface4),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Filled.Receipt,
                     contentDescription = null,
-                    tint = Teal300,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -528,7 +536,7 @@ private fun TransactionResultRow(txn: Transaction, onClick: () -> Unit) {
                 Text(
                     text = txn.description.ifBlank { "(no description)" },
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -577,7 +585,7 @@ private fun EmptyHint() {
         Text(
             text = stringResource(R.string.search_empty_title),
             style = MaterialTheme.typography.titleSmall,
-            color = Text2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(4.dp))
         Text(
@@ -606,7 +614,7 @@ private fun NoResults(query: String) {
         Text(
             text = stringResource(R.string.search_no_results_title, query),
             style = MaterialTheme.typography.titleSmall,
-            color = Text2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(4.dp))
         Text(

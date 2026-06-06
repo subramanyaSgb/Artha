@@ -37,6 +37,9 @@ data class SettingsUiState(
     val dashboardShowAccounts: Boolean = true,
     val dashboardShowCards: Boolean = true,
     val dashboardShowRecent: Boolean = true,
+    val dashboardShowSpending: Boolean = true,
+    /** Saved section order (keys); empty = default. Callers resolve via DashboardSection.ordered(). */
+    val dashboardSectionOrder: List<String> = emptyList(),
     val biometricLockEnabled: Boolean = false,
     val smsAutoImportEnabled: Boolean = false,
     val aiQuickEntryEnabled: Boolean = false,
@@ -109,7 +112,10 @@ class SettingsViewModel(
         settingsPreferences.dashboardShowAccounts,
         settingsPreferences.dashboardShowCards,
         settingsPreferences.dashboardShowRecent,
-    ) { monthly, accounts, cards, recent -> DashboardVisibility(monthly, accounts, cards, recent) }
+        settingsPreferences.dashboardShowSpending,
+    ) { monthly, accounts, cards, recent, spending ->
+        DashboardVisibility(monthly, accounts, cards, recent, spending)
+    }
 
     private val securityPrefs = combine(
         settingsPreferences.biometricLockEnabled,
@@ -124,6 +130,8 @@ class SettingsViewModel(
         bag.copy(importing = importing)
     }.combine(securityPrefs) { bag, security ->
         bag.copy(security = security)
+    }.combine(settingsPreferences.dashboardSectionOrder) { bag, order ->
+        bag.copy(order = order)
     }
 
     // The restore sub-state (result + pending-password uri) folded into one flow so the
@@ -168,6 +176,8 @@ class SettingsViewModel(
             dashboardShowAccounts = bag.visibility.accounts,
             dashboardShowCards = bag.visibility.cards,
             dashboardShowRecent = bag.visibility.recent,
+            dashboardShowSpending = bag.visibility.spending,
+            dashboardSectionOrder = bag.order,
             showFirstResetDialog = bag.firstReset,
             showFinalResetDialog = bag.finalReset,
             showWipeImportConfirm = bag.wipeImport,
@@ -199,7 +209,13 @@ class SettingsViewModel(
         val enabled: Boolean,
     )
 
-    private data class DashboardVisibility(val monthly: Boolean, val accounts: Boolean, val cards: Boolean, val recent: Boolean)
+    private data class DashboardVisibility(
+        val monthly: Boolean,
+        val accounts: Boolean,
+        val cards: Boolean,
+        val recent: Boolean,
+        val spending: Boolean,
+    )
     private data class SecurityPrefs(val biometric: Boolean, val smsImport: Boolean)
     private data class DialogsAndVisibility(
         val firstReset: Boolean,
@@ -209,6 +225,7 @@ class SettingsViewModel(
         val visibility: DashboardVisibility,
         val importing: Boolean,
         val security: SecurityPrefs,
+        val order: List<String> = emptyList(),
     )
 
     fun onNameChanged(value: String) {
@@ -242,6 +259,12 @@ class SettingsViewModel(
     }
     fun onDashboardShowRecentChanged(enabled: Boolean) {
         viewModelScope.launch { settingsPreferences.setDashboardShowRecent(enabled) }
+    }
+    fun onDashboardShowSpendingChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsPreferences.setDashboardShowSpending(enabled) }
+    }
+    fun onDashboardSectionOrderChanged(order: List<String>) {
+        viewModelScope.launch { settingsPreferences.setDashboardSectionOrder(order) }
     }
 
     fun onBiometricLockChanged(enabled: Boolean) {

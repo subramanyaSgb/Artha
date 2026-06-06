@@ -141,13 +141,13 @@ fun ArthaNavHost(
                 onOpenCard = { id -> navController.navigate(SubRoutes.cardDetail(id)) },
                 onOpenTransaction = { id -> navController.navigate(SubRoutes.transactionDetail(id)) },
                 onOpenInsurance = { id -> navController.navigate(SubRoutes.insuranceDetail(id)) },
-                onAddAccount = {
+                onOpenAccounts = {
                     navController.navigate(ArthaDestination.Accounts.route) {
                         popUpTo(navController.graph.findStartDestination().id)
                         launchSingleTop = true
                     }
                 },
-                onAddCard = {
+                onOpenCards = {
                     navController.navigate(ArthaDestination.Cards.route) {
                         popUpTo(navController.graph.findStartDestination().id)
                         launchSingleTop = true
