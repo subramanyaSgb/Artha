@@ -1073,6 +1073,16 @@
     <string name="subscription_freq_monthly">Monthly</string>
     <string name="subscription_freq_quarterly">Quarterly</string>
     <string name="subscription_freq_yearly">Yearly</string>
+    <string name="subscription_status_active">Active</string>
+    <string name="subscription_status_paused">Paused</string>
+    <string name="subscription_status_cancelled">Cancelled</string>
+    <string name="subscriptions_delete_sub">Delete %1$s</string>
+    <string name="subscriptions_inactive_header">Inactive</string>
+    <string name="subscriptions_due_overdue">Overdue</string>
+    <string name="subscriptions_due_soon">Due soon</string>
+    <string name="subscriptions_due_today">Due today</string>
+    <string name="subscriptions_due_tomorrow">Due tomorrow</string>
+    <string name="subscriptions_due_in_days">Due in %1$d days</string>
     <string name="subscriptions_form_add_title">Add subscription</string>
     <string name="subscriptions_form_edit_title">Edit subscription</string>
     <string name="subscriptions_form_name_label">Subscription name</string>
