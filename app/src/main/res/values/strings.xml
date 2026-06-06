@@ -1034,6 +1034,8 @@
     <string name="budgets_form_period_label">Period</string>
     <string name="budgets_form_amount_label">Budget amount</string>
     <string name="budgets_form_threshold_label">Alert at %</string>
+    <string name="budgets_delete_budget">Delete %1$s</string>
+    <string name="budgets_summary_eyebrow">This period</string>
     <string name="budgets_delete_confirm_title">Delete this budget?</string>
     <string name="budgets_delete_confirm_body">Removes the budget. Transactions are untouched.</string>
     <string name="budgets_delete_confirm_yes">Delete</string>
