@@ -112,6 +112,7 @@ dependencies {
 
     // DataStore (Session 4 onboarding persists userName here)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.work.runtime.ktx)
 
     // kotlinx
     implementation(libs.kotlinx.datetime)

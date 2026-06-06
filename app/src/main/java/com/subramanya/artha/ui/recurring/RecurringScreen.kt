@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -70,7 +72,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.RecurringFrequency
+import com.subramanya.artha.data.entity.enums.SourceKind
+import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.RecurringRule
+import com.subramanya.artha.domain.recurring.RecurringTemplate
+import com.subramanya.artha.domain.recurring.RecurringTemplateCodec
+import com.subramanya.artha.utils.IndianNumberFormat
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
@@ -88,7 +95,6 @@ import com.subramanya.artha.ui.theme.Text1
 import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
-import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -293,10 +299,11 @@ private fun RecurringRow(
                     )
                 }
             }
-            if (rule.transactionTemplate.isNotBlank()) {
+            RecurringTemplateCodec.decode(rule.transactionTemplate)?.let { t ->
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = rule.transactionTemplate,
+                    text = "${IndianNumberFormat.format(t.amount)} · ${t.type.name.lowercase().replaceFirstChar { it.titlecase() }}" +
+                        if (t.description.isNotBlank()) " · ${t.description}" else "",
                     style = MaterialTheme.typography.bodySmall,
                     color = Text2,
                 )
@@ -339,9 +346,28 @@ private fun RecurringFormSheet(
     onSave: (RecurringRule) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val app = context.applicationContext as ArthaApplication
+    val accounts by app.accountRepository.observeActive().collectAsStateWithLifecycle(initialValue = emptyList())
+    val cards by app.cardRepository.observeActive().collectAsStateWithLifecycle(initialValue = emptyList())
+    val categories by app.categoryRepository.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
+    val paymentApps by app.paymentAppRepository.observeVisible().collectAsStateWithLifecycle(initialValue = emptyList())
+
+    val existingTemplate = remember(editing) {
+        editing?.transactionTemplate?.let { RecurringTemplateCodec.decode(it) }
+    }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
-    var template by remember(editing) { mutableStateOf(editing?.transactionTemplate.orEmpty()) }
+    // Template fields
+    var amountText by remember(editing) { mutableStateOf(existingTemplate?.amount?.let { if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString() }.orEmpty()) }
+    var txnType by remember(editing) { mutableStateOf(existingTemplate?.type ?: TransactionType.EXPENSE) }
+    var description by remember(editing) { mutableStateOf(existingTemplate?.description.orEmpty()) }
+    var sourceId by remember(editing) { mutableStateOf(existingTemplate?.sourceId) }
+    var sourceType by remember(editing) { mutableStateOf(existingTemplate?.sourceType ?: SourceKind.ACCOUNT) }
+    var categoryId by remember(editing) { mutableStateOf(existingTemplate?.categoryId) }
+    var paymentApp by remember(editing) { mutableStateOf(existingTemplate?.paymentApp ?: "OTHER") }
+    // Schedule fields
     var freq by remember(editing) { mutableStateOf(editing?.frequency ?: RecurringFrequency.MONTHLY) }
     var dayText by remember(editing) { mutableStateOf((editing?.dayOfPeriod ?: 1).toString()) }
     var autoConfirm by remember(editing) { mutableStateOf(editing?.autoConfirm ?: false) }
@@ -363,6 +389,7 @@ private fun RecurringFormSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 4.dp),
         ) {
@@ -381,13 +408,79 @@ private fun RecurringFormSheet(
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 )
             }
-            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_template_label)) {
+            // --- transaction template fields ---
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_amount_label)) {
                 com.subramanya.artha.ui.common.ArthaTextField(
-                    value = template,
-                    onValueChange = { template = it },
-                    placeholder = "Rent — Bangalore flat",
-                    singleLine = false,
+                    value = amountText,
+                    onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
+                    placeholder = "20000",
+                    suffix = "₹",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_type_label)) {
+                com.subramanya.artha.ui.common.PillRadio(
+                    value = txnType,
+                    options = listOf(
+                        com.subramanya.artha.ui.common.PillOption(TransactionType.EXPENSE, stringResource(R.string.txn_type_expense)),
+                        com.subramanya.artha.ui.common.PillOption(TransactionType.INCOME, stringResource(R.string.txn_type_income)),
+                        com.subramanya.artha.ui.common.PillOption(TransactionType.TRANSFER, stringResource(R.string.txn_type_transfer)),
+                    ),
+                    onChange = { txnType = it },
+                )
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_source_label)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    accounts.forEach { acct ->
+                        FilterChip(
+                            selected = sourceId == acct.id && sourceType == SourceKind.ACCOUNT,
+                            onClick = { sourceId = acct.id; sourceType = SourceKind.ACCOUNT },
+                            label = { Text(acct.name, style = MaterialTheme.typography.bodySmall) },
+                        )
+                    }
+                    cards.forEach { card ->
+                        FilterChip(
+                            selected = sourceId == card.id && sourceType == SourceKind.CARD,
+                            onClick = { sourceId = card.id; sourceType = SourceKind.CARD },
+                            label = { Text(card.name, style = MaterialTheme.typography.bodySmall) },
+                        )
+                    }
+                }
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_description_label), optional = true) {
+                com.subramanya.artha.ui.common.ArthaTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    placeholder = "Rent — Bangalore flat",
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                )
+            }
+            val expenseCategories = remember(categories) { categories.filter { it.type == com.subramanya.artha.data.entity.enums.CategoryType.EXPENSE && it.parentId == null } }
+            val incomeCategories = remember(categories) { categories.filter { it.type == com.subramanya.artha.data.entity.enums.CategoryType.INCOME && it.parentId == null } }
+            val relevantCats = if (txnType == TransactionType.INCOME) incomeCategories else expenseCategories
+            if (relevantCats.isNotEmpty() && txnType != TransactionType.TRANSFER) {
+                com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_category_label), optional = true) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        relevantCats.forEach { cat ->
+                            FilterChip(
+                                selected = categoryId == cat.id,
+                                onClick = { categoryId = if (categoryId == cat.id) null else cat.id },
+                                label = { Text(cat.name, style = MaterialTheme.typography.bodySmall) },
+                            )
+                        }
+                    }
+                }
+            }
+            com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.txn_payment_app_label), optional = true) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    paymentApps.forEach { app ->
+                        FilterChip(
+                            selected = paymentApp == app.id,
+                            onClick = { paymentApp = app.id },
+                            label = { Text(app.label, style = MaterialTheme.typography.bodySmall) },
+                        )
+                    }
+                }
             }
             com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.recurring_form_frequency_label)) {
                 com.subramanya.artha.ui.common.PillRadio(
@@ -436,17 +529,32 @@ private fun RecurringFormSheet(
             }
 
             Spacer(Modifier.height(28.dp))
+            val parsedAmount = amountText.toDoubleOrNull()
             com.subramanya.artha.ui.common.SavePrimaryButton(
                 label = stringResource(R.string.common_save),
-                enabled = name.isNotBlank() && template.isNotBlank(),
+                enabled = name.isNotBlank() && parsedAmount != null && parsedAmount > 0.0 && sourceId != null,
                 onClick = {
                     val now = System.currentTimeMillis()
                     val day = dayText.toIntOrNull()
+                    val encodedTemplate = RecurringTemplateCodec.encode(
+                        RecurringTemplate(
+                            amount = parsedAmount!!,
+                            type = txnType,
+                            description = description.trim(),
+                            sourceType = sourceType,
+                            sourceId = sourceId,
+                            destinationType = null,
+                            destinationId = null,
+                            categoryId = categoryId,
+                            paymentApp = paymentApp,
+                            notes = null,
+                        ),
+                    )
                     onSave(
                         RecurringRule(
                             id = editing?.id ?: UUID.randomUUID().toString(),
                             name = name.trim(),
-                            transactionTemplate = template.trim(),
+                            transactionTemplate = encodedTemplate,
                             frequency = freq,
                             dayOfPeriod = day,
                             nextRunDate = editing?.nextRunDate ?: now,

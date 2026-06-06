@@ -72,6 +72,10 @@ class TransactionRepository(private val transactionDao: TransactionDao) {
         )
     }
 
+    /** Inserts a raw [TransactionEntity] without any cross-ref links. Used by [RecurringFireWorker]. */
+    suspend fun insertTransaction(entity: com.subramanya.artha.data.entity.TransactionEntity) =
+        transactionDao.insertTransaction(entity)
+
     suspend fun delete(transaction: Transaction) =
         transactionDao.deleteTransaction(transaction.toEntity())
 

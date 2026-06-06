@@ -2,6 +2,7 @@ package com.subramanya.artha
 
 import android.app.Application
 import com.subramanya.artha.ai.AiQuickEntryParser
+import com.subramanya.artha.worker.RecurringFireWorker
 import com.subramanya.artha.ai.GeminiQuickEntryParser
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.DatabaseProvider
@@ -34,6 +35,11 @@ import kotlinx.coroutines.flow.first
  * `LocalContext.current.applicationContext as ArthaApplication`.
  */
 class ArthaApplication : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        RecurringFireWorker.schedule(this)
+    }
 
     val database: AppDatabase by lazy { DatabaseProvider.get(this) }
 
