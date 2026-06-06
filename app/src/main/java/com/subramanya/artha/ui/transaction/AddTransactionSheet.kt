@@ -18,9 +18,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -922,12 +926,39 @@ private fun ReceiptPicker(uri: String?, onPicked: (String?) -> Unit) {
         }
         if (uri != null) {
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.txn_receipt_attached),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            ReceiptThumbnail(uri)
         }
+    }
+}
+
+@Composable
+private fun ReceiptThumbnail(uri: String) {
+    val context = LocalContext.current
+    val imageBitmap = remember(uri) {
+        runCatching {
+            val parsedUri = android.net.Uri.parse(uri)
+            val raw: android.graphics.Bitmap? = context.contentResolver
+                .openInputStream(parsedUri)
+                ?.use { stream -> android.graphics.BitmapFactory.decodeStream(stream) }
+            raw?.asImageBitmap()
+        }.getOrNull()
+    }
+    if (imageBitmap != null) {
+        Image(
+            bitmap = imageBitmap,
+            contentDescription = stringResource(R.string.txn_receipt_label),
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .height(120.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp)),
+        )
+    } else {
+        Text(
+            text = stringResource(R.string.txn_receipt_attached),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

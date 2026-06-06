@@ -1,5 +1,6 @@
 ﻿package com.subramanya.artha.ui.transactions
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -267,9 +272,11 @@ private fun FieldsCard(state: TransactionDetailUiState, txn: Transaction) {
                 )
             }
             if (!txn.receiptUri.isNullOrBlank()) {
-                DetailRow(
-                    stringResource(R.string.txn_detail_field_receipt),
-                    stringResource(R.string.txn_detail_receipt_yes),
+                Spacer(Modifier.height(8.dp))
+                ReceiptImage(
+                    uri = txn.receiptUri,
+                    fallbackLabel = stringResource(R.string.txn_detail_field_receipt),
+                    fallbackValue = stringResource(R.string.txn_detail_receipt_yes),
                 )
             }
             if (!txn.notes.isNullOrBlank()) {
@@ -341,3 +348,32 @@ private fun signedAmount(txn: Transaction): String {
     }
 }
 
+/**
+ * Shows a receipt image decoded from a content URI. Falls back to a text row if the
+ * URI can't be resolved (e.g. revoked permission after the app is reinstalled).
+ */
+@Composable
+private fun ReceiptImage(uri: String, fallbackLabel: String, fallbackValue: String) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val bitmap = remember(uri) {
+        runCatching {
+            val parsedUri = android.net.Uri.parse(uri)
+            context.contentResolver.openInputStream(parsedUri)
+                ?.use { stream -> android.graphics.BitmapFactory.decodeStream(stream) }
+                ?.asImageBitmap()
+        }.getOrNull()
+    }
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = fallbackLabel,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .height(200.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp)),
+        )
+    } else {
+        DetailRow(fallbackLabel, fallbackValue)
+    }
+}
