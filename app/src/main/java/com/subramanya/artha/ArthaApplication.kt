@@ -13,6 +13,9 @@ import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.data.repository.GoalRepository
 import com.subramanya.artha.data.repository.InsuranceRepository
 import com.subramanya.artha.data.repository.InvestmentRepository
+import com.subramanya.artha.data.repository.AccountTypeRepository
+import com.subramanya.artha.data.repository.CardTypeRepository
+import com.subramanya.artha.data.repository.InsuranceTypeRepository
 import com.subramanya.artha.data.repository.PaymentAppRepository
 import com.subramanya.artha.data.repository.PersonRepository
 import com.subramanya.artha.data.repository.RecurringRuleRepository
@@ -60,6 +63,15 @@ class ArthaApplication : Application() {
     }
     val paymentAppRepository: PaymentAppRepository by lazy {
         PaymentAppRepository(database.paymentAppDao())
+    }
+    val accountTypeRepository: AccountTypeRepository by lazy {
+        AccountTypeRepository(database.accountTypeDao())
+    }
+    val cardTypeRepository: CardTypeRepository by lazy {
+        CardTypeRepository(database.cardTypeDao())
+    }
+    val insuranceTypeRepository: InsuranceTypeRepository by lazy {
+        InsuranceTypeRepository(database.insuranceTypeDao())
     }
     val transactionRepository: TransactionRepository by lazy {
         TransactionRepository(database.transactionDao())

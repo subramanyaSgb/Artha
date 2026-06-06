@@ -11,6 +11,9 @@ import com.subramanya.artha.data.dao.CategoryDao
 import com.subramanya.artha.data.dao.GoalDao
 import com.subramanya.artha.data.dao.InsuranceDao
 import com.subramanya.artha.data.dao.InvestmentDao
+import com.subramanya.artha.data.dao.AccountTypeDao
+import com.subramanya.artha.data.dao.CardTypeDao
+import com.subramanya.artha.data.dao.InsuranceTypeDao
 import com.subramanya.artha.data.dao.PaymentAppDao
 import com.subramanya.artha.data.dao.PersonDao
 import com.subramanya.artha.data.dao.RecurringRuleDao
@@ -25,6 +28,9 @@ import com.subramanya.artha.data.entity.CategoryEntity
 import com.subramanya.artha.data.entity.GoalEntity
 import com.subramanya.artha.data.entity.InsuranceEntity
 import com.subramanya.artha.data.entity.InvestmentEntity
+import com.subramanya.artha.data.entity.AccountTypeEntity
+import com.subramanya.artha.data.entity.CardTypeEntity
+import com.subramanya.artha.data.entity.InsuranceTypeEntity
 import com.subramanya.artha.data.entity.PaymentAppEntity
 import com.subramanya.artha.data.entity.PersonEntity
 import com.subramanya.artha.data.entity.RecurringRuleEntity
@@ -56,8 +62,12 @@ import com.subramanya.artha.data.entity.TransactionTagCrossRef
         RecurringRuleEntity::class,
         // Phase 2 (configurable pick-lists) — payment-app catalogue
         PaymentAppEntity::class,
+        // Phase 3 (configurable pick-lists) — account/card/insurance type catalogues
+        AccountTypeEntity::class,
+        CardTypeEntity::class,
+        InsuranceTypeEntity::class,
     ],
-    version = 6,
+    version = 7,
     // Schemas are exported to app/schemas (room.schemaLocation in build.gradle.kts) so
     // MigrationTestHelper can validate migrations against the generated schema.
     exportSchema = true,
@@ -78,6 +88,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun subscriptionDao(): SubscriptionDao
     abstract fun recurringRuleDao(): RecurringRuleDao
     abstract fun paymentAppDao(): PaymentAppDao
+    abstract fun accountTypeDao(): AccountTypeDao
+    abstract fun cardTypeDao(): CardTypeDao
+    abstract fun insuranceTypeDao(): InsuranceTypeDao
     abstract fun backupDao(): BackupDao
 
     companion object {

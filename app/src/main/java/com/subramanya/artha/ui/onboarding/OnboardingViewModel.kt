@@ -3,7 +3,7 @@ package com.subramanya.artha.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.subramanya.artha.data.entity.enums.AccountType
+
 import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.domain.model.Account
@@ -31,7 +31,7 @@ class OnboardingViewModel(
         _state.update { it.copy(accountDraft = it.accountDraft.copy(name = value)) }
     }
 
-    fun onAccountTypeChanged(type: AccountType) {
+    fun onAccountTypeChanged(type: String) {
         _state.update { it.copy(accountDraft = it.accountDraft.copy(type = type)) }
     }
 
@@ -107,28 +107,27 @@ class OnboardingViewModel(
             accountNumberLast4 = null,
             openingBalance = openingBalance,
             currency = "INR",
-            icon = type.defaultIcon,
-            color = type.defaultColor,
+            icon = type.defaultIcon(),
+            color = type.defaultColor(),
             isArchived = false,
             displayOrder = displayOrder,
             createdAt = createdAt,
         )
 
-    private val AccountType.defaultIcon: String
-        get() = when (this) {
-            AccountType.SAVINGS -> "account_balance"
-            AccountType.CURRENT -> "account_balance"
-            AccountType.CASH -> "payments"
-            AccountType.WALLET -> "account_balance_wallet"
-        }
+    private fun String.defaultIcon(): String = when (this) {
+        "SAVINGS", "CURRENT" -> "account_balance"
+        "CASH" -> "payments"
+        "WALLET" -> "account_balance_wallet"
+        else -> "account_balance"
+    }
 
-    private val AccountType.defaultColor: Long
-        get() = when (this) {
-            AccountType.SAVINGS -> 0xFF0F766E
-            AccountType.CURRENT -> 0xFF4338CA
-            AccountType.CASH -> 0xFF15803D
-            AccountType.WALLET -> 0xFFB45309
-        }
+    private fun String.defaultColor(): Long = when (this) {
+        "SAVINGS" -> 0xFF0F766EL
+        "CURRENT" -> 0xFF4338CAL
+        "CASH" -> 0xFF15803DL
+        "WALLET" -> 0xFFB45309L
+        else -> 0xFF0F766EL
+    }
 }
 
 class OnboardingViewModelFactory(

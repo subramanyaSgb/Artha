@@ -2,6 +2,9 @@ package com.subramanya.artha.data.db
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.subramanya.artha.data.db.seed.SeedAccountTypes
+import com.subramanya.artha.data.db.seed.SeedCardTypes
+import com.subramanya.artha.data.db.seed.SeedInsuranceTypes
 import com.subramanya.artha.data.db.seed.SeedPaymentApps
 
 /**
@@ -81,6 +84,39 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
                     "(`id`, `label`, `is_builtin`, `is_hidden`, `display_order`) VALUES (?, ?, ?, ?, ?)",
                 arrayOf(app.id, app.label, if (app.isBuiltin) 1 else 0, if (app.isHidden) 1 else 0, app.displayOrder),
             )
+        }
+    }
+}
+
+/**
+ * v6 -> v7: configurable pick-lists, Phase 3 — three type enums become user-editable catalogues.
+ *
+ * Additive migration: AccountEntity.type, CardEntity.type, InsuranceEntity.type were already
+ * TEXT columns (enum stored via TypeConverters as .name), so they are byte-compatible as plain
+ * Strings. Only CREATE the three catalogue tables and seed the built-ins.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        for ((table, label) in listOf("account_type" to "account", "card_type" to "card", "insurance_type" to "insurance")) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `$table` (" +
+                    "`id` TEXT NOT NULL, " +
+                    "`label` TEXT NOT NULL, " +
+                    "`is_builtin` INTEGER NOT NULL, " +
+                    "`is_hidden` INTEGER NOT NULL DEFAULT 0, " +
+                    "`display_order` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`id`))",
+            )
+        }
+        val insertSql = "INSERT OR REPLACE INTO `%s` (`id`, `label`, `is_builtin`, `is_hidden`, `display_order`) VALUES (?, ?, ?, ?, ?)"
+        for (row in SeedAccountTypes.all()) {
+            db.execSQL(insertSql.format("account_type"), arrayOf(row.id, row.label, if (row.isBuiltin) 1 else 0, 0, row.displayOrder))
+        }
+        for (row in SeedCardTypes.all()) {
+            db.execSQL(insertSql.format("card_type"), arrayOf(row.id, row.label, if (row.isBuiltin) 1 else 0, 0, row.displayOrder))
+        }
+        for (row in SeedInsuranceTypes.all()) {
+            db.execSQL(insertSql.format("insurance_type"), arrayOf(row.id, row.label, if (row.isBuiltin) 1 else 0, 0, row.displayOrder))
         }
     }
 }

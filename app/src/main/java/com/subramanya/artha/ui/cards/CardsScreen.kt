@@ -64,7 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
-import com.subramanya.artha.data.entity.enums.CardType
+
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.CardWithBalance
 import com.subramanya.artha.ui.common.EmptyState
@@ -226,7 +226,7 @@ private fun ActiveCardRow(
     // Credit cards get the full editorial tile (chhatri + jaali + DUE pill).
     // Debit / prepaid keep the compact ListItem since they have no outstanding /
     // utilization to display.
-    if (row.card.type == CardType.CREDIT && !reorderMode) {
+    if (row.card.type == "CREDIT" && !reorderMode) {
         CreditCardTile(
             row = row,
             onClick = onTap,
@@ -263,7 +263,7 @@ private fun ActiveCardRow(
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (row.card.type == CardType.CREDIT) {
+                    if (row.card.type == "CREDIT") {
                         Text(
                             text = IndianNumberFormat.format(row.currentOutstanding),
                             style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
@@ -572,7 +572,7 @@ private fun CardRowSupport(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (showUtilization && row.card.type == CardType.CREDIT) {
+        if (showUtilization && row.card.type == "CREDIT") {
             val limit = row.card.creditLimit
             if (limit != null && limit > 0.0) {
                 val utilFraction = (row.currentOutstanding / limit).coerceIn(0.0, 1.0).toFloat()
@@ -592,7 +592,7 @@ private fun CardRowSupport(
                 )
             }
         }
-        if (showDueChip && row.card.type == CardType.CREDIT) {
+        if (showDueChip && row.card.type == "CREDIT") {
             val dueDay = row.card.dueDayOfMonth
             if (dueDay != null) {
                 val due = computeNextDue(dueDay)

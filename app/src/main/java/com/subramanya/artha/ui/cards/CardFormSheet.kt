@@ -32,7 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.CardNetwork
-import com.subramanya.artha.data.entity.enums.CardType
+
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.ui.common.ArthaSheetHandle
 import com.subramanya.artha.ui.common.ArthaTextField
@@ -71,7 +71,9 @@ fun CardFormSheet(
         .collectAsStateWithLifecycle(initialValue = emptyList())
 
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
-    var type by remember(editing) { mutableStateOf(editing?.type ?: CardType.CREDIT) }
+    var type by remember(editing) { mutableStateOf(editing?.type ?: "CREDIT") }
+    val cardTypeOptions by app.cardTypeRepository.observeVisible()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
     var network by remember(editing) { mutableStateOf(editing?.network ?: CardNetwork.VISA) }
     var issuer by remember(editing) { mutableStateOf(editing?.issuer.orEmpty()) }
     var last4 by remember(editing) { mutableStateOf(editing?.cardNumberLast4.orEmpty()) }
@@ -94,21 +96,13 @@ fun CardFormSheet(
     val last4Valid = last4.isEmpty() || (last4.length == 4 && last4.all { it.isDigit() })
 
     val isValid: Boolean = name.isNotBlank() && last4Valid && when (type) {
-        CardType.CREDIT -> (parsedLimit != null && parsedLimit > 0.0) &&
+        "CREDIT" -> (parsedLimit != null && parsedLimit > 0.0) &&
             parsedStatement in 1..31 && parsedDue in 1..31
-        // DEBIT cards must point at a real account — that's how transactions
-        // hit the account balance. Previously this validated as `true` so a
-        // user could save a DEBIT card with no linkedAccountId, which then
-        // floated outside the account ledger.
-        CardType.DEBIT -> linkedAccountId != null
-        CardType.PREPAID -> true
+        "DEBIT" -> linkedAccountId != null
+        else -> true
     }
 
-    val typeOptions = listOf(
-        PillOption(CardType.CREDIT, stringResource(R.string.card_form_type_credit)),
-        PillOption(CardType.DEBIT, stringResource(R.string.card_form_type_debit)),
-        PillOption(CardType.PREPAID, stringResource(R.string.card_form_type_prepaid)),
-    )
+    val typeOptions = cardTypeOptions.map { PillOption(it.id, it.label) }
     val networkOptions = listOf(
         PillOption(CardNetwork.VISA, stringResource(R.string.card_form_network_visa)),
         PillOption(CardNetwork.MASTERCARD, stringResource(R.string.card_form_network_mastercard)),
@@ -186,7 +180,7 @@ fun CardFormSheet(
                 )
             }
 
-            if (type == CardType.CREDIT) {
+            if (type == "CREDIT") {
                 FieldRow(label = stringResource(R.string.card_form_credit_limit_label)) {
                     ArthaTextField(
                         value = creditLimitText,
@@ -239,7 +233,7 @@ fun CardFormSheet(
                 }
             }
 
-            if (type == CardType.DEBIT) {
+            if (type == "DEBIT") {
                 FieldRow(label = stringResource(R.string.card_form_linked_account_label)) {
                     if (accounts.isEmpty()) {
                         Text(
@@ -278,10 +272,10 @@ fun CardFormSheet(
                         issuer = issuer.trim().takeIf { it.isNotBlank() },
                         network = network,
                         cardNumberLast4 = last4.takeIf { it.length == 4 },
-                        creditLimit = parsedLimit?.takeIf { type == CardType.CREDIT },
-                        statementDayOfMonth = parsedStatement?.takeIf { type == CardType.CREDIT },
-                        dueDayOfMonth = parsedDue?.takeIf { type == CardType.CREDIT },
-                        linkedAccountId = linkedAccountId?.takeIf { type == CardType.DEBIT },
+                        creditLimit = parsedLimit?.takeIf { type == "CREDIT" },
+                        statementDayOfMonth = parsedStatement?.takeIf { type == "CREDIT" },
+                        dueDayOfMonth = parsedDue?.takeIf { type == "CREDIT" },
+                        linkedAccountId = linkedAccountId?.takeIf { type == "DEBIT" },
                         icon = "credit_card",
                         color = color,
                         isArchived = editing?.isArchived ?: false,

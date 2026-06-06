@@ -32,7 +32,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
-import com.subramanya.artha.data.entity.enums.AccountType
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.ui.common.ArthaSheetHandle
 import com.subramanya.artha.ui.common.ArthaTextField
@@ -68,7 +68,9 @@ fun AccountFormSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
-    var type by remember(editing) { mutableStateOf(editing?.type ?: AccountType.SAVINGS) }
+    var type by remember(editing) { mutableStateOf(editing?.type ?: "SAVINGS") }
+    val accountTypeOptions by app.accountTypeRepository.observeVisible()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
     var institution by remember(editing) { mutableStateOf(editing?.institution.orEmpty()) }
     var last4 by remember(editing) { mutableStateOf(editing?.accountNumberLast4.orEmpty()) }
     var openingText by remember(editing) {
@@ -84,12 +86,7 @@ fun AccountFormSheet(
     val last4Valid = last4.isEmpty() || (last4.length == 4 && last4.all { it.isDigit() })
     val isValid = name.isNotBlank() && parsedBalance != null && last4Valid
 
-    val typeOptions = listOf(
-        PillOption(AccountType.SAVINGS, stringResource(R.string.onboarding_account_type_savings)),
-        PillOption(AccountType.CURRENT, stringResource(R.string.onboarding_account_type_current)),
-        PillOption(AccountType.CASH, stringResource(R.string.onboarding_account_type_cash)),
-        PillOption(AccountType.WALLET, stringResource(R.string.onboarding_account_type_wallet)),
-    )
+    val typeOptions = accountTypeOptions.map { PillOption(it.id, it.label) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

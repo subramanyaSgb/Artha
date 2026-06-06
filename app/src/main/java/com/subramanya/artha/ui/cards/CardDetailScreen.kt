@@ -224,7 +224,7 @@ fun CardDetailScreen(
                         kind = SourceKind.CARD,
                         id = cardSnapshot.id,
                         displayName = cardSnapshot.name,
-                        isCreditCard = cardSnapshot.type == com.subramanya.artha.data.entity.enums.CardType.CREDIT,
+                        isCreditCard = cardSnapshot.type == "CREDIT",
                     ),
                 )
             }
@@ -246,7 +246,7 @@ private fun CardDetailBody(
     LazyColumn(modifier = modifier) {
         item("header") { Header(card = card) }
         item("hero") { Hero(card = card, state = state) }
-        if (card.type == com.subramanya.artha.data.entity.enums.CardType.CREDIT) {
+        if (card.type == "CREDIT") {
             item("payBill") { PayBillButton(onPayBill = onPayBill) }
         }
         item("chart") { ChartSection(state = state) }
@@ -325,7 +325,7 @@ private fun Hero(card: DomainCard, state: CardDetailUiState) {
                 text = IndianNumberFormat.format(state.currentOutstanding),
                 style = ArthaAmountStyles.display,
             )
-            if (card.type == com.subramanya.artha.data.entity.enums.CardType.CREDIT && card.creditLimit != null) {
+            if (card.type == "CREDIT" && card.creditLimit != null) {
                 Spacer(Modifier.height(12.dp))
                 state.utilizationFraction?.let { fraction ->
                     com.subramanya.artha.ui.common.LinearMeter(

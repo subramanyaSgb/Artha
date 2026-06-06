@@ -634,7 +634,7 @@ private fun AccountChip(row: AccountWithBalance, tone: Color, onClick: () -> Uni
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = row.account.type.name.replace('_', ' '),
+                text = row.account.type.replace('_', ' '),
                 color = Color.White.copy(alpha = 0.85f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,

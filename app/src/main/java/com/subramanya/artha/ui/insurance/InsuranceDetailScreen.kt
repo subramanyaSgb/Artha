@@ -191,7 +191,7 @@ private fun HeroBlock(insurance: Insurance) {
                 Spacer(Modifier.size(12.dp))
                 Column {
                     Text(
-                        text = insurance.type.displayName(),
+                        text = insuranceTypeDisplayName(insurance.type),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )

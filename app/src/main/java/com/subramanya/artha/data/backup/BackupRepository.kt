@@ -37,6 +37,9 @@ class BackupRepository(private val db: AppDatabase) {
             transactionPeople = db.transactionDao().observeAllPeopleLinks().first(),
             transactionTags = db.transactionDao().observeAllTagLinks().first(),
             paymentApps = db.paymentAppDao().observeAll().first(),
+            accountTypes = db.accountTypeDao().observeAll().first(),
+            cardTypes = db.cardTypeDao().observeAll().first(),
+            insuranceTypes = db.insuranceTypeDao().observeAll().first(),
         )
     }
 
@@ -74,6 +77,9 @@ class BackupRepository(private val db: AppDatabase) {
                 deleteAllCategories()
                 deleteAllAccounts()
                 deleteAllPaymentApps()
+                deleteAllAccountTypes()
+                deleteAllCardTypes()
+                deleteAllInsuranceTypes()
             }
 
             // 2. Insert parents first.
@@ -99,8 +105,11 @@ class BackupRepository(private val db: AppDatabase) {
             db.transactionDao().insertPeopleLinks(data.transactionPeople)
             db.transactionDao().insertTagLinks(data.transactionTags)
 
-            // 6. Payment-app catalogue (no FK to any other table).
+            // 6. Type catalogues (no FK to any other table).
             db.paymentAppDao().upsertAll(data.paymentApps)
+            db.accountTypeDao().upsertAll(data.accountTypes)
+            db.cardTypeDao().upsertAll(data.cardTypes)
+            db.insuranceTypeDao().upsertAll(data.insuranceTypes)
         }
     }
 

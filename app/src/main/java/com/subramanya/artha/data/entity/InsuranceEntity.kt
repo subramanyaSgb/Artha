@@ -4,7 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.subramanya.artha.data.entity.enums.InsuranceType
+
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
 
 /**
@@ -24,7 +24,7 @@ data class InsuranceEntity(
     @PrimaryKey
     val id: String,
     val name: String,
-    val type: InsuranceType,
+    val type: String,
     val provider: String,
     @ColumnInfo(name = "policy_number")
     val policyNumber: String?,

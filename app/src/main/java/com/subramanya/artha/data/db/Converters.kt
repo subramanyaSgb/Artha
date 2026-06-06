@@ -1,13 +1,10 @@
 package com.subramanya.artha.data.db
 
 import androidx.room.TypeConverter
-import com.subramanya.artha.data.entity.enums.AccountType
 import com.subramanya.artha.data.entity.enums.BudgetPeriod
 import com.subramanya.artha.data.entity.enums.BudgetScope
 import com.subramanya.artha.data.entity.enums.CardNetwork
-import com.subramanya.artha.data.entity.enums.CardType
 import com.subramanya.artha.data.entity.enums.CategoryType
-import com.subramanya.artha.data.entity.enums.InsuranceType
 import com.subramanya.artha.data.entity.enums.InvestmentType
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
@@ -20,12 +17,6 @@ import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.data.entity.enums.ValuationMode
 
 class Converters {
-    @TypeConverter fun fromAccountType(v: AccountType): String = v.name
-    @TypeConverter fun toAccountType(v: String): AccountType = AccountType.valueOf(v)
-
-    @TypeConverter fun fromCardType(v: CardType): String = v.name
-    @TypeConverter fun toCardType(v: String): CardType = CardType.valueOf(v)
-
     @TypeConverter fun fromCardNetwork(v: CardNetwork): String = v.name
     @TypeConverter fun toCardNetwork(v: String): CardNetwork = CardNetwork.valueOf(v)
 
@@ -52,9 +43,6 @@ class Converters {
 
     @TypeConverter fun fromValuationMode(v: ValuationMode): String = v.name
     @TypeConverter fun toValuationMode(v: String): ValuationMode = ValuationMode.valueOf(v)
-
-    @TypeConverter fun fromInsuranceType(v: InsuranceType): String = v.name
-    @TypeConverter fun toInsuranceType(v: String): InsuranceType = InsuranceType.valueOf(v)
 
     @TypeConverter fun fromPremiumFrequency(v: PremiumFrequency): String = v.name
     @TypeConverter fun toPremiumFrequency(v: String): PremiumFrequency = PremiumFrequency.valueOf(v)

@@ -12,17 +12,20 @@ import com.subramanya.artha.data.entity.RecurringRuleEntity
 import com.subramanya.artha.data.entity.SubscriptionEntity
 import com.subramanya.artha.data.entity.TagEntity
 import com.subramanya.artha.data.entity.TransactionEntity
+import com.subramanya.artha.data.entity.AccountTypeEntity
+import com.subramanya.artha.data.entity.CardTypeEntity
+import com.subramanya.artha.data.entity.InsuranceTypeEntity
 import com.subramanya.artha.data.entity.PaymentAppEntity
 import com.subramanya.artha.data.entity.TransactionPersonCrossRef
 import com.subramanya.artha.data.entity.TransactionRuleEntity
 import com.subramanya.artha.data.entity.TransactionTagCrossRef
-import com.subramanya.artha.data.entity.enums.AccountType
+
 import com.subramanya.artha.data.entity.enums.BudgetPeriod
 import com.subramanya.artha.data.entity.enums.BudgetScope
 import com.subramanya.artha.data.entity.enums.CardNetwork
-import com.subramanya.artha.data.entity.enums.CardType
+
 import com.subramanya.artha.data.entity.enums.CategoryType
-import com.subramanya.artha.data.entity.enums.InsuranceType
+
 import com.subramanya.artha.data.entity.enums.InvestmentType
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
@@ -76,14 +79,14 @@ class BackupCodecTest {
         accounts = listOf(
             // row 0: every nullable populated
             AccountEntity(
-                id = "acct-1", name = "HDFC Savings", type = AccountType.SAVINGS,
+                id = "acct-1", name = "HDFC Savings", type = "SAVINGS",
                 institution = "HDFC Bank", accountNumberLast4 = "1234",
                 openingBalance = 10_000.50, currency = "INR", icon = "bank",
                 color = 0xFF112233L, isArchived = false, displayOrder = 0, createdAt = 1_000L,
             ),
             // row 1: every nullable null
             AccountEntity(
-                id = "acct-2", name = "Cash", type = AccountType.CASH,
+                id = "acct-2", name = "Cash", type = "CASH",
                 institution = null, accountNumberLast4 = null,
                 openingBalance = 0.0, currency = "INR", icon = "wallet",
                 color = 0xFF000000L, isArchived = true, displayOrder = 5, createdAt = 2_000L,
@@ -91,13 +94,13 @@ class BackupCodecTest {
         ),
         cards = listOf(
             CardEntity(
-                id = "card-1", name = "Amazon Pay", type = CardType.CREDIT, issuer = "ICICI",
+                id = "card-1", name = "Amazon Pay", type = "CREDIT", issuer = "ICICI",
                 network = CardNetwork.VISA, cardNumberLast4 = "9999", creditLimit = 200_000.0,
                 statementDayOfMonth = 5, dueDayOfMonth = 25, linkedAccountId = "acct-1",
                 icon = "card", color = 0xFFAABBCCL, isArchived = false, displayOrder = 0, createdAt = 3_000L,
             ),
             CardEntity(
-                id = "card-2", name = "Debit", type = CardType.DEBIT, issuer = null,
+                id = "card-2", name = "Debit", type = "DEBIT", issuer = null,
                 network = CardNetwork.RUPAY, cardNumberLast4 = null, creditLimit = null,
                 statementDayOfMonth = null, dueDayOfMonth = null, linkedAccountId = null,
                 icon = "card", color = 0xFF010203L, isArchived = true, displayOrder = 1, createdAt = 4_000L,
@@ -181,7 +184,7 @@ class BackupCodecTest {
         ),
         insurances = listOf(
             InsuranceEntity(
-                id = "ins-1", name = "LIC Jeevan", type = InsuranceType.LIFE_ENDOWMENT,
+                id = "ins-1", name = "LIC Jeevan", type = "LIFE_ENDOWMENT",
                 provider = "LIC", policyNumber = "POL-1", sumAssured = 1_000_000.0,
                 premiumAmount = 25_000.0, premiumFrequency = PremiumFrequency.YEARLY,
                 nextPremiumDate = 18_000L, startDate = 19_000L, endDate = 20_000L,
@@ -190,7 +193,7 @@ class BackupCodecTest {
                 isArchived = false, createdAt = 21_000L,
             ),
             InsuranceEntity(
-                id = "ins-2", name = "Health", type = InsuranceType.HEALTH,
+                id = "ins-2", name = "Health", type = "HEALTH",
                 provider = "Star", policyNumber = null, sumAssured = 500_000.0,
                 premiumAmount = 12_000.0, premiumFrequency = PremiumFrequency.MONTHLY,
                 nextPremiumDate = null, startDate = 22_000L, endDate = null,
@@ -265,6 +268,16 @@ class BackupCodecTest {
         paymentApps = listOf(
             PaymentAppEntity(id = "GPAY", label = "GPay", isBuiltin = true, isHidden = false, displayOrder = 0),
             PaymentAppEntity(id = "my-custom", label = "Amazon Pay", isBuiltin = false, isHidden = false, displayOrder = 10),
+        ),
+        accountTypes = listOf(
+            AccountTypeEntity(id = "SAVINGS", label = "Savings", isBuiltin = true, isHidden = false, displayOrder = 0),
+            AccountTypeEntity(id = "my-acct-type", label = "Joint", isBuiltin = false, isHidden = false, displayOrder = 99),
+        ),
+        cardTypes = listOf(
+            CardTypeEntity(id = "CREDIT", label = "Credit", isBuiltin = true, isHidden = false, displayOrder = 0),
+        ),
+        insuranceTypes = listOf(
+            InsuranceTypeEntity(id = "HEALTH", label = "Health", isBuiltin = true, isHidden = false, displayOrder = 0),
         ),
     )
 }

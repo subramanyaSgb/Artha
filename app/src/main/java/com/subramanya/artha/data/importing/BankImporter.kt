@@ -5,7 +5,7 @@ import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.entity.AccountEntity
 import com.subramanya.artha.data.entity.TransactionEntity
 import com.subramanya.artha.data.db.seed.SeedPaymentApps
-import com.subramanya.artha.data.entity.enums.AccountType
+
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
@@ -80,7 +80,7 @@ class BankImporter(
                     AccountEntity(
                         id = id,
                         name = name,
-                        type = AccountType.valueOf(a.optString("type", "SAVINGS")),
+                        type = a.optString("type", "SAVINGS"),
                         institution = a.optString("institution").takeIf { it.isNotBlank() },
                         accountNumberLast4 = null,
                         openingBalance = a.optDouble("opening_balance", 0.0),
