@@ -824,6 +824,7 @@
     <string name="insurance_title">Insurance</string>
     <string name="insurance_eyebrow">Cover</string>
     <string name="insurance_fab_add">Add policy</string>
+    <string name="insurance_more_options">More options</string>
     <string name="insurance_empty">No policies yet. Tap + to add one.</string>
     <string name="insurance_hero_annual_premium">Premiums per year</string>
     <string name="insurance_hero_subtitle">across %1$d policies</string>
@@ -994,6 +995,7 @@
     <string name="people_title">People</string>
     <string name="people_eyebrow">Lending &amp; shared</string>
     <string name="people_fab_add">Add person</string>
+    <string name="people_delete_person">Delete %1$s</string>
     <string name="people_empty">No people yet. Add friends, family, or business contacts to track who owes whom.</string>
     <string name="people_settled">Settled</string>
     <string name="people_owes_you">Owes you</string>

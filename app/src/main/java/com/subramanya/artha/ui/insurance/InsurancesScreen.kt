@@ -100,7 +100,7 @@ fun InsurancesScreen(
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.insurance_fab_add)) },
@@ -395,7 +395,7 @@ private fun InsuranceRow(
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
                         Icons.Filled.MoreVert,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.insurance_more_options),
                         tint = Text3,
                         modifier = Modifier.size(18.dp),
                     )
@@ -442,7 +442,7 @@ private fun InsuranceAvatar(color: Long) {
             .background(Color(color)),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Filled.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+        Icon(Icons.Filled.Shield, contentDescription = null, tint = Color.White)
     }
 }
 
