@@ -22,26 +22,59 @@ class CardsViewModel(
 
     private val view = MutableStateFlow(CardsView.ACTIVE)
     private val reorderMode = MutableStateFlow(false)
+    private val sort = MutableStateFlow(CardSort.CUSTOM)
+    private val groupByType = MutableStateFlow(false)
 
     private val message = MutableStateFlow<Int?>(null)
     val toastMessage: StateFlow<Int?> = message.asStateFlow()
     fun consumeToast() = message.update { null }
 
+    private data class UiBag(
+        val view: CardsView,
+        val reorder: Boolean,
+        val sort: CardSort,
+        val group: Boolean,
+    )
+
     val state: StateFlow<CardsUiState> = combine(
         cardRepository.observeActiveWithBalances(),
         cardRepository.observeArchived(),
-        view,
-        reorderMode,
-    ) { active, archived, currentView, isReorder ->
+        combine(view, reorderMode, sort, groupByType) { v, r, s, g -> UiBag(v, r, s, g) },
+    ) { active, archived, ui ->
         // Archived rows surface a frozen "0" outstanding — they're history, not live.
         val archivedWithBalance = archived.map { CardWithBalance(it, currentOutstanding = 0.0) }
+        val canReorder = ui.view == CardsView.ACTIVE && ui.sort == CardSort.CUSTOM && !ui.group
         CardsUiState(
-            view = currentView,
-            isReorderMode = isReorder && currentView == CardsView.ACTIVE,
-            activeCards = active,
-            archivedCards = archivedWithBalance,
+            view = ui.view,
+            isReorderMode = ui.reorder && canReorder,
+            activeCards = order(active, ui.sort, ui.group),
+            archivedCards = order(archivedWithBalance, ui.sort, ui.group),
+            isLoading = false,
+            sort = ui.sort,
+            groupByType = ui.group,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CardsUiState())
+
+    /** Apply the chosen sort, then (if grouping) a stable secondary sort by type. CUSTOM keeps the
+     *  DAO's displayOrder. */
+    private fun order(list: List<CardWithBalance>, sort: CardSort, group: Boolean): List<CardWithBalance> {
+        val sorted = when (sort) {
+            CardSort.CUSTOM -> list
+            CardSort.OUTSTANDING_DESC -> list.sortedByDescending { it.currentOutstanding }
+            CardSort.NAME_ASC -> list.sortedBy { it.card.name.lowercase() }
+        }
+        return if (group) sorted.sortedBy { it.card.type.lowercase() } else sorted
+    }
+
+    fun setSort(value: CardSort) {
+        sort.update { value }
+        if (value != CardSort.CUSTOM) reorderMode.update { false }
+    }
+
+    fun toggleGroupByType() {
+        groupByType.update { !it }
+        reorderMode.update { false }
+    }
 
     fun showActive() = view.update { CardsView.ACTIVE }
     fun showArchived() {
@@ -50,7 +83,9 @@ class CardsViewModel(
     }
 
     fun enterReorderMode() {
-        if (view.value == CardsView.ACTIVE) reorderMode.update { true }
+        if (view.value == CardsView.ACTIVE && sort.value == CardSort.CUSTOM && !groupByType.value) {
+            reorderMode.update { true }
+        }
     }
     fun exitReorderMode() = reorderMode.update { false }
 

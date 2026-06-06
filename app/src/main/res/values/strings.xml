@@ -327,6 +327,20 @@
     <string name="accounts_action_move_up">Move up</string>
     <string name="accounts_action_move_down">Move down</string>
     <string name="accounts_action_restore">Restore</string>
+    <string name="accounts_more_options">More options</string>
+    <string name="accounts_sort_label">Sort</string>
+    <string name="accounts_sort_custom">Custom order</string>
+    <string name="accounts_sort_balance_desc">Balance — high to low</string>
+    <string name="accounts_sort_balance_asc">Balance — low to high</string>
+    <string name="accounts_sort_name">Name — A to Z</string>
+    <string name="accounts_group_by_type">Group by type</string>
+    <string name="accounts_grouped_hint">Grouped by type</string>
+    <string name="accounts_eyebrow">Where your money sits</string>
+    <string name="accounts_total_liquid">Total liquid</string>
+    <plurals name="accounts_across_count">
+        <item quantity="one">across %1$d account</item>
+        <item quantity="other">across %1$d accounts</item>
+    </plurals>
 
     <!-- Account form (add/edit) -->
     <string name="account_form_add_title">Add account</string>
@@ -393,6 +407,21 @@
     <string name="cards_due_tomorrow">Due tomorrow</string>
     <string name="cards_due_in_days">Due in %1$d days</string>
     <string name="cards_utilization_label">%1$d%% used</string>
+    <string name="cards_more_options">More options</string>
+    <string name="cards_eyebrow">Plastic on file</string>
+    <string name="cards_total_outstanding">Total outstanding</string>
+    <string name="cards_outstanding_label">Outstanding</string>
+    <string name="cards_util_short">%1$d%% util</string>
+    <string name="cards_of_limit">of %1$s limit</string>
+    <string name="cards_util_of_limit">%1$d%% of %2$s</string>
+    <string name="cards_available">Available %1$s</string>
+    <string name="cards_due_in_short">Due in %1$dd</string>
+    <string name="cards_sort_label">Sort</string>
+    <string name="cards_sort_custom">Custom order</string>
+    <string name="cards_sort_outstanding_desc">Outstanding — high to low</string>
+    <string name="cards_sort_name">Name — A to Z</string>
+    <string name="cards_group_by_type">Group by type</string>
+    <string name="cards_grouped_hint">Grouped by type</string>
 
     <!-- Card form (add/edit) -->
     <string name="card_form_add_title">Add card</string>

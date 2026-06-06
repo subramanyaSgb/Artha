@@ -2,6 +2,7 @@
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,8 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -101,6 +104,8 @@ fun CardsScreen(
                 CardsEditorialHeader(
                     view = state.view,
                     reorderMode = state.isReorderMode,
+                    sort = state.sort,
+                    onSortChanged = vm::setSort,
                     overflowOpen = overflowOpen,
                     onOverflowToggle = { overflowOpen = it },
                     onShowArchived = vm::showArchived,
@@ -109,11 +114,17 @@ fun CardsScreen(
                 )
 
                 if (state.view == CardsView.ACTIVE && state.activeCards.isNotEmpty()) {
-                    CardsTotalOutstandingCard(rows = state.activeCards)
+                    CardsTotalOutstandingCard(
+                        rows = state.activeCards,
+                        grouped = state.groupByType,
+                        onToggleGroup = vm::toggleGroupByType,
+                    )
                 }
 
                 val rows = state.shownRows
-                if (rows.isEmpty()) {
+                if (state.isLoading) {
+                    CardsSkeleton()
+                } else if (rows.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         EmptyState(
                             icon = Icons.Filled.CreditCard,
@@ -125,27 +136,34 @@ fun CardsScreen(
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-                        items(rows, key = { it.card.id }) { row ->
-                            if (state.view == CardsView.ACTIVE) {
-                                ActiveCardRow(
-                                    row = row,
-                                    reorderMode = state.isReorderMode,
-                                    canMoveUp = rows.first() != row,
-                                    canMoveDown = rows.last() != row,
-                                    onTap = { if (!state.isReorderMode) onOpenCard(row.card.id) },
-                                    onLongPress = vm::enterReorderMode,
-                                    onMoveUp = { vm.moveUp(row.card) },
-                                    onMoveDown = { vm.moveDown(row.card) },
-                                    onEdit = { formMode = FormMode.Edit(row.card) },
-                                    onArchive = { vm.archive(row.card) },
-                                    onDelete = { pendingDelete = row.card },
-                                )
-                            } else {
-                                ArchivedCardRow(
-                                    row = row,
-                                    onRestore = { vm.restore(row.card) },
-                                    onDelete = { pendingDelete = row.card },
-                                )
+                        itemsIndexed(rows, key = { _, row -> row.card.id }) { i, row ->
+                            Column {
+                                if (state.groupByType &&
+                                    (i == 0 || rows[i - 1].card.type != row.card.type)
+                                ) {
+                                    CardTypeHeader(type = row.card.type)
+                                }
+                                if (state.view == CardsView.ACTIVE) {
+                                    ActiveCardRow(
+                                        row = row,
+                                        reorderMode = state.isReorderMode,
+                                        canMoveUp = rows.first() != row,
+                                        canMoveDown = rows.last() != row,
+                                        onTap = { if (!state.isReorderMode) onOpenCard(row.card.id) },
+                                        onLongPress = vm::enterReorderMode,
+                                        onMoveUp = { vm.moveUp(row.card) },
+                                        onMoveDown = { vm.moveDown(row.card) },
+                                        onEdit = { formMode = FormMode.Edit(row.card) },
+                                        onArchive = { vm.archive(row.card) },
+                                        onDelete = { pendingDelete = row.card },
+                                    )
+                                } else {
+                                    ArchivedCardRow(
+                                        row = row,
+                                        onRestore = { vm.restore(row.card) },
+                                        onDelete = { pendingDelete = row.card },
+                                    )
+                                }
                             }
                         }
                         item { androidx.compose.foundation.layout.Spacer(Modifier.height(100.dp)) }
@@ -271,7 +289,7 @@ private fun ActiveCardRow(
                     }
                     Box {
                         IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = null)
+                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.cards_more_options))
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
@@ -386,6 +404,11 @@ private fun CreditCardTile(
                 )
             }
             if (daysToDue != null) {
+                val pillLabel = when (daysToDue) {
+                    0 -> stringResource(R.string.cards_due_today)
+                    1 -> stringResource(R.string.cards_due_tomorrow)
+                    else -> stringResource(R.string.cards_due_in_short, daysToDue)
+                }
                 Box(
                     modifier = Modifier
                         .clip(androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
@@ -393,7 +416,7 @@ private fun CreditCardTile(
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     Text(
-                        text = "DUE IN ${daysToDue}d",
+                        text = pillLabel.uppercase(),
                         color = androidx.compose.ui.graphics.Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 10.sp,
@@ -405,7 +428,7 @@ private fun CreditCardTile(
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
                         Icons.Filled.MoreVert,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.cards_more_options),
                         tint = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
                     )
                 }
@@ -441,7 +464,7 @@ private fun CreditCardTile(
             ) {
                 Column {
                     Text(
-                        text = "OUTSTANDING",
+                        text = stringResource(R.string.cards_outstanding_label).uppercase(),
                         color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f),
                         style = com.subramanya.artha.ui.theme.EyebrowStyle,
                     )
@@ -483,7 +506,7 @@ private fun CreditCardTile(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "$utilPct% of " + IndianNumberFormat.formatCompact(limit),
+                    text = stringResource(R.string.cards_util_of_limit, utilPct, IndianNumberFormat.formatCompact(limit)),
                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
                     style = androidx.compose.ui.text.TextStyle(
                         fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
@@ -492,7 +515,7 @@ private fun CreditCardTile(
                     ),
                 )
                 Text(
-                    text = "Available " + IndianNumberFormat.formatCompact(available),
+                    text = stringResource(R.string.cards_available, IndianNumberFormat.formatCompact(available)),
                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
                     style = androidx.compose.ui.text.TextStyle(
                         fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
@@ -534,7 +557,7 @@ private fun ArchivedCardRow(
                 }
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = null)
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.cards_more_options))
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
@@ -647,8 +670,8 @@ private fun NetworkBadge(networkName: String) {
 
 private fun formatSubtitle(card: Card): String? {
     val pieces = buildList {
-        if (!card.issuer.isNullOrBlank()) add(card.issuer!!)
-        if (!card.cardNumberLast4.isNullOrBlank()) add("••${card.cardNumberLast4}")
+        card.issuer?.takeIf { it.isNotBlank() }?.let { add(it) }
+        card.cardNumberLast4?.takeIf { it.isNotBlank() }?.let { add("••$it") }
     }
     return pieces.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
@@ -659,12 +682,15 @@ private fun formatSubtitle(card: Card): String? {
 private fun CardsEditorialHeader(
     view: CardsView,
     reorderMode: Boolean,
+    sort: CardSort,
+    onSortChanged: (CardSort) -> Unit,
     overflowOpen: Boolean,
     onOverflowToggle: (Boolean) -> Unit,
     onShowArchived: () -> Unit,
     onShowActive: () -> Unit,
     onExitReorder: () -> Unit,
 ) {
+    var sortOpen by remember { mutableStateOf(false) }
     androidx.compose.foundation.layout.Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -673,7 +699,7 @@ private fun CardsEditorialHeader(
     ) {
         androidx.compose.foundation.layout.Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "PLASTIC ON FILE",
+                text = stringResource(R.string.cards_eyebrow).uppercase(),
                 style = com.subramanya.artha.ui.theme.EyebrowStyle,
                 color = com.subramanya.artha.ui.theme.Text3,
             )
@@ -700,21 +726,44 @@ private fun CardsEditorialHeader(
                 )
             }
         } else {
-            Box {
-                IconButton(onClick = { onOverflowToggle(true) }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = null)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box {
+                    IconButton(onClick = { sortOpen = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Sort,
+                            contentDescription = stringResource(R.string.cards_sort_label),
+                        )
+                    }
+                    DropdownMenu(expanded = sortOpen, onDismissRequest = { sortOpen = false }) {
+                        CardSort.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.sortLabel()) },
+                                onClick = { onSortChanged(option); sortOpen = false },
+                                leadingIcon = if (sort == option) {
+                                    { Icon(Icons.Filled.Done, contentDescription = null) }
+                                } else {
+                                    null
+                                },
+                            )
+                        }
+                    }
                 }
-                DropdownMenu(expanded = overflowOpen, onDismissRequest = { onOverflowToggle(false) }) {
-                    if (view == CardsView.ACTIVE) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.cards_menu_show_archived)) },
-                            onClick = { onShowArchived(); onOverflowToggle(false) },
-                        )
-                    } else {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.cards_menu_back_active)) },
-                            onClick = { onShowActive(); onOverflowToggle(false) },
-                        )
+                Box {
+                    IconButton(onClick = { onOverflowToggle(true) }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.cards_more_options))
+                    }
+                    DropdownMenu(expanded = overflowOpen, onDismissRequest = { onOverflowToggle(false) }) {
+                        if (view == CardsView.ACTIVE) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.cards_menu_show_archived)) },
+                                onClick = { onShowArchived(); onOverflowToggle(false) },
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.cards_menu_back_active)) },
+                                onClick = { onShowActive(); onOverflowToggle(false) },
+                            )
+                        }
                     }
                 }
             }
@@ -725,6 +774,8 @@ private fun CardsEditorialHeader(
 @Composable
 private fun CardsTotalOutstandingCard(
     rows: List<com.subramanya.artha.domain.model.CardWithBalance>,
+    grouped: Boolean = false,
+    onToggleGroup: () -> Unit = {},
 ) {
     val totalOut = rows.sumOf { it.currentOutstanding }
     val totalLimit = rows.sumOf { it.card.creditLimit ?: 0.0 }
@@ -739,7 +790,9 @@ private fun CardsTotalOutstandingCard(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant,
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-            ),
+            )
+            // Tap to group/ungroup the list by card type.
+            .clickable(onClick = onToggleGroup),
     ) {
         androidx.compose.foundation.layout.Column(modifier = Modifier.padding(16.dp)) {
             androidx.compose.foundation.layout.Row(
@@ -747,13 +800,13 @@ private fun CardsTotalOutstandingCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "TOTAL OUTSTANDING",
+                    text = stringResource(R.string.cards_total_outstanding).uppercase(),
                     style = com.subramanya.artha.ui.theme.EyebrowStyle,
                     color = com.subramanya.artha.ui.theme.Text3,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = "$util% util",
+                    text = stringResource(R.string.cards_util_short, util),
                     color = com.subramanya.artha.ui.theme.Text3,
                     fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
                     style = MaterialTheme.typography.bodySmall.copy(
@@ -772,7 +825,7 @@ private fun CardsTotalOutstandingCard(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "of " + IndianNumberFormat.format(totalLimit) + " limit",
+                text = stringResource(R.string.cards_of_limit, IndianNumberFormat.format(totalLimit)),
                 color = com.subramanya.artha.ui.theme.Text3,
                 fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
                 style = MaterialTheme.typography.bodySmall.copy(
@@ -780,7 +833,52 @@ private fun CardsTotalOutstandingCard(
                     fontFeatureSettings = "tnum",
                 ),
             )
+            if (grouped) {
+                androidx.compose.foundation.layout.Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.cards_grouped_hint),
+                    style = com.subramanya.artha.ui.theme.EyebrowStyle,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
     androidx.compose.foundation.layout.Spacer(Modifier.height(14.dp))
+}
+
+@Composable
+private fun CardSort.sortLabel(): String = when (this) {
+    CardSort.CUSTOM -> stringResource(R.string.cards_sort_custom)
+    CardSort.OUTSTANDING_DESC -> stringResource(R.string.cards_sort_outstanding_desc)
+    CardSort.NAME_ASC -> stringResource(R.string.cards_sort_name)
+}
+
+/** Sub-header shown above the first row of each card type when grouping is on. */
+@Composable
+private fun CardTypeHeader(type: String) {
+    Text(
+        text = type.replace('_', ' ').uppercase(),
+        style = com.subramanya.artha.ui.theme.EyebrowStyle,
+        color = com.subramanya.artha.ui.theme.Text3,
+        modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 6.dp),
+    )
+}
+
+/** Cold-open placeholder so the list doesn't flash an empty state before data arrives. */
+@Composable
+private fun CardsSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        repeat(4) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
+        }
+    }
 }
