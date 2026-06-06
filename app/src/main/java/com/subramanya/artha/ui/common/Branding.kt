@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.ui.theme.EyebrowStyle
-import com.subramanya.artha.ui.theme.Surface4
 import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
 import com.subramanya.artha.ui.theme.Teal900
@@ -257,7 +256,7 @@ fun Sparkline(
     color: Color = Teal300,
 ) {
     if (points.size < 2) {
-        Box(modifier = modifier.background(Surface4.copy(alpha = 0.4f)))
+        Box(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.4f)))
         return
     }
     val min = points.min()
@@ -438,9 +437,9 @@ fun ArthaAlertDialog(
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismissRequest,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
-        titleContentColor = com.subramanya.artha.ui.theme.Text1,
-        textContentColor = com.subramanya.artha.ui.theme.Text2,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
+        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(20.dp),
         title = {
             androidx.compose.material3.Text(
@@ -475,7 +474,7 @@ fun ArthaAlertDialog(
                 androidx.compose.material3.TextButton(onClick = onCancel) {
                     androidx.compose.material3.Text(
                         text = cancelLabel,
-                        color = com.subramanya.artha.ui.theme.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -502,9 +501,9 @@ fun ArthaSwitch(
         colors = androidx.compose.material3.SwitchDefaults.colors(
             checkedThumbColor = com.subramanya.artha.ui.theme.Text1,
             checkedTrackColor = Teal700,
-            uncheckedThumbColor = com.subramanya.artha.ui.theme.Text2,
-            uncheckedTrackColor = com.subramanya.artha.ui.theme.Surface4,
-            uncheckedBorderColor = com.subramanya.artha.ui.theme.Line1,
+            uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant,
         ),
     )
 }
@@ -520,16 +519,18 @@ fun LinearMeter(
     fraction: Float,
     modifier: Modifier = Modifier,
     fillColor: androidx.compose.ui.graphics.Color = Teal700,
-    trackColor: androidx.compose.ui.graphics.Color = com.subramanya.artha.ui.theme.Surface4,
+    // null → theme-aware track (a default param can't read MaterialTheme, so resolve below).
+    trackColor: androidx.compose.ui.graphics.Color? = null,
     heightDp: Int = 6,
 ) {
     val safe = fraction.coerceIn(0f, 1f)
+    val track = trackColor ?: MaterialTheme.colorScheme.surfaceContainerHighest
     Box(
         modifier = modifier
             .height(heightDp.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(999.dp))
-            .background(trackColor),
+            .background(track),
     ) {
         if (safe > 0f) {
             Box(

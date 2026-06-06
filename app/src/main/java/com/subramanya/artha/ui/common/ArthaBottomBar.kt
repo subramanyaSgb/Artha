@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.ui.navigation.ArthaDestination
+import com.subramanya.artha.ui.theme.LocalArthaIsDark
 import com.subramanya.artha.ui.theme.PlusJakartaSans
 import com.subramanya.artha.ui.theme.Surface0
 
@@ -46,10 +47,17 @@ fun ArthaBottomBar(
     onItemSelected: (ArthaDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Deep-ink bar in dark (unchanged); a distinct light container surface in light mode —
+    // Surface0 is a fixed dark token, so binding the bar to it left it black in light theme.
+    val barBackground = if (LocalArthaIsDark.current) {
+        Surface0.copy(alpha = 0.92f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Surface0.copy(alpha = 0.92f))
+            .background(barBackground)
             .navigationBarsPadding(),
     ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = Dp.Hairline)

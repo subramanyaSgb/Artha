@@ -45,7 +45,7 @@ import com.subramanya.artha.ui.common.PillRadio
 import com.subramanya.artha.ui.common.SavePrimaryButton
 import com.subramanya.artha.ui.common.SheetTitle
 import com.subramanya.artha.ui.common.SheetWindowInsets
-import com.subramanya.artha.ui.theme.Surface3
+import androidx.compose.material3.MaterialTheme
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -91,7 +91,7 @@ fun AccountFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {

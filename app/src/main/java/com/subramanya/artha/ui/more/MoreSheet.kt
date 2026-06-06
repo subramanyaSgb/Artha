@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.sp
 import com.subramanya.artha.R
 import com.subramanya.artha.ui.common.ArthaSheetHandle
 import com.subramanya.artha.ui.theme.EyebrowStyle
-import com.subramanya.artha.ui.theme.Surface4
 import com.subramanya.artha.ui.theme.Text3
 
 enum class MoreAction {
@@ -212,7 +211,7 @@ private fun MoreActionRow(row: MoreRow, onClick: () -> Unit) {
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(Surface4),
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
