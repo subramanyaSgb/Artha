@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.categories
+package com.subramanya.artha.ui.categories
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -103,7 +103,7 @@ fun CategoriesScreen(
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.categories_fab_add)) },

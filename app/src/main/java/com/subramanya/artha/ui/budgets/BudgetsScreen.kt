@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.budgets
+package com.subramanya.artha.ui.budgets
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -106,7 +106,7 @@ fun BudgetsScreen(
                 androidx.compose.material3.ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.budgets_fab_add)) },

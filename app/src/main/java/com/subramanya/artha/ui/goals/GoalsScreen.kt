@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.goals
+package com.subramanya.artha.ui.goals
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -98,7 +98,7 @@ fun GoalsScreen(
                 androidx.compose.material3.ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.goals_fab_add)) },

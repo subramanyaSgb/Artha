@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.recurring
+package com.subramanya.artha.ui.recurring
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -112,7 +112,7 @@ fun RecurringScreen(
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.recurring_fab_add)) },

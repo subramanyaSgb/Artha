@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.investments
+package com.subramanya.artha.ui.investments
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -107,7 +107,7 @@ fun InvestmentsScreen(
                     onClick = { formMode = FormMode.Add },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.investments_fab_add)) },
                 )

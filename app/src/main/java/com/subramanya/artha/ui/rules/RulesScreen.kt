@@ -101,7 +101,7 @@ fun RulesScreen(
                 ExtendedFloatingActionButton(
                     onClick = { formMode = RuleFormMode.Add },
                     containerColor = Teal700,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.rules_fab_add)) },

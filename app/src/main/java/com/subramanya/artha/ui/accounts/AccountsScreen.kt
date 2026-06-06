@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.accounts
+package com.subramanya.artha.ui.accounts
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -181,7 +181,7 @@ fun AccountsScreen(
                     onClick = { formMode = FormMode.Add },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     icon = {
                         Icon(Icons.Filled.Add, contentDescription = null)
                     },
