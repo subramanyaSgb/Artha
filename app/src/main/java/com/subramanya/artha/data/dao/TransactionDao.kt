@@ -52,6 +52,28 @@ interface TransactionDao {
      *  peopleIds + tagIds onto domain Transactions in a single round-trip. Without
      *  these, list flows return Transactions with peopleIds = [] and downstream
      *  consumers (PeopleScreen, future reports) silently see zero links. */
+    /**
+     * Returns up to 8 distinct descriptions that start with [prefix], ordered by most-recently
+     * used first. Powers the autocomplete dropdown on the Add Transaction sheet.
+     *
+     * The subquery groups by description and picks the latest date so results are sorted
+     * by recency — most-recently-used merchants float to the top.
+     */
+    @Query("""
+        SELECT description FROM (
+            SELECT description, MAX(date) AS last_used
+            FROM transactions
+            WHERE description LIKE :prefix || '%'
+            GROUP BY description
+        )
+        ORDER BY last_used DESC
+        LIMIT 8
+    """)
+    suspend fun suggestDescriptions(prefix: String): List<DescriptionSuggestion>
+
+    /** Projection used by [suggestDescriptions]. */
+    data class DescriptionSuggestion(val description: String)
+
     @Query("SELECT * FROM transaction_people")
     fun observeAllPeopleLinks(): Flow<List<TransactionPersonCrossRef>>
 

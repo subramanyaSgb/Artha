@@ -60,6 +60,10 @@ class TransactionRepository(private val transactionDao: TransactionDao) {
         return entity.toDomain(peopleIds = peopleIds, tagIds = tagIds)
     }
 
+    /** Distinct descriptions starting with [prefix], most-recently-used first. Max 8. */
+    suspend fun suggestDescriptions(prefix: String): List<String> =
+        transactionDao.suggestDescriptions(prefix).map { it.description }
+
     /**
      * Insert-or-update + replace the people/tag cross-refs atomically.
      * Use this from any flow that adds or edits a transaction.

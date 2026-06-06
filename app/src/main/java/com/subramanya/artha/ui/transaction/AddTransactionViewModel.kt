@@ -28,6 +28,8 @@ import com.subramanya.artha.domain.model.Person
 import com.subramanya.artha.domain.model.Tag
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.domain.rules.RuleEngine
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -302,8 +304,31 @@ class AddTransactionViewModel(
         }
     }
 
+    private var suggestJob: Job? = null
+
     fun onDescriptionChanged(value: String) {
         _state.update { it.copy(description = value) }
+        suggestJob?.cancel()
+        if (value.length < 2) {
+            _state.update { it.copy(descriptionSuggestions = emptyList()) }
+            return
+        }
+        suggestJob = viewModelScope.launch {
+            delay(300)
+            val hits = transactionRepository.suggestDescriptions(value.trim())
+            // Exclude exact match — no point suggesting what they already typed.
+            _state.update { it.copy(descriptionSuggestions = hits.filter { s -> s != value.trim() }) }
+        }
+    }
+
+    fun onDescriptionSuggestionPicked(suggestion: String) {
+        suggestJob?.cancel()
+        _state.update { it.copy(description = suggestion, descriptionSuggestions = emptyList()) }
+    }
+
+    fun dismissDescriptionSuggestions() {
+        suggestJob?.cancel()
+        _state.update { it.copy(descriptionSuggestions = emptyList()) }
     }
 
     fun onPaymentAppChanged(appId: String) {

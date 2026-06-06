@@ -47,6 +47,8 @@ data class AddTransactionUiState(
     val subCategoryId: String? = null,
     val subCategoryDisplay: String? = null,
     val description: String = "",
+    /** Autocomplete suggestions for the description field. Populated while the user types. */
+    val descriptionSuggestions: List<String> = emptyList(),
     /** Selected payment-app catalogue id (default OTHER). */
     val paymentApp: String = "OTHER",
     /** Visible payment apps for the picker (built-ins + custom, hidden removed). */

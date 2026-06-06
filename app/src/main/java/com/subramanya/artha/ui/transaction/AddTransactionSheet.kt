@@ -340,25 +340,39 @@ private fun SheetBody(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ----- description -----
-            OutlinedTextField(
-                value = state.description,
-                onValueChange = viewModel::onDescriptionChanged,
-                singleLine = true,
-                label = { Text(stringResource(R.string.txn_description_label)) },
-                placeholder = { Text(stringResource(R.string.txn_description_placeholder)) },
-                isError = state.showValidationErrors && state.description.isBlank(),
-                supportingText = {
-                    if (state.showValidationErrors && state.description.isBlank()) {
-                        Text(stringResource(R.string.txn_validation_description))
+            // ----- description + autocomplete -----
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = state.description,
+                    onValueChange = viewModel::onDescriptionChanged,
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.txn_description_label)) },
+                    placeholder = { Text(stringResource(R.string.txn_description_placeholder)) },
+                    isError = state.showValidationErrors && state.description.isBlank(),
+                    supportingText = {
+                        if (state.showValidationErrors && state.description.isBlank()) {
+                            Text(stringResource(R.string.txn_validation_description))
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                androidx.compose.material3.DropdownMenu(
+                    expanded = state.descriptionSuggestions.isNotEmpty(),
+                    onDismissRequest = viewModel::dismissDescriptionSuggestions,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    state.descriptionSuggestions.forEach { suggestion ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(suggestion, style = MaterialTheme.typography.bodyMedium) },
+                            onClick = { viewModel.onDescriptionSuggestionPicked(suggestion) },
+                        )
                     }
-                },
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words,
-                    imeAction = ImeAction.Next,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
+                }
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
