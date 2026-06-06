@@ -1,6 +1,5 @@
 package com.subramanya.artha.domain.rules
 
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
@@ -141,10 +140,10 @@ class RuleEngineTest {
     }
 
     @Test fun `PaymentAppIs matches CRED txn`() {
-        val txn = expense(description = "Some cred rewards").copy(paymentApp = PaymentApp.CRED)
+        val txn = expense(description = "Some cred rewards").copy(paymentApp = "CRED")
         val rule = rule(
             name = "CRED cashback",
-            conditions = RuleConditions(items = listOf(RuleCondition.PaymentAppIs(PaymentApp.CRED))),
+            conditions = RuleConditions(items = listOf(RuleCondition.PaymentAppIs("CRED"))),
             actions = RuleActions(items = listOf(RuleAction.SetType(TransactionType.CASHBACK))),
         )
         val result = RuleEngine.apply(txn, listOf(rule), emptyList())
@@ -229,7 +228,7 @@ class RuleEngineTest {
             sourceId = "acct-a",
             destinationType = null,
             destinationId = null,
-            paymentApp = PaymentApp.OTHER,
+            paymentApp = "OTHER",
             place = null,
             latitude = null,
             longitude = null,

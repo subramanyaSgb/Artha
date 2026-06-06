@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.subramanya.artha.BuildConfig
 import com.subramanya.artha.data.db.seed.CategorySeederCallback
+import com.subramanya.artha.data.db.seed.PaymentAppSeederCallback
 import com.subramanya.artha.data.db.seed.RuleSeederCallback
 
 /**
@@ -25,9 +26,11 @@ object DatabaseProvider {
             Room.databaseBuilder(appContext, AppDatabase::class.java, AppDatabase.DB_NAME)
                 .addCallback(CategorySeederCallback())
                 .addCallback(RuleSeederCallback())
+                .addCallback(PaymentAppSeederCallback())
                 // Real, data-preserving migrations run first. v3->v4 adds investment valuation
-                // columns; v4->v5 adds transactions.excluded_from_expense_total (see Migrations.kt).
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
+                // columns; v4->v5 adds transactions.excluded_from_expense_total; v5->v6 adds the
+                // payment-app catalogue table (see Migrations.kt).
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
 
         // Destructive fallback in DEBUG ONLY. During development a schema gap not covered by an
         // explicit migration resets the local DB instead of crashing — convenient for iteration.

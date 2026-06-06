@@ -1,7 +1,6 @@
 package com.subramanya.artha.ai
 
 import android.graphics.Bitmap
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.TransactionType
 
 /** What the user wants to parse — any combination of these may be present. */
@@ -28,7 +27,8 @@ data class AiQuickEntryParsed(
     val description: AiField<String>,
     /** Free-form category name — caller resolves to a Category.id by fuzzy match. */
     val categoryHint: AiField<String>,
-    val paymentApp: AiField<PaymentApp>,
+    /** Payment-app catalogue id (built-in name like "GPAY", or "OTHER"); resolved by the parser. */
+    val paymentApp: AiField<String>,
     val dateMillis: AiField<Long>,
     val place: AiField<String>,
     val notes: String? = null,

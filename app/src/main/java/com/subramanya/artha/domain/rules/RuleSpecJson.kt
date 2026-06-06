@@ -1,6 +1,5 @@
 package com.subramanya.artha.domain.rules
 
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
@@ -47,7 +46,7 @@ object RuleSpecJson {
             put("kind", "DestinationIs"); put("source_kind", c.kind.name); put("id", c.id)
         }
         is RuleCondition.PaymentAppIs -> JSONObject().apply {
-            put("kind", "PaymentAppIs"); put("app", c.app.name)
+            put("kind", "PaymentAppIs"); put("app", c.appId)
         }
         is RuleCondition.TypeIs -> JSONObject().apply {
             put("kind", "TypeIs"); put("type", c.type.name)
@@ -122,7 +121,7 @@ object RuleSpecJson {
                 kind = SourceKind.valueOf(o.getString("source_kind")),
                 id = o.optString("id").takeIf { it.isNotBlank() && it != "null" },
             )
-            "PaymentAppIs" -> RuleCondition.PaymentAppIs(PaymentApp.valueOf(o.getString("app")))
+            "PaymentAppIs" -> RuleCondition.PaymentAppIs(o.getString("app"))
             "TypeIs" -> RuleCondition.TypeIs(TransactionType.valueOf(o.getString("type")))
             "HasPersonRelation" -> RuleCondition.HasPersonRelation(PersonRelation.valueOf(o.getString("relation")))
             "TimeOfDayBetween" -> RuleCondition.TimeOfDayBetween(o.getInt("from"), o.getInt("to"))

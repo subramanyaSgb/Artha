@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +27,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Close
@@ -81,7 +83,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.CategoryType
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.ui.common.ArthaSheetHandle
 import com.subramanya.artha.ui.theme.Danger
@@ -372,8 +373,10 @@ private fun SheetBody(
 
             // ----- payment app -----
             PaymentAppPicker(
-                selected = state.paymentApp,
+                apps = state.paymentApps,
+                selectedId = state.paymentApp,
                 onSelected = viewModel::onPaymentAppChanged,
+                onAddCustom = viewModel::addCustomPaymentApp,
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -803,20 +806,64 @@ private fun CategoryField(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PaymentAppPicker(selected: PaymentApp, onSelected: (PaymentApp) -> Unit) {
+private fun PaymentAppPicker(
+    apps: List<com.subramanya.artha.domain.model.PaymentAppOption>,
+    selectedId: String,
+    onSelected: (String) -> Unit,
+    onAddCustom: (String) -> Unit,
+) {
+    var showAddDialog by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.txn_payment_app_label), style = MaterialTheme.typography.labelLarge)
         Spacer(modifier = Modifier.height(8.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PaymentApp.entries.forEach { app ->
+            apps.forEach { app ->
                 FilterChip(
-                    selected = app == selected,
-                    onClick = { onSelected(app) },
-                    label = { Text(app.displayLabel()) },
+                    selected = app.id == selectedId,
+                    onClick = { onSelected(app.id) },
+                    label = { Text(app.label) },
                 )
             }
+            // "+" chip to add a user-defined payment app (Phase 2 of configurable pick-lists).
+            AssistChip(
+                onClick = { showAddDialog = true },
+                label = { Text(stringResource(R.string.picklist_add_app_chip)) },
+                leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+            )
         }
     }
+    if (showAddDialog) {
+        AddPaymentAppDialog(
+            onConfirm = { name -> onAddCustom(name); showAddDialog = false },
+            onDismiss = { showAddDialog = false },
+        )
+    }
+}
+
+@Composable
+private fun AddPaymentAppDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.picklist_add_app_title)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                singleLine = true,
+                label = { Text(stringResource(R.string.picklist_add_app_field)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
+                Text(stringResource(R.string.common_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        },
+    )
 }
 
 @Composable
@@ -936,20 +983,6 @@ private fun TransactionTab.label(): String = when (this) {
     TransactionTab.INCOME -> stringResource(R.string.txn_tab_income)
     TransactionTab.TRANSFER -> stringResource(R.string.txn_tab_transfer)
     TransactionTab.INVEST -> stringResource(R.string.txn_tab_invest)
-}
-
-@Composable
-private fun PaymentApp.displayLabel(): String = when (this) {
-    PaymentApp.GPAY -> stringResource(R.string.payment_app_gpay)
-    PaymentApp.PHONEPE -> stringResource(R.string.payment_app_phonepe)
-    PaymentApp.PAYTM -> stringResource(R.string.payment_app_paytm)
-    PaymentApp.CRED -> stringResource(R.string.payment_app_cred)
-    PaymentApp.BHIM -> stringResource(R.string.payment_app_bhim)
-    PaymentApp.BANK_APP -> stringResource(R.string.payment_app_bank_app)
-    PaymentApp.CARD_SWIPE -> stringResource(R.string.payment_app_card_swipe)
-    PaymentApp.CASH -> stringResource(R.string.payment_app_cash)
-    PaymentApp.NETBANKING -> stringResource(R.string.payment_app_netbanking)
-    PaymentApp.OTHER -> stringResource(R.string.payment_app_other)
 }
 
 private fun categoryTypeForTab(tab: TransactionTab): CategoryType = when (tab) {

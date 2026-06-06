@@ -9,7 +9,6 @@ import com.subramanya.artha.data.entity.enums.CardType
 import com.subramanya.artha.data.entity.enums.CategoryType
 import com.subramanya.artha.data.entity.enums.InsuranceType
 import com.subramanya.artha.data.entity.enums.InvestmentType
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
 import com.subramanya.artha.data.entity.enums.RecurringFrequency
@@ -32,9 +31,6 @@ class Converters {
 
     @TypeConverter fun fromCategoryType(v: CategoryType): String = v.name
     @TypeConverter fun toCategoryType(v: String): CategoryType = CategoryType.valueOf(v)
-
-    @TypeConverter fun fromPaymentApp(v: PaymentApp): String = v.name
-    @TypeConverter fun toPaymentApp(v: String): PaymentApp = PaymentApp.valueOf(v)
 
     @TypeConverter fun fromPersonRelation(v: PersonRelation): String = v.name
     @TypeConverter fun toPersonRelation(v: String): PersonRelation = PersonRelation.valueOf(v)

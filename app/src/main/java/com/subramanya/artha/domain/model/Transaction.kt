@@ -1,6 +1,5 @@
 package com.subramanya.artha.domain.model
 
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
@@ -26,7 +25,8 @@ data class Transaction(
     val sourceId: String?,
     val destinationType: SourceKind?,
     val destinationId: String?,
-    val paymentApp: PaymentApp,
+    /** Catalogue id of the payment app (PaymentAppEntity); built-ins use the former enum name. */
+    val paymentApp: String,
     val place: String?,
     val latitude: Double?,
     val longitude: Double?,

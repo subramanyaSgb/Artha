@@ -1,7 +1,6 @@
 package com.subramanya.artha.data.db.seed
 
 import com.subramanya.artha.data.entity.TransactionRuleEntity
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.rules.ConditionLogic
@@ -156,7 +155,7 @@ internal object SeedRules {
                 logic = ConditionLogic.ANY,
                 items = listOf(
                     RuleCondition.DescriptionContains("cashback"),
-                    RuleCondition.PaymentAppIs(PaymentApp.CRED),
+                    RuleCondition.PaymentAppIs("CRED"),
                 ),
             ),
             actions = RuleActions(

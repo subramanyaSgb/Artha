@@ -1,6 +1,5 @@
 package com.subramanya.artha.domain.rules
 
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
 
@@ -25,7 +24,8 @@ sealed interface RuleCondition {
     data class AmountCompare(val op: AmountOp, val value: Double) : RuleCondition
     data class SourceIs(val kind: SourceKind, val id: String?) : RuleCondition
     data class DestinationIs(val kind: SourceKind, val id: String?) : RuleCondition
-    data class PaymentAppIs(val app: PaymentApp) : RuleCondition
+    /** Matches a transaction's payment-app catalogue id (built-ins use the former enum name). */
+    data class PaymentAppIs(val appId: String) : RuleCondition
     data class TypeIs(val type: TransactionType) : RuleCondition
     data class HasPersonRelation(val relation: com.subramanya.artha.data.entity.enums.PersonRelation) : RuleCondition
     data class TimeOfDayBetween(val fromMinuteOfDay: Int, val toMinuteOfDay: Int) : RuleCondition

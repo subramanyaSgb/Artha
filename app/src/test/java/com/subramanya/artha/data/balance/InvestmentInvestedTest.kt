@@ -1,7 +1,6 @@
 package com.subramanya.artha.data.balance
 
 import com.subramanya.artha.data.entity.TransactionEntity
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
@@ -107,7 +106,7 @@ class InvestmentInvestedTest {
             sourceId = sourceId,
             destinationType = destinationKind,
             destinationId = destinationId,
-            paymentApp = PaymentApp.OTHER,
+            paymentApp = "OTHER",
             place = null,
             latitude = null,
             longitude = null,

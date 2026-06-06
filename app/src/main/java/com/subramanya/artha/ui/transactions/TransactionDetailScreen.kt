@@ -185,6 +185,7 @@ fun TransactionDetailScreen(
                 transactionRuleRepository = app.transactionRuleRepository,
                 investmentRepository = app.investmentRepository,
                 settingsPreferences = app.settingsPreferences,
+                paymentAppRepository = app.paymentAppRepository,
             ),
         )
         LaunchedEffect(txn?.id) {
@@ -248,7 +249,7 @@ private fun FieldsCard(state: TransactionDetailUiState, txn: Transaction) {
             }
             DetailRow(
                 stringResource(R.string.txn_detail_field_payment_app),
-                txn.paymentApp.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() },
+                txn.paymentApp.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() },
             )
             if (state.peopleNames.isNotEmpty()) {
                 DetailRow(

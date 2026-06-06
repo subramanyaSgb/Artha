@@ -2,6 +2,7 @@ package com.subramanya.artha.data.db
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.subramanya.artha.data.db.seed.SeedPaymentApps
 
 /**
  * v3 -> v4: investment valuation redesign.
@@ -44,5 +45,42 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         db.execSQL(
             "ALTER TABLE transactions ADD COLUMN excluded_from_expense_total INTEGER NOT NULL DEFAULT 0",
         )
+    }
+}
+
+/**
+ * v5 -> v6: configurable pick-lists, Phase 2 — the `PaymentApp` enum becomes a user-editable
+ * catalogue.
+ *
+ * This migration is purely ADDITIVE:
+ *  - `transactions.payment_app` was already `TEXT NOT NULL` (the enum was stored via a converter
+ *    as `enum.name`). As a plain `String` column it is byte-identical, so NO column change is
+ *    needed and existing rows keep their value.
+ *  - We only CREATE the new `payment_app` catalogue table and seed the 10 built-ins, whose ids
+ *    are the former enum names — so every existing `transactions.payment_app` value resolves to
+ *    a built-in row.
+ *
+ * The CREATE TABLE statement MUST match Room's generated schema for [PaymentAppEntity] exactly
+ * (column order, types, defaults), or Room's post-migration schema validation throws. It is kept
+ * in sync with `app/schemas/com.subramanya.artha.data.db.AppDatabase/6.json`.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `payment_app` (" +
+                "`id` TEXT NOT NULL, " +
+                "`label` TEXT NOT NULL, " +
+                "`is_builtin` INTEGER NOT NULL, " +
+                "`is_hidden` INTEGER NOT NULL DEFAULT 0, " +
+                "`display_order` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`))",
+        )
+        for (app in SeedPaymentApps.all()) {
+            db.execSQL(
+                "INSERT OR REPLACE INTO `payment_app` " +
+                    "(`id`, `label`, `is_builtin`, `is_hidden`, `display_order`) VALUES (?, ?, ?, ?, ?)",
+                arrayOf(app.id, app.label, if (app.isBuiltin) 1 else 0, if (app.isHidden) 1 else 0, app.displayOrder),
+            )
+        }
     }
 }

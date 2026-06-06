@@ -23,7 +23,7 @@ import com.subramanya.artha.data.entity.enums.CardType
 import com.subramanya.artha.data.entity.enums.CategoryType
 import com.subramanya.artha.data.entity.enums.InsuranceType
 import com.subramanya.artha.data.entity.enums.InvestmentType
-import com.subramanya.artha.data.entity.enums.PaymentApp
+import com.subramanya.artha.data.entity.PaymentAppEntity
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
 import com.subramanya.artha.data.entity.enums.RecurringFrequency
@@ -81,6 +81,7 @@ object BackupCodec {
         root.put("transactions", data.transactions.toArray(::transactionToJson))
         root.put("transaction_people", data.transactionPeople.toArray(::transactionPersonToJson))
         root.put("transaction_tags", data.transactionTags.toArray(::transactionTagToJson))
+        root.put("payment_apps", data.paymentApps.toArray(::paymentAppToJson))
         return root.toString(2)
     }
 
@@ -102,6 +103,7 @@ object BackupCodec {
             transactions = root.read("transactions", ::transactionFromJson),
             transactionPeople = root.read("transaction_people", ::transactionPersonFromJson),
             transactionTags = root.read("transaction_tags", ::transactionTagFromJson),
+            paymentApps = root.read("payment_apps", ::paymentAppFromJson),
         )
     }
 
@@ -224,7 +226,7 @@ object BackupCodec {
         put("source_type", t.sourceType.name); putNullable("source_id", t.sourceId)
         putNullable("destination_type", t.destinationType?.name)
         putNullable("destination_id", t.destinationId)
-        put("payment_app", t.paymentApp.name)
+        put("payment_app", t.paymentApp)
         putNullable("place", t.place); putNullable("latitude", t.latitude)
         putNullable("longitude", t.longitude); putNullable("receipt_uri", t.receiptUri)
         putNullable("notes", t.notes); putNullable("tax_section", t.taxSection)
@@ -376,7 +378,7 @@ object BackupCodec {
         sourceId = o.stringOrNull("source_id"),
         destinationType = o.stringOrNull("destination_type")?.let { enumValueOf<SourceKind>(it) },
         destinationId = o.stringOrNull("destination_id"),
-        paymentApp = enumValueOf<PaymentApp>(o.getString("payment_app")),
+        paymentApp = o.getString("payment_app"),
         place = o.stringOrNull("place"), latitude = o.doubleOrNull("latitude"),
         longitude = o.doubleOrNull("longitude"), receiptUri = o.stringOrNull("receipt_uri"),
         notes = o.stringOrNull("notes"), taxSection = o.stringOrNull("tax_section"),
@@ -393,6 +395,18 @@ object BackupCodec {
 
     private fun transactionTagFromJson(o: JSONObject) = TransactionTagCrossRef(
         transactionId = o.getString("transaction_id"), tagId = o.getString("tag_id"),
+    )
+
+    private fun paymentAppToJson(p: PaymentAppEntity) = JSONObject().apply {
+        put("id", p.id); put("label", p.label)
+        put("is_builtin", p.isBuiltin); put("is_hidden", p.isHidden)
+        put("display_order", p.displayOrder)
+    }
+
+    private fun paymentAppFromJson(o: JSONObject) = PaymentAppEntity(
+        id = o.getString("id"), label = o.getString("label"),
+        isBuiltin = o.getBoolean("is_builtin"), isHidden = o.getBoolean("is_hidden"),
+        displayOrder = o.getInt("display_order"),
     )
 
     // ---- JSON helpers ----

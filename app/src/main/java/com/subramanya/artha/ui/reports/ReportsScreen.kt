@@ -93,6 +93,7 @@ fun ReportsScreen(
             cardRepository = app.cardRepository,
             investmentRepository = app.investmentRepository,
             categoryRepository = app.categoryRepository,
+            paymentAppRepository = app.paymentAppRepository,
         ),
     )
     val state by vm.state.collectAsStateWithLifecycle()

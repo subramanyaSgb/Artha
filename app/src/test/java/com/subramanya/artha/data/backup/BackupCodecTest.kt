@@ -12,6 +12,7 @@ import com.subramanya.artha.data.entity.RecurringRuleEntity
 import com.subramanya.artha.data.entity.SubscriptionEntity
 import com.subramanya.artha.data.entity.TagEntity
 import com.subramanya.artha.data.entity.TransactionEntity
+import com.subramanya.artha.data.entity.PaymentAppEntity
 import com.subramanya.artha.data.entity.TransactionPersonCrossRef
 import com.subramanya.artha.data.entity.TransactionRuleEntity
 import com.subramanya.artha.data.entity.TransactionTagCrossRef
@@ -23,7 +24,6 @@ import com.subramanya.artha.data.entity.enums.CardType
 import com.subramanya.artha.data.entity.enums.CategoryType
 import com.subramanya.artha.data.entity.enums.InsuranceType
 import com.subramanya.artha.data.entity.enums.InvestmentType
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
 import com.subramanya.artha.data.entity.enums.RecurringFrequency
@@ -134,7 +134,7 @@ class BackupCodecTest {
                 date = 7_000L, description = "Lunch", categoryId = "cat-1", subCategoryId = "cat-2",
                 sourceType = SourceKind.ACCOUNT, sourceId = "acct-1",
                 destinationType = SourceKind.EXTERNAL, destinationId = "ext-1",
-                paymentApp = PaymentApp.GPAY, place = "Cafe", latitude = 12.97, longitude = 77.59,
+                paymentApp = "GPAY", place = "Cafe", latitude = 12.97, longitude = 77.59,
                 receiptUri = "content://r", notes = "with team", taxSection = "80C",
                 recurringRuleId = "rr-1", isSplit = true, splitGroupId = "grp-1",
                 source = TransactionSource.MANUAL, createdAt = 8_000L, updatedAt = 9_000L,
@@ -145,7 +145,7 @@ class BackupCodecTest {
                 date = 10_000L, description = "FD interest", categoryId = null, subCategoryId = null,
                 sourceType = SourceKind.INVESTMENT, sourceId = null,
                 destinationType = null, destinationId = null,
-                paymentApp = PaymentApp.OTHER, place = null, latitude = null, longitude = null,
+                paymentApp = "OTHER", place = null, latitude = null, longitude = null,
                 receiptUri = null, notes = null, taxSection = null,
                 recurringRuleId = null, isSplit = false, splitGroupId = null,
                 source = TransactionSource.RECURRING, createdAt = 11_000L, updatedAt = 12_000L,
@@ -261,6 +261,10 @@ class BackupCodecTest {
                 frequency = RecurringFrequency.DAILY, dayOfPeriod = null, nextRunDate = 39_000L,
                 lastRunDate = null, autoConfirm = false, isActive = false, createdAt = 40_000L,
             ),
+        ),
+        paymentApps = listOf(
+            PaymentAppEntity(id = "GPAY", label = "GPay", isBuiltin = true, isHidden = false, displayOrder = 0),
+            PaymentAppEntity(id = "my-custom", label = "Amazon Pay", isBuiltin = false, isHidden = false, displayOrder = 10),
         ),
     )
 }

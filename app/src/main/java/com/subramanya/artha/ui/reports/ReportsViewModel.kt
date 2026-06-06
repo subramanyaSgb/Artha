@@ -3,12 +3,12 @@ package com.subramanya.artha.ui.reports
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.data.repository.InvestmentRepository
+import com.subramanya.artha.data.repository.PaymentAppRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Transaction
 import kotlinx.coroutines.Dispatchers
@@ -31,11 +31,13 @@ import kotlinx.datetime.toLocalDateTime
 
 enum class ReportRange { THIS_MONTH, LAST_MONTH, FISCAL_YEAR }
 
-/** Holder folding the three investment/category sources into one combine slot. */
+/** Holder folding the investment/category/payment-app sources into one combine slot. */
 private data class InvestmentsAndCategories(
     val investments: List<com.subramanya.artha.domain.model.Investment>,
     val categories: List<com.subramanya.artha.domain.model.Category>,
     val valuesById: Map<String, Double>,
+    /** payment-app catalogue id → display label, for the "spending by app" slice. */
+    val paymentAppLabels: Map<String, String>,
 )
 
 data class CategorySlice(val categoryId: String, val displayName: String, val total: Double)
@@ -61,6 +63,7 @@ class ReportsViewModel(
     private val cardRepository: CardRepository,
     private val investmentRepository: InvestmentRepository,
     private val categoryRepository: CategoryRepository,
+    private val paymentAppRepository: PaymentAppRepository,
 ) : ViewModel() {
 
     private val range = MutableStateFlow(ReportRange.THIS_MONTH)
@@ -75,7 +78,10 @@ class ReportsViewModel(
             investmentRepository.observeActive(),
             categoryRepository.observeAll(),
             investmentRepository.observeValuesByInvestmentId(),
-        ) { invs, cats, valuesById -> InvestmentsAndCategories(invs, cats, valuesById) },
+            paymentAppRepository.observeAll(),
+        ) { invs, cats, valuesById, apps ->
+            InvestmentsAndCategories(invs, cats, valuesById, apps.associate { it.id to it.label })
+        },
         range,
     ) { txns, accounts, cards, invCat, currentRange ->
         val investments = invCat.investments
@@ -104,13 +110,15 @@ class ReportsViewModel(
             .sortedByDescending { it.total }
             .take(10)
 
+        val paymentAppLabels = invCat.paymentAppLabels
         val byApp = inWindow
             .filter { it.type == TransactionType.EXPENSE }
             .groupBy { it.paymentApp }
-            .map { (app, list) ->
+            .map { (appId, list) ->
                 CategorySlice(
-                    categoryId = app.name,
-                    displayName = app.label(),
+                    categoryId = appId,
+                    // Resolve catalogue id -> label; fall back to the raw id for a hidden/removed app.
+                    displayName = paymentAppLabels[appId] ?: appId,
                     total = list.sumOf { it.amount },
                 )
             }
@@ -151,19 +159,6 @@ class ReportsViewModel(
     private fun TransactionType.isIncomeish(): Boolean = this == TransactionType.INCOME ||
         this == TransactionType.INTEREST || this == TransactionType.CASHBACK ||
         this == TransactionType.REFUND
-
-    private fun PaymentApp.label(): String = when (this) {
-        PaymentApp.GPAY -> "GPay"
-        PaymentApp.PHONEPE -> "PhonePe"
-        PaymentApp.PAYTM -> "Paytm"
-        PaymentApp.CRED -> "CRED"
-        PaymentApp.BHIM -> "BHIM"
-        PaymentApp.BANK_APP -> "Bank app"
-        PaymentApp.CARD_SWIPE -> "Card swipe"
-        PaymentApp.CASH -> "Cash"
-        PaymentApp.NETBANKING -> "Netbanking"
-        PaymentApp.OTHER -> "Other"
-    }
 
     /** Reduce a transaction description down to a recognisable merchant key.
      *  Crude but effective — drops UPI prefixes, ref numbers, ids. */
@@ -245,6 +240,7 @@ class ReportsViewModelFactory(
     private val cardRepository: CardRepository,
     private val investmentRepository: InvestmentRepository,
     private val categoryRepository: CategoryRepository,
+    private val paymentAppRepository: PaymentAppRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -257,6 +253,7 @@ class ReportsViewModelFactory(
             cardRepository,
             investmentRepository,
             categoryRepository,
+            paymentAppRepository,
         ) as T
     }
 }

@@ -1,8 +1,8 @@
 package com.subramanya.artha.ui.transaction
 
-import com.subramanya.artha.data.entity.enums.PaymentApp
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
+import com.subramanya.artha.domain.model.PaymentAppOption
 
 /**
  * Top-level tabs the user picks between when adding a transaction.
@@ -47,7 +47,10 @@ data class AddTransactionUiState(
     val subCategoryId: String? = null,
     val subCategoryDisplay: String? = null,
     val description: String = "",
-    val paymentApp: PaymentApp = PaymentApp.OTHER,
+    /** Selected payment-app catalogue id (default OTHER). */
+    val paymentApp: String = "OTHER",
+    /** Visible payment apps for the picker (built-ins + custom, hidden removed). */
+    val paymentApps: List<PaymentAppOption> = emptyList(),
     val peopleIds: Set<String> = emptySet(),
     val place: String = "",
     val tagIds: Set<String> = emptySet(),
