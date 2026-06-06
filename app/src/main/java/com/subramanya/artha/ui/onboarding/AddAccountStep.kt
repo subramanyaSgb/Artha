@@ -26,7 +26,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.subramanya.artha.R
-import com.subramanya.artha.data.entity.enums.AccountType
+import com.subramanya.artha.data.db.seed.SeedAccountTypes
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -34,7 +34,7 @@ fun AddAccountStep(
     draft: AccountDraft,
     pendingCount: Int,
     onNameChanged: (String) -> Unit,
-    onTypeChanged: (AccountType) -> Unit,
+    onTypeChanged: (String) -> Unit,
     onInstitutionChanged: (String) -> Unit,
     onOpeningBalanceChanged: (String) -> Unit,
     onAddAnother: () -> Unit,
@@ -83,11 +83,11 @@ fun AddAccountStep(
         )
         Spacer(modifier = Modifier.height(8.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AccountType.entries.forEach { type ->
+            SeedAccountTypes.BUILTINS.forEach { (id, label) ->
                 FilterChip(
-                    selected = draft.type == type,
-                    onClick = { onTypeChanged(type) },
-                    label = { Text(type.displayLabel()) },
+                    selected = draft.type == id,
+                    onClick = { onTypeChanged(id) },
+                    label = { Text(label) },
                 )
             }
         }
@@ -152,11 +152,3 @@ fun AddAccountStep(
     }
 }
 
-@Composable
-private fun AccountType.displayLabel(): String =
-    when (this) {
-        AccountType.SAVINGS -> stringResource(R.string.onboarding_account_type_savings)
-        AccountType.CURRENT -> stringResource(R.string.onboarding_account_type_current)
-        AccountType.CASH -> stringResource(R.string.onboarding_account_type_cash)
-        AccountType.WALLET -> stringResource(R.string.onboarding_account_type_wallet)
-    }

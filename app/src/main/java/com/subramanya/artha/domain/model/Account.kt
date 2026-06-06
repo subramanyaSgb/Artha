@@ -1,11 +1,11 @@
 package com.subramanya.artha.domain.model
 
-import com.subramanya.artha.data.entity.enums.AccountType
+
 
 data class Account(
     val id: String,
     val name: String,
-    val type: AccountType,
+    val type: String,
     val institution: String?,
     val accountNumberLast4: String?,
     val openingBalance: Double,

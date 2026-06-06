@@ -12,6 +12,9 @@ import com.subramanya.artha.data.entity.RecurringRuleEntity
 import com.subramanya.artha.data.entity.SubscriptionEntity
 import com.subramanya.artha.data.entity.TagEntity
 import com.subramanya.artha.data.entity.TransactionEntity
+import com.subramanya.artha.data.entity.AccountTypeEntity
+import com.subramanya.artha.data.entity.CardTypeEntity
+import com.subramanya.artha.data.entity.InsuranceTypeEntity
 import com.subramanya.artha.data.entity.PaymentAppEntity
 import com.subramanya.artha.data.entity.TransactionPersonCrossRef
 import com.subramanya.artha.data.entity.TransactionRuleEntity
@@ -46,4 +49,7 @@ data class BackupData(
      *  built-ins are re-seeded on fresh install and the migration, so we serialise all
      *  rows to restore user customisations (hidden built-ins, custom apps). */
     val paymentApps: List<PaymentAppEntity> = emptyList(),
+    val accountTypes: List<AccountTypeEntity> = emptyList(),
+    val cardTypes: List<CardTypeEntity> = emptyList(),
+    val insuranceTypes: List<InsuranceTypeEntity> = emptyList(),
 )

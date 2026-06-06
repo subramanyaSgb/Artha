@@ -6,7 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.subramanya.artha.data.entity.enums.CardNetwork
-import com.subramanya.artha.data.entity.enums.CardType
+
 
 @Entity(
     tableName = "cards",
@@ -24,7 +24,7 @@ data class CardEntity(
     @PrimaryKey
     val id: String,
     val name: String,
-    val type: CardType,
+    val type: String,
     val issuer: String?,
     val network: CardNetwork,
     @ColumnInfo(name = "card_number_last4")

@@ -62,4 +62,14 @@ interface BackupDao {
     /** Phase 2: delete all payment-app catalogue rows (for restore — re-inserted from backup). */
     @Query("DELETE FROM payment_app")
     suspend fun deleteAllPaymentApps()
+
+    /** Phase 3: type catalogue deletes. */
+    @Query("DELETE FROM account_type")
+    suspend fun deleteAllAccountTypes()
+
+    @Query("DELETE FROM card_type")
+    suspend fun deleteAllCardTypes()
+
+    @Query("DELETE FROM insurance_type")
+    suspend fun deleteAllInsuranceTypes()
 }

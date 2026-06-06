@@ -1,12 +1,12 @@
 package com.subramanya.artha.domain.model
 
-import com.subramanya.artha.data.entity.enums.InsuranceType
+
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
 
 data class Insurance(
     val id: String,
     val name: String,
-    val type: InsuranceType,
+    val type: String,
     val provider: String,
     val policyNumber: String?,
     val sumAssured: Double,

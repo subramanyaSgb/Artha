@@ -59,7 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
-import com.subramanya.artha.data.entity.enums.InsuranceType
+
 import com.subramanya.artha.domain.model.Insurance
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
@@ -91,7 +91,7 @@ fun InsurancesScreen(
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
     val vm: InsurancesViewModel = viewModel(
-        factory = InsurancesViewModelFactory(app.insuranceRepository),
+        factory = InsurancesViewModelFactory(app.insuranceRepository, app.insuranceTypeRepository),
     )
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -147,7 +147,7 @@ fun InsurancesScreen(
                     }
                 } else {
                     state.grouped.forEach { (type, rows) ->
-                        item(key = "header-${type.name}") { TypeHeader(type) }
+                        item(key = "header-$type") { TypeHeader(type, state.typeLabels[type] ?: type) }
                         items(rows, key = { it.id }) { policy ->
                             InsuranceRow(
                                 insurance = policy,
@@ -284,7 +284,7 @@ private fun DueSoonBanner(items: List<Insurance>) {
 }
 
 @Composable
-private fun TypeHeader(type: InsuranceType) {
+private fun TypeHeader(typeId: String, label: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
@@ -296,7 +296,7 @@ private fun TypeHeader(type: InsuranceType) {
         )
         Spacer(Modifier.size(8.dp))
         Text(
-            text = type.displayName().uppercase(),
+            text = label.uppercase(),
             style = EyebrowStyle,
             color = Teal300,
         )
@@ -453,12 +453,12 @@ private fun InsuranceAvatar(color: Long) {
 }
 
 @Composable
-internal fun InsuranceType.displayName(): String = when (this) {
-    InsuranceType.HEALTH -> stringResource(R.string.insurance_type_health)
-    InsuranceType.VEHICLE -> stringResource(R.string.insurance_type_vehicle)
-    InsuranceType.LIFE_TERM -> stringResource(R.string.insurance_type_life_term)
-    InsuranceType.LIFE_ENDOWMENT -> stringResource(R.string.insurance_type_life_endowment)
-    InsuranceType.TRAVEL -> stringResource(R.string.insurance_type_travel)
-    InsuranceType.HOME -> stringResource(R.string.insurance_type_home)
-    InsuranceType.OTHER -> stringResource(R.string.insurance_type_other)
+internal fun insuranceTypeDisplayName(id: String): String = when (id) {
+    "HEALTH" -> "Health"
+    "VEHICLE" -> "Vehicle"
+    "LIFE_TERM" -> "Life (term)"
+    "LIFE_ENDOWMENT" -> "Life (endowment)"
+    "TRAVEL" -> "Travel"
+    "HOME" -> "Home"
+    else -> id.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }
 }

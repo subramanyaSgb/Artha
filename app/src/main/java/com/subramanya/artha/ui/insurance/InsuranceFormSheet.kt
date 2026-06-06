@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -41,7 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
-import com.subramanya.artha.data.entity.enums.InsuranceType
+
 import com.subramanya.artha.data.entity.enums.InvestmentType
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
 import com.subramanya.artha.data.entity.enums.defaultValuationMode
@@ -83,7 +84,9 @@ fun InsuranceFormSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
-    var type by remember(editing) { mutableStateOf(editing?.type ?: InsuranceType.HEALTH) }
+    var type by remember(editing) { mutableStateOf(editing?.type ?: "HEALTH") }
+    val insuranceTypeOptions by app.insuranceTypeRepository.observeVisible()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
     var provider by remember(editing) { mutableStateOf(editing?.provider.orEmpty()) }
     var policyNumber by remember(editing) { mutableStateOf(editing?.policyNumber.orEmpty()) }
     var sumAssuredText by remember(editing) {
@@ -119,15 +122,7 @@ fun InsuranceFormSheet(
     val isValid =
         name.isNotBlank() && provider.isNotBlank() && parsedSum != null && parsedPremium != null
 
-    val typeOptions = listOf(
-        PillOption(InsuranceType.HEALTH, stringResource(R.string.insurance_type_health)),
-        PillOption(InsuranceType.VEHICLE, stringResource(R.string.insurance_type_vehicle)),
-        PillOption(InsuranceType.LIFE_TERM, stringResource(R.string.insurance_type_life_term)),
-        PillOption(InsuranceType.LIFE_ENDOWMENT, stringResource(R.string.insurance_type_life_endowment)),
-        PillOption(InsuranceType.TRAVEL, stringResource(R.string.insurance_type_travel)),
-        PillOption(InsuranceType.HOME, stringResource(R.string.insurance_type_home)),
-        PillOption(InsuranceType.OTHER, stringResource(R.string.insurance_type_other)),
-    )
+    val typeOptions = insuranceTypeOptions.map { PillOption(it.id, it.label) }
     val freqOptions = listOf(
         PillOption(PremiumFrequency.MONTHLY, stringResource(R.string.premium_frequency_monthly)),
         PillOption(PremiumFrequency.QUARTERLY, stringResource(R.string.premium_frequency_quarterly)),
@@ -175,7 +170,7 @@ fun InsuranceFormSheet(
             }
 
             // Linked-investment toggle: endowment-only, new rows only.
-            if (editing == null && type == InsuranceType.LIFE_ENDOWMENT) {
+            if (editing == null && type == "LIFE_ENDOWMENT") {
                 Spacer(Modifier.height(18.dp))
                 Row(
                     modifier = Modifier
@@ -469,9 +464,9 @@ private fun DatePickerSheet(
     ) { DatePicker(state = pickerState) }
 }
 
-private fun defaultTaxSectionFor(type: InsuranceType): String? = when (type) {
-    InsuranceType.HEALTH -> "80D"
-    InsuranceType.LIFE_TERM, InsuranceType.LIFE_ENDOWMENT -> "80C"
+private fun defaultTaxSectionFor(type: String): String? = when (type) {
+    "HEALTH" -> "80D"
+    "LIFE_TERM", "LIFE_ENDOWMENT" -> "80C"
     else -> null
 }
 

@@ -3,14 +3,14 @@ package com.subramanya.artha.data.entity
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.subramanya.artha.data.entity.enums.AccountType
+
 
 @Entity(tableName = "accounts")
 data class AccountEntity(
     @PrimaryKey
     val id: String,
     val name: String,
-    val type: AccountType,
+    val type: String,
     val institution: String?,
     @ColumnInfo(name = "account_number_last4")
     val accountNumberLast4: String?,

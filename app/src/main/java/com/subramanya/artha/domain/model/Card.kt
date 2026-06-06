@@ -1,12 +1,12 @@
 package com.subramanya.artha.domain.model
 
 import com.subramanya.artha.data.entity.enums.CardNetwork
-import com.subramanya.artha.data.entity.enums.CardType
+
 
 data class Card(
     val id: String,
     val name: String,
-    val type: CardType,
+    val type: String,
     val issuer: String?,
     val network: CardNetwork,
     val cardNumberLast4: String?,

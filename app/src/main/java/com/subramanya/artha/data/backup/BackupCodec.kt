@@ -15,14 +15,17 @@ import com.subramanya.artha.data.entity.TransactionEntity
 import com.subramanya.artha.data.entity.TransactionPersonCrossRef
 import com.subramanya.artha.data.entity.TransactionRuleEntity
 import com.subramanya.artha.data.entity.TransactionTagCrossRef
-import com.subramanya.artha.data.entity.enums.AccountType
+
 import com.subramanya.artha.data.entity.enums.BudgetPeriod
 import com.subramanya.artha.data.entity.enums.BudgetScope
 import com.subramanya.artha.data.entity.enums.CardNetwork
-import com.subramanya.artha.data.entity.enums.CardType
+
 import com.subramanya.artha.data.entity.enums.CategoryType
-import com.subramanya.artha.data.entity.enums.InsuranceType
+
 import com.subramanya.artha.data.entity.enums.InvestmentType
+import com.subramanya.artha.data.entity.AccountTypeEntity
+import com.subramanya.artha.data.entity.CardTypeEntity
+import com.subramanya.artha.data.entity.InsuranceTypeEntity
 import com.subramanya.artha.data.entity.PaymentAppEntity
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.PremiumFrequency
@@ -82,6 +85,9 @@ object BackupCodec {
         root.put("transaction_people", data.transactionPeople.toArray(::transactionPersonToJson))
         root.put("transaction_tags", data.transactionTags.toArray(::transactionTagToJson))
         root.put("payment_apps", data.paymentApps.toArray(::paymentAppToJson))
+        root.put("account_types", data.accountTypes.toArray(::accountTypeToJson))
+        root.put("card_types", data.cardTypes.toArray(::cardTypeToJson))
+        root.put("insurance_types", data.insuranceTypes.toArray(::insuranceTypeToJson))
         return root.toString(2)
     }
 
@@ -104,13 +110,16 @@ object BackupCodec {
             transactionPeople = root.read("transaction_people", ::transactionPersonFromJson),
             transactionTags = root.read("transaction_tags", ::transactionTagFromJson),
             paymentApps = root.read("payment_apps", ::paymentAppFromJson),
+            accountTypes = root.read("account_types", ::accountTypeFromJson),
+            cardTypes = root.read("card_types", ::cardTypeFromJson),
+            insuranceTypes = root.read("insurance_types", ::insuranceTypeFromJson),
         )
     }
 
     // ---- per-entity encoders ----
 
     private fun accountToJson(a: AccountEntity) = JSONObject().apply {
-        put("id", a.id); put("name", a.name); put("type", a.type.name)
+        put("id", a.id); put("name", a.name); put("type", a.type)
         putNullable("institution", a.institution)
         putNullable("account_number_last4", a.accountNumberLast4)
         put("opening_balance", a.openingBalance); put("currency", a.currency)
@@ -120,7 +129,7 @@ object BackupCodec {
     }
 
     private fun cardToJson(c: CardEntity) = JSONObject().apply {
-        put("id", c.id); put("name", c.name); put("type", c.type.name)
+        put("id", c.id); put("name", c.name); put("type", c.type)
         putNullable("issuer", c.issuer); put("network", c.network.name)
         putNullable("card_number_last4", c.cardNumberLast4)
         putNullable("credit_limit", c.creditLimit)
@@ -134,7 +143,7 @@ object BackupCodec {
 
     private fun categoryToJson(c: CategoryEntity) = JSONObject().apply {
         put("id", c.id); put("name", c.name); putNullable("parent_id", c.parentId)
-        put("type", c.type.name); put("icon", c.icon); put("color", c.color)
+        put("type", c.type); put("icon", c.icon); put("color", c.color)
         put("is_system", c.isSystem); put("display_order", c.displayOrder)
     }
 
@@ -149,7 +158,7 @@ object BackupCodec {
     }
 
     private fun investmentToJson(i: InvestmentEntity) = JSONObject().apply {
-        put("id", i.id); put("name", i.name); put("type", i.type.name)
+        put("id", i.id); put("name", i.name); put("type", i.type)
         putNullable("institution", i.institution)
         put("current_value", i.currentValue); put("valuation_mode", i.valuationMode.name)
         put("opening_contribution", i.openingContribution)
@@ -163,7 +172,7 @@ object BackupCodec {
     }
 
     private fun insuranceToJson(i: InsuranceEntity) = JSONObject().apply {
-        put("id", i.id); put("name", i.name); put("type", i.type.name)
+        put("id", i.id); put("name", i.name); put("type", i.type)
         put("provider", i.provider); putNullable("policy_number", i.policyNumber)
         put("sum_assured", i.sumAssured); put("premium_amount", i.premiumAmount)
         put("premium_frequency", i.premiumFrequency.name)
@@ -249,7 +258,7 @@ object BackupCodec {
 
     private fun accountFromJson(o: JSONObject) = AccountEntity(
         id = o.getString("id"), name = o.getString("name"),
-        type = enumValueOf<AccountType>(o.getString("type")),
+        type = o.getString("type"),
         institution = o.stringOrNull("institution"),
         accountNumberLast4 = o.stringOrNull("account_number_last4"),
         openingBalance = o.getDouble("opening_balance"), currency = o.getString("currency"),
@@ -260,7 +269,7 @@ object BackupCodec {
 
     private fun cardFromJson(o: JSONObject) = CardEntity(
         id = o.getString("id"), name = o.getString("name"),
-        type = enumValueOf<CardType>(o.getString("type")), issuer = o.stringOrNull("issuer"),
+        type = o.getString("type"), issuer = o.stringOrNull("issuer"),
         network = enumValueOf<CardNetwork>(o.getString("network")),
         cardNumberLast4 = o.stringOrNull("card_number_last4"),
         creditLimit = o.doubleOrNull("credit_limit"),
@@ -309,7 +318,7 @@ object BackupCodec {
 
     private fun insuranceFromJson(o: JSONObject) = InsuranceEntity(
         id = o.getString("id"), name = o.getString("name"),
-        type = enumValueOf<InsuranceType>(o.getString("type")),
+        type = o.getString("type"),
         provider = o.getString("provider"), policyNumber = o.stringOrNull("policy_number"),
         sumAssured = o.getDouble("sum_assured"), premiumAmount = o.getDouble("premium_amount"),
         premiumFrequency = enumValueOf<PremiumFrequency>(o.getString("premium_frequency")),
@@ -404,6 +413,37 @@ object BackupCodec {
     }
 
     private fun paymentAppFromJson(o: JSONObject) = PaymentAppEntity(
+        id = o.getString("id"), label = o.getString("label"),
+        isBuiltin = o.getBoolean("is_builtin"), isHidden = o.getBoolean("is_hidden"),
+        displayOrder = o.getInt("display_order"),
+    )
+
+    private fun accountTypeToJson(e: AccountTypeEntity) = JSONObject().apply {
+        put("id", e.id); put("label", e.label)
+        put("is_builtin", e.isBuiltin); put("is_hidden", e.isHidden)
+        put("display_order", e.displayOrder)
+    }
+    private fun cardTypeToJson(e: CardTypeEntity) = JSONObject().apply {
+        put("id", e.id); put("label", e.label)
+        put("is_builtin", e.isBuiltin); put("is_hidden", e.isHidden)
+        put("display_order", e.displayOrder)
+    }
+    private fun insuranceTypeToJson(e: InsuranceTypeEntity) = JSONObject().apply {
+        put("id", e.id); put("label", e.label)
+        put("is_builtin", e.isBuiltin); put("is_hidden", e.isHidden)
+        put("display_order", e.displayOrder)
+    }
+    private fun accountTypeFromJson(o: JSONObject) = AccountTypeEntity(
+        id = o.getString("id"), label = o.getString("label"),
+        isBuiltin = o.getBoolean("is_builtin"), isHidden = o.getBoolean("is_hidden"),
+        displayOrder = o.getInt("display_order"),
+    )
+    private fun cardTypeFromJson(o: JSONObject) = CardTypeEntity(
+        id = o.getString("id"), label = o.getString("label"),
+        isBuiltin = o.getBoolean("is_builtin"), isHidden = o.getBoolean("is_hidden"),
+        displayOrder = o.getInt("display_order"),
+    )
+    private fun insuranceTypeFromJson(o: JSONObject) = InsuranceTypeEntity(
         id = o.getString("id"), label = o.getString("label"),
         isBuiltin = o.getBoolean("is_builtin"), isHidden = o.getBoolean("is_hidden"),
         displayOrder = o.getInt("display_order"),

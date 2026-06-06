@@ -3,7 +3,7 @@ package com.subramanya.artha.ui.transaction
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.subramanya.artha.data.entity.enums.CardType
+
 import com.subramanya.artha.data.entity.enums.CategoryType
 import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.SourceKind
@@ -95,7 +95,7 @@ class AddTransactionViewModel(
                         kind = SourceKind.CARD,
                         id = it.id,
                         displayName = it.name,
-                        isCreditCard = it.type == com.subramanya.artha.data.entity.enums.CardType.CREDIT,
+                        isCreditCard = it.type == "CREDIT",
                     ),
                 )
             }
@@ -549,7 +549,7 @@ class AddTransactionViewModel(
     private suspend fun resolveCardAlias(endpoint: FundsEndpoint): FundsEndpoint {
         if (endpoint.kind != SourceKind.CARD) return endpoint
         val card = cardRepository.getById(endpoint.id) ?: return endpoint
-        if (card.type == CardType.CREDIT) return endpoint
+        if (card.type == "CREDIT") return endpoint
         val linkedAccountId = card.linkedAccountId ?: return endpoint
         return endpoint.copy(kind = SourceKind.ACCOUNT, id = linkedAccountId, isCreditCard = false)
     }

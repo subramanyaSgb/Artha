@@ -6,6 +6,7 @@ import com.subramanya.artha.BuildConfig
 import com.subramanya.artha.data.db.seed.CategorySeederCallback
 import com.subramanya.artha.data.db.seed.PaymentAppSeederCallback
 import com.subramanya.artha.data.db.seed.RuleSeederCallback
+import com.subramanya.artha.data.db.seed.TypeCatalogueSeederCallback
 
 /**
  * Process-wide singleton for AppDatabase. No DI framework in Phase 1; callers retrieve
@@ -27,10 +28,11 @@ object DatabaseProvider {
                 .addCallback(CategorySeederCallback())
                 .addCallback(RuleSeederCallback())
                 .addCallback(PaymentAppSeederCallback())
+                .addCallback(TypeCatalogueSeederCallback())
                 // Real, data-preserving migrations run first. v3->v4 adds investment valuation
                 // columns; v4->v5 adds transactions.excluded_from_expense_total; v5->v6 adds the
-                // payment-app catalogue table (see Migrations.kt).
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                // payment-app catalogue; v6->v7 adds account/card/insurance type catalogues.
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 
         // Destructive fallback in DEBUG ONLY. During development a schema gap not covered by an
         // explicit migration resets the local DB instead of crashing — convenient for iteration.
