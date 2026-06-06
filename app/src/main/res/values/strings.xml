@@ -736,6 +736,8 @@
     <string name="picklist_add_app_field">Label (e.g. Amazon Pay)</string>
     <string name="investments_hero_current">Current value</string>
     <string name="investments_hero_invested">Invested</string>
+    <string name="investments_allocation">Allocation</string>
+    <string name="investments_more_options">More options</string>
     <!-- Row sublines. %1$s = invested amount, %2$s = interest/gain amount, %3$s = gain percent. -->
     <string name="investments_subline_interest">Invested %1$s · Interest %2$s</string>
     <string name="investments_subline_gain">Invested %1$s · Gain %2$s (%3$s)</string>
