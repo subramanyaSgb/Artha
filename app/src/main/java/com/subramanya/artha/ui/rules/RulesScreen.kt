@@ -65,7 +65,6 @@ import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.Danger
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
-import com.subramanya.artha.ui.theme.InstrumentSerif
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Teal700
@@ -115,7 +114,9 @@ fun RulesScreen(
                     title = stringResource(R.string.rules_title),
                     onBack = onBack,
                 )
-                if (state.rules.isEmpty()) {
+                if (state.isLoading) {
+                    RulesSkeleton()
+                } else if (state.rules.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
@@ -181,25 +182,20 @@ internal sealed interface RuleFormMode {
 }
 
 @Composable
-private fun RulesEditorialHeader() {
-    Column {
-        Text(
-            text = stringResource(R.string.rules_eyebrow).uppercase(),
-            style = EyebrowStyle,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.rules_title),
-            style = TextStyle(
-                fontFamily = InstrumentSerif,
-                fontSize = 26.sp,
-                lineHeight = 30.sp,
-                fontWeight = FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onSurface,
-            ),
-        )
-        Spacer(Modifier.height(4.dp))
+private fun RulesSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        repeat(4) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
+        }
     }
 }
 

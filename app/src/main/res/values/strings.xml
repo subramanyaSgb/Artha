@@ -1143,8 +1143,12 @@
     <string name="rules_action_category_pick">Pick a category…</string>
     <string name="rules_action_subcategory_pick">Pick a sub-category (optional)</string>
     <string name="rules_action_tax_section_label">Tax section</string>
-    <string name="rules_action_tag_id_label">Tag id</string>
-    <string name="rules_action_person_id_label">Person id</string>
+    <string name="rules_action_tag_id_label">Tag</string>
+    <string name="rules_action_person_id_label">Person</string>
+    <string name="rules_action_tag_pick">Pick a tag</string>
+    <string name="rules_action_person_pick">Pick a person</string>
+    <string name="rules_action_no_tags">No tags yet — add some in Tags first.</string>
+    <string name="rules_action_no_people">No people yet — add some in People first.</string>
     <string name="rules_action_summary_set_type">Set type → %1$s</string>
     <string name="rules_action_summary_set_category">Set category → %1$s</string>
     <string name="rules_action_summary_set_tax">Set tax section → %1$s</string>

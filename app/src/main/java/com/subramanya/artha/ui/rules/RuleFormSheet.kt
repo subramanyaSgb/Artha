@@ -52,6 +52,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.domain.model.Category
+import com.subramanya.artha.domain.model.Person
+import com.subramanya.artha.domain.model.Tag
 import com.subramanya.artha.ui.transaction.CategoryPickerSheet
 import com.subramanya.artha.data.db.seed.SeedPaymentApps
 import com.subramanya.artha.data.entity.enums.PersonRelation
@@ -89,6 +91,11 @@ fun RuleFormSheet(
     // Categories list so SetCategory / SetSubCategory show a picker instead of
     // asking the user to type an internal id.
     val categories by app.categoryRepository.observeAll()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    // Tags + people so AddTag / AddPerson actions pick by name instead of a raw id.
+    val tags by app.tagRepository.observeAll()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val people by app.personRepository.observeAll()
         .collectAsStateWithLifecycle(initialValue = emptyList())
 
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
@@ -185,6 +192,8 @@ fun RuleFormSheet(
                         ActionRow(
                             action = action,
                             categories = categories,
+                            tags = tags,
+                            people = people,
                             onChange = { actions[index] = it },
                             onRemove = { actions.removeAt(index) },
                         )
@@ -254,7 +263,7 @@ private fun ConditionRow(
             ConditionEditor(condition = condition, onChange = onChange)
         },
         trailingContent = {
-            IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, contentDescription = null) }
+            IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.common_remove)) }
         },
     )
 }
@@ -414,6 +423,33 @@ private fun <T> EnumPicker(
     }
 }
 
+/** Dropdown that selects an entity by id but displays its name (tags, people…). */
+@Composable
+private fun IdPicker(
+    label: String,
+    currentId: String,
+    options: List<Pair<String, String>>,
+    placeholder: String,
+    onPick: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val currentName = options.firstOrNull { it.first == currentId }?.second ?: placeholder
+    Box {
+        AssistChip(
+            onClick = { expanded = true },
+            label = { Text("$label: $currentName") },
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { (id, displayName) ->
+                DropdownMenuItem(
+                    text = { Text(displayName) },
+                    onClick = { onPick(id); expanded = false },
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun AddConditionButton(onAdd: (RuleCondition) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
@@ -466,19 +502,21 @@ private fun AddConditionButton(onAdd: (RuleCondition) -> Unit) {
 private fun ActionRow(
     action: RuleAction,
     categories: List<Category>,
+    tags: List<Tag>,
+    people: List<Person>,
     onChange: (RuleAction) -> Unit,
     onRemove: () -> Unit,
 ) {
     ListItem(
         modifier = Modifier.fillMaxWidth(),
         headlineContent = {
-            Text(action.summary(categories), style = MaterialTheme.typography.bodyMedium)
+            Text(action.summary(categories, tags, people), style = MaterialTheme.typography.bodyMedium)
         },
         supportingContent = {
-            ActionEditor(action = action, categories = categories, onChange = onChange)
+            ActionEditor(action = action, categories = categories, tags = tags, people = people, onChange = onChange)
         },
         trailingContent = {
-            IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, contentDescription = null) }
+            IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.common_remove)) }
         },
     )
 }
@@ -487,6 +525,8 @@ private fun ActionRow(
 private fun ActionEditor(
     action: RuleAction,
     categories: List<Category>,
+    tags: List<Tag>,
+    people: List<Person>,
     onChange: (RuleAction) -> Unit,
 ) {
     when (action) {
@@ -550,20 +590,41 @@ private fun ActionEditor(
             placeholder = { Text("80C") },
             modifier = Modifier.fillMaxWidth(),
         )
-        is RuleAction.AddTag -> OutlinedTextField(
-            value = action.tagId,
-            onValueChange = { onChange(action.copy(tagId = it)) },
-            singleLine = true,
-            label = { Text(stringResource(R.string.rules_action_tag_id_label)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        is RuleAction.AddPerson -> OutlinedTextField(
-            value = action.personId,
-            onValueChange = { onChange(action.copy(personId = it)) },
-            singleLine = true,
-            label = { Text(stringResource(R.string.rules_action_person_id_label)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        is RuleAction.AddTag -> {
+            // Picker over existing tags — was a free-text tagId field requiring an internal UUID.
+            if (tags.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.rules_action_no_tags),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = com.subramanya.artha.ui.theme.Text3,
+                )
+            } else {
+                IdPicker(
+                    label = stringResource(R.string.rules_action_tag_id_label),
+                    currentId = action.tagId,
+                    options = tags.map { it.id to it.name },
+                    placeholder = stringResource(R.string.rules_action_tag_pick),
+                    onPick = { onChange(action.copy(tagId = it)) },
+                )
+            }
+        }
+        is RuleAction.AddPerson -> {
+            if (people.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.rules_action_no_people),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = com.subramanya.artha.ui.theme.Text3,
+                )
+            } else {
+                IdPicker(
+                    label = stringResource(R.string.rules_action_person_id_label),
+                    currentId = action.personId,
+                    options = people.map { it.id to it.name },
+                    placeholder = stringResource(R.string.rules_action_person_pick),
+                    onPick = { onChange(action.copy(personId = it)) },
+                )
+            }
+        }
         RuleAction.ExcludeFromExpenseTotal, RuleAction.PromptSpouse -> Unit
     }
 }
@@ -625,7 +686,7 @@ private fun RuleCondition.summary(): String = when (this) {
 }
 
 @Composable
-private fun RuleAction.summary(categories: List<Category>): String = when (this) {
+private fun RuleAction.summary(categories: List<Category>, tags: List<Tag>, people: List<Person>): String = when (this) {
     is RuleAction.SetType -> stringResource(R.string.rules_action_summary_set_type, type.name)
     is RuleAction.SetCategory -> {
         // Resolve the friendly name so the summary doesn't dump the internal id
@@ -635,8 +696,16 @@ private fun RuleAction.summary(categories: List<Category>): String = when (this)
         stringResource(R.string.rules_action_summary_set_category, name)
     }
     is RuleAction.SetTaxSection -> stringResource(R.string.rules_action_summary_set_tax, section)
-    is RuleAction.AddTag -> stringResource(R.string.rules_action_summary_add_tag, tagId)
-    is RuleAction.AddPerson -> stringResource(R.string.rules_action_summary_add_person, personId)
+    is RuleAction.AddTag -> {
+        val name = tags.firstOrNull { it.id == tagId }?.name
+            ?: stringResource(R.string.rules_action_tag_pick)
+        stringResource(R.string.rules_action_summary_add_tag, name)
+    }
+    is RuleAction.AddPerson -> {
+        val name = people.firstOrNull { it.id == personId }?.name
+            ?: stringResource(R.string.rules_action_person_pick)
+        stringResource(R.string.rules_action_summary_add_person, name)
+    }
     RuleAction.ExcludeFromExpenseTotal -> stringResource(R.string.rules_action_summary_exclude)
     RuleAction.PromptSpouse -> stringResource(R.string.rules_action_summary_spouse)
 }
