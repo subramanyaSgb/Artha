@@ -21,11 +21,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -38,6 +41,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -81,8 +85,9 @@ fun GoalsScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
-    val items by app.goalRepository.observeAllWithProgress()
-        .collectAsStateWithLifecycle(initialValue = emptyList())
+    // Nullable so we can tell "still loading" (null → skeleton) from "no goals" (empty → CTA).
+    val items: List<GoalWithProgress>? by app.goalRepository.observeAllWithProgress()
+        .collectAsStateWithLifecycle(initialValue = null)
     val accounts by app.accountRepository.observeActive().collectAsStateWithLifecycle(initialValue = emptyList())
     val investments by app.investmentRepository.observeActive().collectAsStateWithLifecycle(initialValue = emptyList())
     val scope = rememberCoroutineScope()
@@ -110,18 +115,24 @@ fun GoalsScreen(
                     title = stringResource(R.string.goals_title),
                     onBack = onBack,
                 )
-                if (items.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        EmptyState(icon = Icons.Filled.Flag, title = stringResource(R.string.goals_empty))
+                val rows = items
+                when {
+                    rows == null -> GoalsSkeleton()
+                    rows.isEmpty() -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            EmptyState(icon = Icons.Filled.Flag, title = stringResource(R.string.goals_empty))
+                        }
                     }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(items, key = { it.goal.id }) { row ->
-                            GoalRow(
-                                row = row,
-                                onTap = { formMode = FormMode.Edit(row.goal) },
-                                onDelete = { pendingDelete = row.goal },
-                            )
+                    else -> {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            item { GoalsSummaryCard(rows = rows) }
+                            items(rows, key = { it.goal.id }) { row ->
+                                GoalRow(
+                                    row = row,
+                                    onTap = { formMode = FormMode.Edit(row.goal) },
+                                    onDelete = { pendingDelete = row.goal },
+                                )
+                            }
                         }
                     }
                 }
@@ -225,9 +236,12 @@ private fun GoalRow(row: GoalWithProgress, onTap: () -> Unit, onDelete: () -> Un
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         val subtitle = buildList {
-                            add("Target ${IndianNumberFormat.format(row.goal.targetAmount)}")
-                            row.daysRemaining?.let {
-                                add(stringResource(R.string.goals_days_remaining, it))
+                            add(stringResource(R.string.goals_target_prefix, IndianNumberFormat.format(row.goal.targetAmount)))
+                            row.daysRemaining?.let { days ->
+                                add(
+                                    if (days < 0) stringResource(R.string.goals_overdue)
+                                    else stringResource(R.string.goals_days_remaining, days),
+                                )
                             }
                         }.joinToString(" · ")
                         Spacer(Modifier.height(2.dp))
@@ -242,7 +256,7 @@ private fun GoalRow(row: GoalWithProgress, onTap: () -> Unit, onDelete: () -> Un
                     IconButton(onClick = onDelete) {
                         Icon(
                             Icons.Filled.Delete,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.goals_delete_goal, row.goal.name),
                             tint = Text3,
                             modifier = Modifier.size(18.dp),
                         )
@@ -302,6 +316,8 @@ private fun GoalFormSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var name by remember(editing) { mutableStateOf(editing?.name.orEmpty()) }
     var targetText by remember(editing) { mutableStateOf(editing?.targetAmount?.toPlainString() ?: "") }
+    var targetDate: Long? by remember(editing) { mutableStateOf(editing?.targetDate) }
+    var showDatePicker by remember { mutableStateOf(false) }
     var pickedAccounts by remember(editing) {
         mutableStateOf(editing?.linkedAccountIds.orEmpty().toSet())
     }
@@ -352,6 +368,27 @@ private fun GoalFormSheet(
                     suffix = "₹",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
+            }
+            com.subramanya.artha.ui.common.FieldRow(
+                label = stringResource(R.string.goals_form_target_date_label),
+                optional = true,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    com.subramanya.artha.ui.common.SheetChip(
+                        label = targetDate?.let { com.subramanya.artha.utils.DateFormatter.longDate(it) }
+                            ?: stringResource(R.string.goals_form_target_date_pick),
+                        leading = Icons.Filled.CalendarMonth,
+                        onClick = { showDatePicker = true },
+                    )
+                    if (targetDate != null) {
+                        TextButton(onClick = { targetDate = null }) {
+                            Text(stringResource(R.string.common_clear))
+                        }
+                    }
+                }
             }
             com.subramanya.artha.ui.common.FieldRow(
                 label = stringResource(R.string.goals_form_linked_accounts),
@@ -407,7 +444,7 @@ private fun GoalFormSheet(
                             id = editing?.id ?: UUID.randomUUID().toString(),
                             name = name.trim(),
                             targetAmount = target,
-                            targetDate = editing?.targetDate,
+                            targetDate = targetDate,
                             linkedAccountIds = pickedAccounts.toList(),
                             linkedInvestmentIds = pickedInvestments.toList(),
                             icon = editing?.icon ?: "flag",
@@ -419,6 +456,120 @@ private fun GoalFormSheet(
                 },
             )
             Spacer(Modifier.height(20.dp))
+        }
+    }
+
+    if (showDatePicker) {
+        GoalDatePickerSheet(
+            initialEpoch = targetDate ?: System.currentTimeMillis(),
+            onConfirm = { targetDate = it; showDatePicker = false },
+            onDismiss = { showDatePicker = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GoalDatePickerSheet(
+    initialEpoch: Long,
+    onConfirm: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialEpoch)
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = { pickerState.selectedDateMillis?.let(onConfirm) ?: onDismiss() },
+                enabled = pickerState.selectedDateMillis != null,
+            ) { Text(stringResource(R.string.common_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        },
+    ) { DatePicker(state = pickerState) }
+}
+
+/** Total saved vs total target across all goals, pinned above the list. */
+@Composable
+private fun GoalsSummaryCard(rows: List<GoalWithProgress>) {
+    val totalSaved = rows.sumOf { it.currentAmount }
+    val totalTarget = rows.sumOf { it.goal.targetAmount }
+    val ratio = if (totalTarget <= 0.0) 0f else (totalSaved / totalTarget).toFloat().coerceIn(0f, 1f)
+    val accent = if (ratio >= 1f) Income else MaterialTheme.colorScheme.primary
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.goals_summary_eyebrow).uppercase(),
+                style = com.subramanya.artha.ui.theme.EyebrowStyle,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text(
+                    text = IndianNumberFormat.format(totalSaved) + " / " + IndianNumberFormat.format(totalTarget),
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
+                Text(
+                    text = (ratio * 100).toInt().toString() + "%",
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 15.sp,
+                        color = accent,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(ratio)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(accent),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GoalsSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
         }
     }
 }

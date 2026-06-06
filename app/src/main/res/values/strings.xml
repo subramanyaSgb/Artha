@@ -193,6 +193,7 @@
     <string name="common_cancel">Cancel</string>
     <string name="common_save">Save</string>
     <string name="common_remove">Remove</string>
+    <string name="common_clear">Clear</string>
 
     <!-- Dashboard FAB -->
     <string name="dashboard_fab_add">Add</string>
@@ -1045,6 +1046,11 @@
     <string name="goals_fab_add">Add goal</string>
     <string name="goals_empty">No goals yet. Tap + to add one (Emergency Fund, Vacation, etc.).</string>
     <string name="goals_days_remaining">%1$d days left</string>
+    <string name="goals_overdue">Overdue</string>
+    <string name="goals_target_prefix">Target %1$s</string>
+    <string name="goals_summary_eyebrow">Across all goals</string>
+    <string name="goals_form_target_date_label">Target date</string>
+    <string name="goals_form_target_date_pick">+ Date</string>
     <string name="goals_form_add_title">Add goal</string>
     <string name="goals_form_edit_title">Edit goal</string>
     <string name="goals_form_name_label">Goal name</string>
@@ -1052,6 +1058,7 @@
     <string name="goals_form_linked_accounts">Linked accounts</string>
     <string name="goals_form_linked_investments">Linked investments</string>
     <string name="goals_form_no_options">Nothing to link yet.</string>
+    <string name="goals_delete_goal">Delete %1$s</string>
     <string name="goals_delete_confirm_title">Delete this goal?</string>
     <string name="goals_delete_confirm_body">Removes the goal record. Linked accounts/investments aren\'t touched.</string>
     <string name="goals_delete_confirm_yes">Delete</string>
