@@ -3,7 +3,10 @@ package com.subramanya.artha.ui.reports
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.subramanya.artha.data.balance.BalanceCalculator
+import com.subramanya.artha.data.entity.TransactionEntity
 import com.subramanya.artha.data.entity.enums.TransactionType
+import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
@@ -44,8 +47,12 @@ data class CategorySlice(val categoryId: String, val displayName: String, val to
 data class MerchantRow(val name: String, val total: Double, val count: Int)
 data class TaxSectionRow(val section: String, val used: Double, val limit: Double?)
 
+/** One month's income vs expense for the trailing-months bar chart. */
+data class MonthlyInOut(val label: String, val income: Double, val expense: Double)
+
 data class ReportsUiState(
     val range: ReportRange = ReportRange.THIS_MONTH,
+    val isLoading: Boolean = true,
     val totalIncome: Double = 0.0,
     val totalExpense: Double = 0.0,
     /** Sums per category in window — sorted desc by total. */
@@ -55,6 +62,10 @@ data class ReportsUiState(
     /** Tax-section buckets driven by Investment.taxSection + Transaction.taxSection. */
     val taxSections: List<TaxSectionRow> = emptyList(),
     val netWorth: Double = 0.0,
+    /** End-of-period net worth sampled across the selected window (oldest first). */
+    val netWorthTrend: List<Double> = emptyList(),
+    /** Income vs expense for the trailing 6 calendar months (oldest first). */
+    val incomeExpenseMonths: List<MonthlyInOut> = emptyList(),
 )
 
 class ReportsViewModel(
@@ -137,12 +148,20 @@ class ReportsViewModel(
 
         // Active-only scope preserved (observeActive); each investment contributes its
         // COMPUTED per-mode value rather than the stale raw currentValue.
+        val investmentValue = investments.sumOf { investmentValuesById[it.id] ?: it.currentValue }
         val netWorth = accounts.sumOf { it.currentBalance } -
             cards.sumOf { it.currentOutstanding } +
-            investments.sumOf { investmentValuesById[it.id] ?: it.currentValue }
+            investmentValue
+
+        // Net-worth trend + monthly in/out both replay the full log via the pinned
+        // batch BalanceCalculator (same math as the Dashboard spark), off the main thread.
+        val entities = txns.map { it.toEntity() }
+        val netWorthTrend = buildNetWorthTrend(window, accounts, cards, investmentValue, entities)
+        val incomeExpenseMonths = buildMonthlyInOut(txns)
 
         ReportsUiState(
             range = currentRange,
+            isLoading = false,
             totalIncome = income,
             totalExpense = expense,
             spendingByCategory = byCategory,
@@ -150,6 +169,8 @@ class ReportsViewModel(
             topMerchants = merchants,
             taxSections = taxSections,
             netWorth = netWorth,
+            netWorthTrend = netWorthTrend,
+            incomeExpenseMonths = incomeExpenseMonths,
         )
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportsUiState())
@@ -195,6 +216,78 @@ class ReportsViewModel(
         return totals.entries
             .sortedByDescending { it.value }
             .map { TaxSectionRow(section = it.key, used = it.value, limit = limitFor(it.key)) }
+    }
+
+    /**
+     * End-of-period net worth sampled at up to 24 evenly-spaced cutoffs across [window]
+     * (clamped to now — no future points). Each point replays the FULL transaction prefix
+     * via the pinned batch [BalanceCalculator], so the trend can't drift from the hero number.
+     * Investments are held flat across the window (we don't track historical NAV) — same
+     * approximation the Dashboard sparkline uses.
+     */
+    private fun buildNetWorthTrend(
+        window: Pair<Long, Long>,
+        accounts: List<com.subramanya.artha.domain.model.AccountWithBalance>,
+        cards: List<com.subramanya.artha.domain.model.CardWithBalance>,
+        investmentValue: Double,
+        entities: List<TransactionEntity>,
+    ): List<Double> {
+        if (accounts.isEmpty() && cards.isEmpty() && investmentValue == 0.0) return emptyList()
+        val now = Clock.System.now().toEpochMilliseconds()
+        val start = window.first
+        val end = minOf(window.second, now)
+        val step = (end - start) / 24
+        if (step <= 0L) return emptyList()
+        val openingById = accounts.associate { it.account.id to it.account.openingBalance }
+        val cardIds = cards.map { it.card.id }
+        val sorted = entities.sortedBy { it.date }
+        val points = ArrayList<Double>(24)
+        var idx = 0
+        var cutoff = start + step
+        while (cutoff <= end) {
+            while (idx < sorted.size && sorted[idx].date <= cutoff) idx++
+            points.add(netPositionOf(sorted.subList(0, idx), openingById, cardIds, investmentValue))
+            cutoff += step
+        }
+        // A flat-zero line carries no signal.
+        return if (points.all { it == 0.0 }) emptyList() else points
+    }
+
+    /** Net position (liquid − card outstanding + [investmentValue]) over a transaction prefix. */
+    private fun netPositionOf(
+        transactions: List<TransactionEntity>,
+        openingById: Map<String, Double>,
+        cardIds: Collection<String>,
+        investmentValue: Double,
+    ): Double {
+        val acctSum = BalanceCalculator.computeAccountBalances(openingById, transactions).values.sum()
+        val cardSum = BalanceCalculator.computeCardOutstandings(cardIds, transactions).values.sum()
+        return acctSum - cardSum + investmentValue
+    }
+
+    /** Income vs expense for the trailing 6 calendar months (oldest first), regardless of the
+     *  range picker — a single-month range would otherwise make a one-bar chart. */
+    private fun buildMonthlyInOut(txns: List<Transaction>): List<MonthlyInOut> {
+        val tz = TimeZone.currentSystemDefault()
+        val today = Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds())
+            .toLocalDateTime(tz).date
+        val firstOfThisMonth = LocalDate(today.year, today.monthNumber, 1)
+        val result = ArrayList<MonthlyInOut>(6)
+        for (back in 5 downTo 0) {
+            val monthStart = firstOfThisMonth.plus(-back, DateTimeUnit.MONTH)
+            val monthEnd = monthStart.plus(1, DateTimeUnit.MONTH)
+            val startMs = monthStart.atStartOfDayIn(tz).toEpochMilliseconds()
+            val endMs = monthEnd.atStartOfDayIn(tz).toEpochMilliseconds()
+            val monthTxns = txns.filter { it.date in startMs until endMs }
+            result.add(
+                MonthlyInOut(
+                    label = monthStart.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3),
+                    income = monthTxns.filter { it.type.isIncomeish() }.sumOf { it.amount },
+                    expense = monthTxns.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount },
+                ),
+            )
+        }
+        return result
     }
 
     private fun limitFor(section: String): Double? = when (section) {

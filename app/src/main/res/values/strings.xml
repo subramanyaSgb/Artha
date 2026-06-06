@@ -985,6 +985,8 @@
     <string name="reports_in">In</string>
     <string name="reports_out">Out</string>
     <string name="reports_net">Net</string>
+    <string name="reports_section_networth_trend">Net worth trend</string>
+    <string name="reports_section_in_out_bars">Income vs expense · last 6 months</string>
     <string name="reports_section_categorybars">By category</string>
     <string name="reports_section_appbars">By payment app</string>
     <string name="reports_section_top_merchants">Top merchants</string>
