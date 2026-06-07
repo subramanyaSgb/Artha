@@ -40,7 +40,6 @@ import com.subramanya.artha.ui.common.PillRadio
 import com.subramanya.artha.ui.common.SavePrimaryButton
 import com.subramanya.artha.ui.common.SheetTitle
 import com.subramanya.artha.ui.common.SheetWindowInsets
-import com.subramanya.artha.ui.theme.Text3
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Celebration
@@ -92,9 +91,12 @@ fun CategoryFormSheet(
     val isSystem = editing?.isSystem == true
     val isValid = name.isNotBlank()
 
-    val typeOptions = CategoryType.entries.map { t ->
-        PillOption(t, t.name.lowercase().replaceFirstChar { it.titlecase() })
-    }
+    val typeOptions = listOf(
+        PillOption(CategoryType.EXPENSE, stringResource(R.string.categories_filter_expense)),
+        PillOption(CategoryType.INCOME, stringResource(R.string.categories_filter_income)),
+        PillOption(CategoryType.TRANSFER, stringResource(R.string.categories_filter_transfer)),
+        PillOption(CategoryType.INVESTMENT, stringResource(R.string.categories_filter_investment)),
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -200,8 +202,6 @@ fun CategoryFormSheet(
                 },
             )
             Spacer(Modifier.height(20.dp))
-
-            @Suppress("UNUSED_EXPRESSION") Text3
         }
     }
 

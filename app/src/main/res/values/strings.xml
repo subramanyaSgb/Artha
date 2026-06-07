@@ -490,6 +490,9 @@
     <string name="categories_system_delete_toast">System categories can be renamed but not deleted</string>
     <string name="categories_empty">No categories yet for this type.</string>
     <string name="categories_action_edit">Edit</string>
+    <string name="categories_action_more">More options</string>
+    <string name="categories_action_move_up">Move up</string>
+    <string name="categories_action_move_down">Move down</string>
     <string name="categories_action_delete">Delete</string>
     <string name="categories_system_chip">System</string>
     <string name="categories_subcount_one">1 sub-category</string>

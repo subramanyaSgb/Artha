@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -129,7 +130,7 @@ fun CategoriesScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 4.dp, bottom = 100.dp),
                     ) {
-                        state.parents.forEach { parent ->
+                        state.parents.forEachIndexed { pIndex, parent ->
                             val children = state.childrenByParent[parent.id].orEmpty()
                             val expanded = parent.id in state.expandedParentIds
                             item(key = "p-${parent.id}") {
@@ -138,6 +139,10 @@ fun CategoriesScreen(
                                     hasChildren = children.isNotEmpty(),
                                     childCount = children.size,
                                     expanded = expanded,
+                                    canMoveUp = pIndex > 0,
+                                    canMoveDown = pIndex < state.parents.lastIndex,
+                                    onMoveUp = { vm.swapOrder(parent, state.parents[pIndex - 1]) },
+                                    onMoveDown = { vm.swapOrder(parent, state.parents[pIndex + 1]) },
                                     onToggle = { vm.toggleExpanded(parent.id) },
                                     onEdit = { formMode = FormMode.Edit(parent) },
                                     onDelete = {
@@ -154,9 +159,13 @@ fun CategoriesScreen(
                                 )
                             }
                             if (expanded) {
-                                items(children, key = { "c-${it.id}" }) { child ->
+                                itemsIndexed(children, key = { _, it -> "c-${it.id}" }) { cIndex, child ->
                                     ChildRow(
                                         child = child,
+                                        canMoveUp = cIndex > 0,
+                                        canMoveDown = cIndex < children.lastIndex,
+                                        onMoveUp = { vm.swapOrder(child, children[cIndex - 1]) },
+                                        onMoveDown = { vm.swapOrder(child, children[cIndex + 1]) },
                                         onEdit = { formMode = FormMode.Edit(child) },
                                         onDelete = {
                                             scope.launch {
@@ -253,6 +262,10 @@ private fun ParentRow(
     hasChildren: Boolean,
     childCount: Int,
     expanded: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
     onToggle: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -306,7 +319,7 @@ private fun ParentRow(
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
                         Icons.Filled.Edit,
-                        contentDescription = stringResource(R.string.categories_action_edit),
+                        contentDescription = stringResource(R.string.categories_action_more),
                         tint = com.subramanya.artha.ui.theme.Text3,
                     )
                 }
@@ -315,6 +328,18 @@ private fun ParentRow(
                         text = { Text(stringResource(R.string.categories_action_edit)) },
                         onClick = { menuOpen = false; onEdit() },
                     )
+                    if (canMoveUp) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.categories_action_move_up)) },
+                            onClick = { menuOpen = false; onMoveUp() },
+                        )
+                    }
+                    if (canMoveDown) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.categories_action_move_down)) },
+                            onClick = { menuOpen = false; onMoveDown() },
+                        )
+                    }
                     DropdownMenuItem(
                         text = {
                             Text(
@@ -334,7 +359,15 @@ private fun ParentRow(
 }
 
 @Composable
-private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun ChildRow(
+    child: Category,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     var menuOpen by remember { mutableStateOf(false) }
     // Children are indented 24dp and use Surface3 to step down a layer from the parent
     // tile — same hierarchy idea as the Reports / Cards detail screens.
@@ -361,7 +394,7 @@ private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) 
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(
                             Icons.Filled.Edit,
-                            contentDescription = stringResource(R.string.categories_action_edit),
+                            contentDescription = stringResource(R.string.categories_action_more),
                             tint = com.subramanya.artha.ui.theme.Text3,
                         )
                     }
@@ -370,6 +403,18 @@ private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) 
                             text = { Text(stringResource(R.string.categories_action_edit)) },
                             onClick = { menuOpen = false; onEdit() },
                         )
+                        if (canMoveUp) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.categories_action_move_up)) },
+                                onClick = { menuOpen = false; onMoveUp() },
+                            )
+                        }
+                        if (canMoveDown) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.categories_action_move_down)) },
+                                onClick = { menuOpen = false; onMoveDown() },
+                            )
+                        }
                         DropdownMenuItem(
                             text = {
                                 Text(
