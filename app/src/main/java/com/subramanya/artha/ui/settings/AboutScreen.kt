@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -32,7 +33,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.BuildConfig
@@ -42,7 +42,6 @@ import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.InstrumentSerif
 import com.subramanya.artha.ui.theme.LineTeal
-import com.subramanya.artha.ui.theme.Text1
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.TiroDevanagariHindi
 
@@ -73,10 +72,10 @@ fun AboutScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .height(1.dp)
-                            .background(LineTeal)
-                            .padding(end = 14.dp),
+                            .size(width = 14.dp, height = 1.dp)
+                            .background(LineTeal),
                     )
+                    Spacer(Modifier.size(8.dp))
                     Text(
                         text = stringResource(R.string.about_eyebrow).uppercase(),
                         style = EyebrowStyle,
@@ -146,15 +145,6 @@ fun AboutScreen(
                     eyebrow = stringResource(R.string.about_credit_title),
                     value = stringResource(R.string.about_credit_value),
                 )
-                Spacer(Modifier.height(20.dp))
-
-                Text(
-                    text = stringResource(R.string.about_built_with),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Text3,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -195,6 +185,3 @@ private fun AboutMetaRow(eyebrow: String, value: String) {
         }
     }
 }
-
-@Suppress("unused")
-private val keepTextStyleReference = Text1

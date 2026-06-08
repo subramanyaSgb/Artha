@@ -605,7 +605,6 @@
     <!-- About screen -->
     <string name="about_title">About</string>
     <string name="about_version">Version</string>
-    <string name="about_built_with">Built with Claude Code</string>
     <string name="about_back">Back</string>
     <string name="about_eyebrow">Philosophy</string>
     <string name="about_devanagari">अर्थ</string>
