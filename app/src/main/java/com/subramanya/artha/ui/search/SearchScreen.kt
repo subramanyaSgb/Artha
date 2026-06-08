@@ -71,13 +71,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.TransactionType
-import com.subramanya.artha.domain.model.Account
-import com.subramanya.artha.domain.model.Card
-import com.subramanya.artha.domain.model.Category
-import com.subramanya.artha.domain.model.Insurance
-import com.subramanya.artha.domain.model.Investment
-import com.subramanya.artha.domain.model.Person
-import com.subramanya.artha.domain.model.Tag
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.Expense
@@ -87,7 +80,6 @@ import com.subramanya.artha.ui.theme.InstrumentSerif
 import com.subramanya.artha.ui.theme.PlusJakartaSans
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Text3
-import com.subramanya.artha.ui.theme.Text4
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
 
@@ -360,7 +352,7 @@ private fun SearchInputBar(
                                 style = TextStyle(
                                     fontFamily = PlusJakartaSans,
                                     fontSize = 15.sp,
-                                    color = Text4,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
                             )
                         }
@@ -624,18 +616,3 @@ private fun NoResults(query: String) {
         )
     }
 }
-
-@Suppress("unused")
-private val keepCategoryRef = Category::class
-@Suppress("unused")
-private val keepTagRef = Tag::class
-@Suppress("unused")
-private val keepInvRef = Investment::class
-@Suppress("unused")
-private val keepInsRef = Insurance::class
-@Suppress("unused")
-private val keepPersonRef = Person::class
-@Suppress("unused")
-private val keepAccountRef = Account::class
-@Suppress("unused")
-private val keepCardRef = Card::class
