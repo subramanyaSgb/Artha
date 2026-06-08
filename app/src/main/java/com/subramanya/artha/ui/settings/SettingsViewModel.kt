@@ -11,7 +11,6 @@ import com.subramanya.artha.data.backup.BackupCodec
 import com.subramanya.artha.data.backup.BackupRepository
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.seed.SeedCategories
-import com.subramanya.artha.data.importing.BankImporter
 import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.preferences.SpouseTransactionDefault
 import com.subramanya.artha.data.preferences.ThemeMode
@@ -46,7 +45,6 @@ data class SettingsUiState(
     val showFirstResetDialog: Boolean = false,
     val showFinalResetDialog: Boolean = false,
     val showWipeImportConfirm: Boolean = false,
-    val isImportingBundled: Boolean = false,
     /** Set right after Export → file is ready to be shared. */
     val pendingExportFile: File? = null,
     /** AI Quick Entry — true once the user has stored any non-blank key. We only
@@ -97,7 +95,6 @@ class SettingsViewModel(
     private val firstResetDialog = MutableStateFlow(false)
     private val finalResetDialog = MutableStateFlow(false)
     private val wipeImportConfirm = MutableStateFlow(false)
-    private val importingBundled = MutableStateFlow(false)
     private val pendingExport = MutableStateFlow<File?>(null)
     private val aiSaveInFlight = MutableStateFlow(false)
     private val aiKeyStatus = MutableStateFlow<AiKeyStatus>(AiKeyStatus.Idle)
@@ -125,9 +122,7 @@ class SettingsViewModel(
     private val dialogFlags = combine(
         firstResetDialog, finalResetDialog, wipeImportConfirm, pendingExport, dashboardPrefs,
     ) { first, final, wipe, export, vis ->
-        DialogsAndVisibility(first, final, wipe, export, vis, importing = false, security = SecurityPrefs(false, false))
-    }.combine(importingBundled) { bag, importing ->
-        bag.copy(importing = importing)
+        DialogsAndVisibility(first, final, wipe, export, vis, security = SecurityPrefs(false, false))
     }.combine(securityPrefs) { bag, security ->
         bag.copy(security = security)
     }.combine(settingsPreferences.dashboardSectionOrder) { bag, order ->
@@ -181,7 +176,6 @@ class SettingsViewModel(
             showFirstResetDialog = bag.firstReset,
             showFinalResetDialog = bag.finalReset,
             showWipeImportConfirm = bag.wipeImport,
-            isImportingBundled = bag.importing,
             pendingExportFile = bag.export,
             biometricLockEnabled = bag.security.biometric,
             smsAutoImportEnabled = bag.security.smsImport,
@@ -223,7 +217,6 @@ class SettingsViewModel(
         val wipeImport: Boolean,
         val export: File?,
         val visibility: DashboardVisibility,
-        val importing: Boolean,
         val security: SecurityPrefs,
         val order: List<String> = emptyList(),
     )
@@ -492,29 +485,9 @@ class SettingsViewModel(
         }
     }
 
-    // ----- import bundled bank-statement data (APK asset) -----
-
-    /**
-     * Reads `assets/seed/bank_import.json` (generated offline by the Python
-     * script) and writes the 3,913 transactions + their two source accounts
-     * into Room. Idempotent — calling twice is a no-op thanks to deterministic
-     * UUID5 transaction IDs + IGNORE-on-conflict.
-     *
-     * Callers get the result via [onDone] so they can surface a toast.
-     */
-    fun importBundledBankData(context: Context, onDone: (BankImporter.Result) -> Unit) {
-        if (importingBundled.value) return
-        viewModelScope.launch {
-            importingBundled.update { true }
-            val result = withContext(Dispatchers.IO) {
-                BankImporter(context.applicationContext, database).importBundled()
-            }
-            importingBundled.update { false }
-            onDone(result)
-        }
-    }
-
     // ----- wipe imported bank-statement data -----
+    // (The bundled import itself runs automatically at startup in MainActivity, versioned +
+    // idempotent — there's no manual trigger here. This only REMOVES that imported data.)
 
     fun requestWipeImport() = wipeImportConfirm.update { true }
     fun dismissWipeImport() = wipeImportConfirm.update { false }

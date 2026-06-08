@@ -58,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -262,8 +263,29 @@ fun SettingsScreen(
                     onExport = { vm.exportData(context) },
                     onEncryptedExport = { passwordDialog = true },
                     onRestore = { restoreConfirm = true },
+                    onWipeImport = vm::requestWipeImport,
                     onReset = vm::requestReset,
                 )
+                if (state.showWipeImportConfirm) {
+                    com.subramanya.artha.ui.common.ArthaAlertDialog(
+                        onDismissRequest = vm::dismissWipeImport,
+                        title = stringResource(R.string.settings_data_wipe_import_confirm_title),
+                        text = stringResource(R.string.settings_data_wipe_import_confirm_body),
+                        confirmLabel = stringResource(R.string.settings_data_wipe_import_yes),
+                        confirmDestructive = true,
+                        onConfirm = {
+                            vm.wipeImportedData { txns, accts ->
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.settings_data_wipe_import_done, txns, accts),
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                        },
+                        cancelLabel = stringResource(R.string.common_cancel),
+                        onCancel = vm::dismissWipeImport,
+                    )
+                }
                 if (passwordDialog) {
                     EncryptedExportPasswordDialog(
                         onConfirm = { pwd ->
@@ -381,17 +403,25 @@ private fun SectionHeader(label: String) {
 
 @Composable
 private fun ProfileSection(name: String, onNameChanged: (String) -> Unit) {
+    // Hold the field text in synchronous local state. Binding value directly to the
+    // async DataStore-backed userName jumbles on fast typing; sync from upstream only
+    // while the field is unfocused (catches the initial async load without fighting typing).
+    var local by remember { mutableStateOf(name) }
+    var focused by remember { mutableStateOf(false) }
+    LaunchedEffect(name) { if (!focused) local = name }
     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
         OutlinedTextField(
-            value = name,
-            onValueChange = onNameChanged,
+            value = local,
+            onValueChange = { local = it; onNameChanged(it) },
             singleLine = true,
             label = { Text(stringResource(R.string.settings_profile_name)) },
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Words,
                 imeAction = ImeAction.Done,
             ),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focused = it.isFocused },
         )
         Spacer(Modifier.height(12.dp))
         Text(
@@ -605,6 +635,7 @@ private fun DataSection(
     onExport: () -> Unit,
     onEncryptedExport: () -> Unit,
     onRestore: () -> Unit,
+    onWipeImport: () -> Unit,
     onReset: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -630,6 +661,14 @@ private fun DataSection(
                 .clickable(onClick = onRestore),
             headlineContent = { Text(stringResource(R.string.settings_data_restore)) },
             supportingContent = { Text(stringResource(R.string.settings_data_restore_subtitle)) },
+            trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
+        )
+        ListItem(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onWipeImport),
+            headlineContent = { Text(stringResource(R.string.settings_data_wipe_import)) },
+            supportingContent = { Text(stringResource(R.string.settings_data_wipe_import_subtitle)) },
             trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
         )
         ListItem(
