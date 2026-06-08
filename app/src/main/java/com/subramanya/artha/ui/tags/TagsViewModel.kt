@@ -7,17 +7,24 @@ import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.domain.model.Tag
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class TagsUiState(val tags: List<Tag> = emptyList())
+data class TagsUiState(
+    val tags: List<Tag> = emptyList(),
+    /** tagId → number of transactions using it. */
+    val usageById: Map<String, Int> = emptyMap(),
+)
 
 class TagsViewModel(private val tagRepository: TagRepository) : ViewModel() {
 
-    val state: StateFlow<TagsUiState> = tagRepository.observeAll()
-        .map { TagsUiState(tags = it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TagsUiState())
+    val state: StateFlow<TagsUiState> = combine(
+        tagRepository.observeAll(),
+        tagRepository.observeUsageCounts(),
+    ) { tags, usage ->
+        TagsUiState(tags = tags, usageById = usage)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TagsUiState())
 
     suspend fun usageCount(id: String): Int = tagRepository.usageCount(id)
 

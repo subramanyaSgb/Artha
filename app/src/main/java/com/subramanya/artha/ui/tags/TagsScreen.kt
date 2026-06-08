@@ -118,6 +118,7 @@ fun TagsScreen(
                         items(state.tags, key = { it.id }) { tag ->
                         TagRow(
                             tag = tag,
+                            usageCount = state.usageById[tag.id] ?: 0,
                             onEdit = { formMode = TagFormMode.Edit(tag) },
                             onDelete = {
                                 scope.launch {
@@ -170,7 +171,7 @@ private sealed interface TagFormMode {
 }
 
 @Composable
-private fun TagRow(tag: Tag, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun TagRow(tag: Tag, usageCount: Int, onEdit: () -> Unit, onDelete: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
     ListItem(
         modifier = Modifier.fillMaxWidth(),
@@ -183,10 +184,21 @@ private fun TagRow(tag: Tag, onEdit: () -> Unit, onDelete: () -> Unit) {
             ) { }
         },
         headlineContent = { Text(tag.name) },
+        supportingContent = {
+            Text(
+                text = if (usageCount == 0) {
+                    stringResource(R.string.tags_usage_none)
+                } else {
+                    stringResource(R.string.tags_usage_count, usageCount)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = com.subramanya.artha.ui.theme.Text3,
+            )
+        },
         trailingContent = {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.tags_action_edit))
+                    Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.tags_action_more))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(

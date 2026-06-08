@@ -661,6 +661,9 @@
     <string name="tags_fab_add">Add tag</string>
     <string name="tags_empty">No tags yet. Tap + to add one.</string>
     <string name="tags_action_edit">Edit</string>
+    <string name="tags_action_more">More options</string>
+    <string name="tags_usage_none">Not used yet</string>
+    <string name="tags_usage_count">%1$d transactions</string>
     <string name="tags_action_delete">Delete</string>
     <string name="tags_in_use_toast">Tag is in use by %1$d transaction(s)</string>
     <string name="tags_delete_confirm_title">Delete this tag?</string>
