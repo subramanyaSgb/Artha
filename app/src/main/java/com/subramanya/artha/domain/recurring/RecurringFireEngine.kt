@@ -40,6 +40,13 @@ object RecurringFireEngine {
         nowMillis: Long,
     ): FireResult? {
         val template = RecurringTemplateCodec.decode(rule.transactionTemplate) ?: return null
+        // A TRANSFER without a destination would deduct from the source and credit
+        // nothing — money silently vanishes. Skip until the rule is re-saved with one.
+        if (template.type == com.subramanya.artha.data.entity.enums.TransactionType.TRANSFER &&
+            template.destinationId == null
+        ) {
+            return null
+        }
         val txn = TransactionEntity(
             id = UUID.randomUUID().toString(),
             type = template.type,

@@ -387,7 +387,8 @@ object BackupCodec {
         sourceId = o.stringOrNull("source_id"),
         destinationType = o.stringOrNull("destination_type")?.let { enumValueOf<SourceKind>(it) },
         destinationId = o.stringOrNull("destination_id"),
-        paymentApp = o.getString("payment_app"),
+        // optString: pre-payment-app backups (DB < v6) have no "payment_app" key.
+        paymentApp = o.optString("payment_app", "OTHER"),
         place = o.stringOrNull("place"), latitude = o.doubleOrNull("latitude"),
         longitude = o.doubleOrNull("longitude"), receiptUri = o.stringOrNull("receipt_uri"),
         notes = o.stringOrNull("notes"), taxSection = o.stringOrNull("tax_section"),
