@@ -433,12 +433,16 @@ private fun SheetBody(
         }
 
         // ----- tab-tinted save button (HANDOFF §3.8 — "Save expense · ₹420") -----
+        val hapticConfirm = com.subramanya.artha.ui.common.rememberHapticConfirm()
         TabTintedSaveButton(
             tab = state.tab,
             amount = state.parsedAmount,
             enabled = state.isValid && !state.isSaving,
             isEditing = state.isEditing,
-            onClick = { viewModel.trySave() },
+            onClick = {
+                hapticConfirm()
+                viewModel.trySave()
+            },
         )
     }
 }

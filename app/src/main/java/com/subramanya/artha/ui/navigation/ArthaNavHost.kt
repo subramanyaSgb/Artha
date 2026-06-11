@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -94,39 +95,60 @@ object SubRoutes {
 
 private const val NAV_ANIM_MS: Int = 220
 
+/** True when the route is a bottom-nav tab (not a pushed detail/sub screen). */
+private fun isTab(route: String?): Boolean = ArthaDestination.fromRoute(route) != null
+
 @Composable
 fun ArthaNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
 ) {
+    // Tab ↔ tab: Material fade-through (tabs are peers — a directional slide
+    // implies hierarchy that isn't there). Push to a detail/sub screen: slide in
+    // from the right + fade; pop slides back to the right.
     NavHost(
         navController = navController,
         startDestination = ArthaDestination.Dashboard.route,
         modifier = modifier,
-        // Push: slide new screen in from the right + fade. Pop: slide back to the right.
         enterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(NAV_ANIM_MS),
-            ) + fadeIn(tween(NAV_ANIM_MS))
+            if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) {
+                fadeIn(tween(NAV_ANIM_MS)) + scaleIn(initialScale = 0.96f, animationSpec = tween(NAV_ANIM_MS))
+            } else {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(NAV_ANIM_MS),
+                ) + fadeIn(tween(NAV_ANIM_MS))
+            }
         },
         exitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(NAV_ANIM_MS),
-            ) + fadeOut(tween(NAV_ANIM_MS))
+            if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) {
+                fadeOut(tween(NAV_ANIM_MS / 2))
+            } else {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(NAV_ANIM_MS),
+                ) + fadeOut(tween(NAV_ANIM_MS))
+            }
         },
         popEnterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(NAV_ANIM_MS),
-            ) + fadeIn(tween(NAV_ANIM_MS))
+            if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) {
+                fadeIn(tween(NAV_ANIM_MS)) + scaleIn(initialScale = 0.96f, animationSpec = tween(NAV_ANIM_MS))
+            } else {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(NAV_ANIM_MS),
+                ) + fadeIn(tween(NAV_ANIM_MS))
+            }
         },
         popExitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(NAV_ANIM_MS),
-            ) + fadeOut(tween(NAV_ANIM_MS))
+            if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) {
+                fadeOut(tween(NAV_ANIM_MS / 2))
+            } else {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(NAV_ANIM_MS),
+                ) + fadeOut(tween(NAV_ANIM_MS))
+            }
         },
     ) {
         composable(ArthaDestination.Dashboard.route) {

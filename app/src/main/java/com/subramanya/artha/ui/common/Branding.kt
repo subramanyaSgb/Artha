@@ -435,6 +435,9 @@ fun ArthaAlertDialog(
     onCancel: (() -> Unit)? = onDismissRequest,
     confirmDestructive: Boolean = false,
 ) {
+    // Destructive confirms get a heavy haptic; normal confirms a positive one.
+    val hapticHeavy = rememberHapticHeavy()
+    val hapticConfirm = rememberHapticConfirm()
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismissRequest,
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -456,7 +459,12 @@ fun ArthaAlertDialog(
             )
         },
         confirmButton = {
-            androidx.compose.material3.TextButton(onClick = onConfirm) {
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    if (confirmDestructive) hapticHeavy() else hapticConfirm()
+                    onConfirm()
+                },
+            ) {
                 androidx.compose.material3.Text(
                     text = confirmLabel,
                     color = if (confirmDestructive)

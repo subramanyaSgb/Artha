@@ -68,11 +68,15 @@ fun ArthaBottomBar(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val hapticTick = rememberHapticTick()
             ArthaDestination.bottomNav.forEach { dest ->
                 BottomTabItem(
                     destination = dest,
                     selected = dest == currentDestination,
-                    onClick = { onItemSelected(dest) },
+                    onClick = {
+                        if (dest != currentDestination) hapticTick()
+                        onItemSelected(dest)
+                    },
                     modifier = Modifier.weight(1f),
                 )
             }
