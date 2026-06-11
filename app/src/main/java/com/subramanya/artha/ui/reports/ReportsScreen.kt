@@ -2,6 +2,7 @@ package com.subramanya.artha.ui.reports
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +35,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +78,7 @@ import com.subramanya.artha.utils.IndianNumberFormat
 @Composable
 fun ReportsScreen(
     onBack: () -> Unit,
+    onOpenTransaction: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -126,7 +130,7 @@ fun ReportsScreen(
                 IncomeExpenseBarsSection(months = state.incomeExpenseMonths)
 
                 Spacer(Modifier.height(24.dp))
-                CategoryBarsSection(slices = state.spendingByCategory)
+                CategoryReportSection(rows = state.categoryReport, onOpenTransaction = onOpenTransaction)
 
                 Spacer(Modifier.height(24.dp))
                 AppBarsSection(slices = state.spendingByPaymentApp)
@@ -452,15 +456,23 @@ private fun EmptyHint(text: String) {
     }
 }
 
-/** Horizontal bars per category, accent-coloured by index. */
+/**
+ * Category-wise report: every MAIN category's rolled-up spend with count, share
+ * and a progress bar in the category's own colour. Tapping a row expands the
+ * window's transactions inline; tapping a transaction opens its detail page.
+ */
 @Composable
-private fun CategoryBarsSection(slices: List<CategorySlice>) {
+private fun CategoryReportSection(
+    rows: List<CategoryReportRow>,
+    onOpenTransaction: (String) -> Unit,
+) {
     SectionHeading(stringResource(R.string.reports_section_categorybars))
-    if (slices.isEmpty()) {
+    if (rows.isEmpty()) {
         EmptyHint(stringResource(R.string.reports_empty_period))
         return
     }
-    val max = slices.first().total.takeIf { it > 0.0 } ?: 1.0
+    var expandedKey by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val max = rows.first().total.takeIf { it > 0.0 } ?: 1.0
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
@@ -468,14 +480,16 @@ private fun CategoryBarsSection(slices: List<CategorySlice>) {
             .fillMaxWidth()
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            slices.forEachIndexed { i, slice ->
-                if (i > 0) Spacer(Modifier.height(10.dp))
-                CategoryBarRow(
-                    label = slice.displayName,
-                    value = slice.total,
-                    fraction = (slice.total / max).coerceIn(0.0, 1.0).toFloat(),
-                    color = accentPalette[i % accentPalette.size],
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            rows.forEachIndexed { i, row ->
+                val key = row.category?.id ?: "uncategorised"
+                CategoryReportRowItem(
+                    row = row,
+                    fallbackColor = accentPalette[i % accentPalette.size],
+                    fraction = (row.total / max).coerceIn(0.0, 1.0).toFloat(),
+                    expanded = expandedKey == key,
+                    onToggle = { expandedKey = if (expandedKey == key) null else key },
+                    onOpenTransaction = onOpenTransaction,
                 )
             }
         }
@@ -483,21 +497,70 @@ private fun CategoryBarsSection(slices: List<CategorySlice>) {
 }
 
 @Composable
-private fun CategoryBarRow(label: String, value: Double, fraction: Float, color: Color) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-            Text(
-                text = IndianNumberFormat.format(value),
-                style = TextStyle(
-                    fontFamily = IbmPlexMono,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFeatureSettings = "tnum, lnum",
+private fun CategoryReportRowItem(
+    row: CategoryReportRow,
+    fallbackColor: Color,
+    fraction: Float,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onOpenTransaction: (String) -> Unit,
+) {
+    val barColor = row.category?.let { Color(it.color) } ?: fallbackColor
+    val label = row.category?.name ?: stringResource(R.string.reports_uncategorised)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                onClickLabel = stringResource(
+                    if (expanded) R.string.reports_category_collapse else R.string.reports_category_expand,
                 ),
+                onClick = onToggle,
             )
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(barColor),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = row.category?.let { com.subramanya.artha.utils.MaterialIcons.resolve(it.icon) }
+                        ?: Icons.AutoMirrored.Filled.TrendingDown,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+            Spacer(Modifier.size(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = stringResource(R.string.reports_category_count_fmt, row.count),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Text3,
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = IndianNumberFormat.format(row.total),
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
+                Text(
+                    text = stringResource(R.string.reports_category_share_fmt, (row.share * 100).toInt()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Text3,
+                )
+            }
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -510,8 +573,43 @@ private fun CategoryBarRow(label: String, value: Double, fraction: Float, color:
                     .fillMaxWidth(fraction)
                     .height(8.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(color),
+                    .background(barColor),
             )
+        }
+        if (expanded) {
+            Spacer(Modifier.height(6.dp))
+            row.transactions.forEach { txn ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onOpenTransaction(txn.id) }
+                        .padding(vertical = 8.dp, horizontal = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = txn.description.ifBlank { label },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = com.subramanya.artha.utils.DateFormatter.shortDate(txn.date),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Text3,
+                        )
+                    }
+                    Text(
+                        text = IndianNumberFormat.format(txn.amount),
+                        style = TextStyle(
+                            fontFamily = IbmPlexMono,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFeatureSettings = "tnum, lnum",
+                        ),
+                    )
+                }
+            }
         }
     }
 }

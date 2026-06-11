@@ -45,6 +45,21 @@ private data class InvestmentsAndCategories(
 
 data class CategorySlice(val categoryId: String, val displayName: String, val total: Double)
 data class MerchantRow(val name: String, val total: Double, val count: Int)
+
+/**
+ * One row of the category-wise report: a MAIN (parent) category with its
+ * sub-categories rolled up, plus the window's transactions for drill-down.
+ * [category] is null for uncategorised spend — the UI supplies the label.
+ */
+data class CategoryReportRow(
+    val category: com.subramanya.artha.domain.model.Category?,
+    val total: Double,
+    val count: Int,
+    /** This category's share of the window's total expense, 0..1. */
+    val share: Float,
+    /** The actual transactions (date desc) — powers the inline drill-down. */
+    val transactions: List<Transaction>,
+)
 data class TaxSectionRow(val section: String, val used: Double, val limit: Double?)
 
 /** One month's income vs expense for the trailing-months bar chart. */
@@ -55,8 +70,8 @@ data class ReportsUiState(
     val isLoading: Boolean = true,
     val totalIncome: Double = 0.0,
     val totalExpense: Double = 0.0,
-    /** Sums per category in window — sorted desc by total. */
-    val spendingByCategory: List<CategorySlice> = emptyList(),
+    /** Category-wise report: parent-rolled sums, counts, share and drill-down txns. */
+    val categoryReport: List<CategoryReportRow> = emptyList(),
     val spendingByPaymentApp: List<CategorySlice> = emptyList(),
     val topMerchants: List<MerchantRow> = emptyList(),
     /** Tax-section buckets driven by Investment.taxSection + Transaction.taxSection. */
@@ -104,22 +119,27 @@ class ReportsViewModel(
         val income = inWindow.filter { it.type.isIncomeish() }.sumOf { it.amount }
         val expense = inWindow.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
 
-        // Build an id → friendly name lookup so the by-category slice shows
-        // "Food & Drink" instead of "cat_food_drink".
-        val categoryNameById = categories.associateBy({ it.id }, { it.name })
-
-        val byCategory = inWindow
+        // Category-wise report: sub-categories roll up into their MAIN (parent)
+        // category, full list (not top-N), with the window's transactions kept on
+        // each row for the drill-down. Uncategorised spend buckets under null.
+        val categoriesById = categories.associateBy { it.id }
+        val categoryReport = inWindow
             .filter { it.type == TransactionType.EXPENSE }
-            .groupBy { it.categoryId ?: "uncategorised" }
-            .map { (cid, list) ->
-                CategorySlice(
-                    categoryId = cid,
-                    displayName = categoryNameById[cid] ?: "Uncategorised",
-                    total = list.sumOf { it.amount },
+            .groupBy { txn ->
+                val cat = txn.categoryId?.let { categoriesById[it] }
+                (cat?.parentId?.let { categoriesById[it] } ?: cat)?.id
+            }
+            .map { (rootId, list) ->
+                val total = list.sumOf { it.amount }
+                CategoryReportRow(
+                    category = rootId?.let { categoriesById[it] },
+                    total = total,
+                    count = list.size,
+                    share = if (expense > 0.0) (total / expense).toFloat() else 0f,
+                    transactions = list.sortedByDescending { it.date },
                 )
             }
             .sortedByDescending { it.total }
-            .take(10)
 
         val paymentAppLabels = invCat.paymentAppLabels
         val byApp = inWindow
@@ -164,7 +184,7 @@ class ReportsViewModel(
             isLoading = false,
             totalIncome = income,
             totalExpense = expense,
-            spendingByCategory = byCategory,
+            categoryReport = categoryReport,
             spendingByPaymentApp = byApp,
             topMerchants = merchants,
             taxSections = taxSections,

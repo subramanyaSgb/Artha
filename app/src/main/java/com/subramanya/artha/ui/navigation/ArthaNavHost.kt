@@ -303,7 +303,10 @@ fun ArthaNavHost(
             RecurringScreen(onBack = { navController.popBackStack() })
         }
         composable(SubRoutes.REPORTS) {
-            ReportsScreen(onBack = { navController.popBackStack() })
+            ReportsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenTransaction = { id -> navController.navigate(SubRoutes.transactionDetail(id)) },
+            )
         }
         composable(SubRoutes.SEARCH) {
             SearchScreen(

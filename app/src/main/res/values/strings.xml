@@ -994,7 +994,12 @@
     <string name="reports_net">Net</string>
     <string name="reports_section_networth_trend">Net worth trend</string>
     <string name="reports_section_in_out_bars">Income vs expense · last 6 months</string>
-    <string name="reports_section_categorybars">By category</string>
+    <string name="reports_section_categorybars">Category-wise report</string>
+    <string name="reports_uncategorised">Uncategorised</string>
+    <string name="reports_category_count_fmt">%1$d txns</string>
+    <string name="reports_category_share_fmt">%1$d%%</string>
+    <string name="reports_category_expand">Show transactions</string>
+    <string name="reports_category_collapse">Hide transactions</string>
     <string name="reports_section_appbars">By payment app</string>
     <string name="reports_section_top_merchants">Top merchants</string>
     <string name="reports_section_tax">80C · 80D · 80CCD</string>
