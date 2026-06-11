@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -84,6 +85,9 @@ import com.subramanya.artha.ui.theme.Teal950
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * HANDOFF §3.10 AI Quick Entry sheet — long-press FAB destination.
@@ -109,11 +113,18 @@ fun AiQuickEntrySheet(
     val state by vm.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val scope = rememberCoroutineScope()
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        runCatching {
-            context.contentResolver.openInputStream(uri)?.use(BitmapFactory::decodeStream)
-        }.getOrNull()?.let(vm::onPhotoPicked)
+        // Decode off the main thread — receipt photos can take 100-300ms to decode.
+        scope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use(BitmapFactory::decodeStream)
+                }.getOrNull()
+            }
+            bitmap?.let(vm::onPhotoPicked)
+        }
     }
 
     val voiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->

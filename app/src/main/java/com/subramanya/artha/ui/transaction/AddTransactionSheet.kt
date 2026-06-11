@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,7 +64,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -101,6 +102,8 @@ import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.Text4
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
+import com.subramanya.artha.utils.ReceiptStore
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -898,9 +901,19 @@ private fun PlaceField(value: String, onValueChange: (String) -> Unit) {
 @Composable
 private fun ReceiptPicker(uri: String?, onPicked: (String?) -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-    ) { result -> if (result != null) onPicked(result.toString()) }
+    ) { result ->
+        if (result != null) {
+            // Picker URIs are transient — copy into app storage so the receipt
+            // stays readable after the process dies. Fall back to the raw URI
+            // (readable for this session) only if the copy fails.
+            scope.launch {
+                onPicked(ReceiptStore.persist(context, result) ?: result.toString())
+            }
+        }
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.txn_receipt_label), style = MaterialTheme.typography.labelLarge)
@@ -941,18 +954,14 @@ private fun ReceiptPicker(uri: String?, onPicked: (String?) -> Unit) {
 @Composable
 private fun ReceiptThumbnail(uri: String) {
     val context = LocalContext.current
-    val imageBitmap = remember(uri) {
-        runCatching {
-            val parsedUri = android.net.Uri.parse(uri)
-            val raw: android.graphics.Bitmap? = context.contentResolver
-                .openInputStream(parsedUri)
-                ?.use { stream -> android.graphics.BitmapFactory.decodeStream(stream) }
-            raw?.asImageBitmap()
-        }.getOrNull()
+    // Decoded off the main thread; recomposes when the bitmap arrives.
+    val imageBitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(initialValue = null, uri) {
+        value = ReceiptStore.loadBitmap(context, uri)
     }
-    if (imageBitmap != null) {
+    val loaded = imageBitmap
+    if (loaded != null) {
         Image(
-            bitmap = imageBitmap,
+            bitmap = loaded,
             contentDescription = stringResource(R.string.txn_receipt_label),
             contentScale = ContentScale.Crop,
             modifier = Modifier
