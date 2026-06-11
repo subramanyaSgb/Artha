@@ -7,11 +7,13 @@ import com.subramanya.artha.R
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.CardWithBalance
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -53,7 +55,8 @@ class CardsViewModel(
             sort = ui.sort,
             groupByType = ui.group,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CardsUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CardsUiState())
 
     /** Apply the chosen sort, then (if grouping) a stable secondary sort by type. CUSTOM keeps the
      *  DAO's displayOrder. */

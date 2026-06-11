@@ -7,9 +7,11 @@ import com.subramanya.artha.data.entity.enums.PremiumFrequency
 import com.subramanya.artha.data.repository.InsuranceRepository
 import com.subramanya.artha.data.repository.InsuranceTypeRepository
 import com.subramanya.artha.domain.model.Insurance
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -40,7 +42,8 @@ class InsurancesViewModel(
                 annualPremiumTotal = active.sumOf { it.annualisedPremium() },
                 activeCount = active.size,
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InsurancesUiState())
+        }.flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InsurancesUiState())
 
     fun archive(insurance: Insurance) {
         viewModelScope.launch { insuranceRepository.archive(insurance) }

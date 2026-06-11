@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.data.entity.enums.CategoryType
 import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.domain.model.Category
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -44,7 +46,8 @@ class CategoriesViewModel(
             childrenByParent = childrenByParent,
             expandedParentIds = expandedIds,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CategoriesUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CategoriesUiState())
 
     fun onTypeSelected(type: CategoryType) {
         selectedType.update { type }

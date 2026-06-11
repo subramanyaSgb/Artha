@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.R
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.domain.model.Account
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -61,7 +63,8 @@ class AccountsViewModel(
             sort = ui.sort,
             groupByType = ui.group,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountsUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountsUiState())
 
     /** Apply the chosen sort, then (if grouping) a stable secondary sort by type so rows of the
      *  same type sit together while preserving the primary order within each type. CUSTOM keeps

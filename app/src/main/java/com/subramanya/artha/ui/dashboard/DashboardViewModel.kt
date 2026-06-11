@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 class DashboardViewModel(
@@ -58,9 +57,8 @@ class DashboardViewModel(
         combine(
             accountRepository.observeActiveWithBalances(),
             cardRepository.observeActiveWithBalances(),
-            monthlyTotalsFlow(),
-        ) { accounts, cards, monthly ->
-            CoreBag(accounts, cards, monthly)
+        ) { accounts, cards ->
+            CoreBag(accounts, cards)
         },
         combine(phase2Bag, transactionRepository.observeAll()) { p2, allTxns ->
             Phase2BagWithTxns(p2, allTxns)
@@ -77,9 +75,16 @@ class DashboardViewModel(
         // strip is never empty while there's any history (observeAll is date DESC).
         val recent = p2withTxns.transactions.take(RECENT_TRANSACTION_LIMIT)
 
-        // Convert the transaction log to entities once — reused by both the
-        // sparkline and the month-start baseline below.
+        // Convert the transaction log to entities once — reused by the sparkline,
+        // the month-start baseline and the monthly totals below.
         val entities = p2withTxns.transactions.map { it.toEntity() }
+
+        // This month's P&L from the SAME log subscription — a second observeAll()
+        // just for monthly totals used to materialise the whole table twice per change.
+        val month = thisCalendarMonth()
+        val monthly = MonthlyAggregator.aggregate(
+            entities.filter { it.date in month.startMillis..month.endMillis },
+        )
 
         // 30-day daily-net spark: replay account+card balances from history.
         // Cheap approximation — assumes investments are flat in the window (we
@@ -98,7 +103,6 @@ class DashboardViewModel(
         // assumption), leaving the realized liquid + card movement. This also makes
         // the hero's "+x.x%" denominator (netPosition - netChange) equal the actual
         // start-of-month net position rather than a fabricated number.
-        val month = thisCalendarMonth()
         val netAtMonthStart = computeNetPositionAsOf(
             cutoffMillis = month.startMillis - 1,
             accounts = core.accounts,
@@ -136,7 +140,7 @@ class DashboardViewModel(
             netPosition = netPosition,
             accountCount = core.accounts.size,
             cardCount = core.cards.size,
-            monthlyTotals = core.monthly,
+            monthlyTotals = monthly,
             accounts = core.accounts,
             cards = core.cards,
             recentTransactions = recent,
@@ -217,7 +221,6 @@ class DashboardViewModel(
     private data class CoreBag(
         val accounts: List<com.subramanya.artha.domain.model.AccountWithBalance>,
         val cards: List<com.subramanya.artha.domain.model.CardWithBalance>,
-        val monthly: com.subramanya.artha.data.balance.MonthlyTotals,
     )
     private data class Phase2Bag(
         val investmentTotalValue: Double,
@@ -231,17 +234,6 @@ class DashboardViewModel(
 
     private fun weekFromNow(): Long =
         Clock.System.now().toEpochMilliseconds() + WEEK_MILLIS
-
-    private fun monthlyTotalsFlow() = transactionRepository.observeAll()
-        .map { domainList ->
-            val month = thisCalendarMonth()
-            // Map back to entity so MonthlyAggregator can stay pure-data; the round-trip
-            // is cheap and avoids leaking enum sets into the domain layer.
-            val inMonth = domainList
-                .filter { it.date in month.startMillis..month.endMillis }
-                .map { it.toEntity() }
-            MonthlyAggregator.aggregate(inMonth)
-        }
 
     private companion object {
         private const val RECENT_TRANSACTION_LIMIT: Int = 10

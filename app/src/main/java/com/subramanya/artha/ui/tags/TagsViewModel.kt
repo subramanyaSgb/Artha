@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.data.repository.TagRepository
 import com.subramanya.artha.domain.model.Tag
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -24,7 +26,8 @@ class TagsViewModel(private val tagRepository: TagRepository) : ViewModel() {
         tagRepository.observeUsageCounts(),
     ) { tags, usage ->
         TagsUiState(tags = tags, usageById = usage)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TagsUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TagsUiState())
 
     suspend fun usageCount(id: String): Int = tagRepository.usageCount(id)
 

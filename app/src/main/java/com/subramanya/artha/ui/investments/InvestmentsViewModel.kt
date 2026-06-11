@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.R
 import com.subramanya.artha.data.repository.InvestmentRepository
 import com.subramanya.artha.domain.model.Investment
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -36,7 +38,8 @@ class InvestmentsViewModel(
             totalInvested = metrics.sumOf { it.investedAmount },
             totalCurrentValue = metrics.sumOf { it.value },
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InvestmentsUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InvestmentsUiState())
 
     fun showAll() = view.update { InvestmentsView.ALL }
     fun showByType() = view.update { InvestmentsView.BY_TYPE }
