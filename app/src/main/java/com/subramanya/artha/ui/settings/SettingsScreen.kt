@@ -94,7 +94,8 @@ fun SettingsScreen(
         val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
         val uri = FileProvider.getUriForFile(context, authority, file)
         val send = Intent(Intent.ACTION_SEND).apply {
-            type = "application/json"
+            // v2 full backups are .zip; encrypted .artha stays opaque text.
+            type = if (file.extension == "zip") "application/zip" else "application/octet-stream"
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

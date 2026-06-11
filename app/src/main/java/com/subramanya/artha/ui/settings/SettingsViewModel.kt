@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import android.net.Uri
 import com.subramanya.artha.ai.AiQuickEntryParser
 import com.subramanya.artha.ai.KeyValidationResult
+import com.subramanya.artha.data.backup.BackupArchive
 import com.subramanya.artha.data.backup.BackupCodec
+import com.subramanya.artha.data.backup.BackupData
 import com.subramanya.artha.data.backup.BackupRepository
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.seed.SeedCategories
@@ -15,6 +17,7 @@ import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.preferences.SpouseTransactionDefault
 import com.subramanya.artha.data.preferences.ThemeMode
 import com.subramanya.artha.security.BackupCrypto
+import com.subramanya.artha.utils.ReceiptStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 data class SettingsUiState(
@@ -339,9 +343,10 @@ class SettingsViewModel(
     fun exportData(context: Context) {
         viewModelScope.launch {
             val file = withContext(Dispatchers.IO) {
-                val json = BackupCodec.encode(backupRepository.snapshot(), System.currentTimeMillis())
-                val out = File(context.cacheDir, "artha_export_${System.currentTimeMillis()}.json")
-                out.writeText(json)
+                val out = File(context.cacheDir, "artha_export_${System.currentTimeMillis()}.zip")
+                out.outputStream().use { stream ->
+                    BackupArchive.write(stream, buildBackupJson(), ReceiptStore.allFiles(context))
+                }
                 out
             }
             pendingExport.update { file }
@@ -349,15 +354,17 @@ class SettingsViewModel(
     }
 
     /**
-     * Same as [exportData] but PBKDF2-AES-GCM encrypts the JSON with [password] first.
+     * Same as [exportData] but PBKDF2-AES-GCM encrypts the archive with [password] first.
      * Caller passes an in-memory CharArray (not a String) so the secret can be wiped
      * after use — best practice for passwords.
      */
     fun exportDataEncrypted(context: Context, password: CharArray) {
         viewModelScope.launch {
             val file = withContext(Dispatchers.IO) {
-                val json = BackupCodec.encode(backupRepository.snapshot(), System.currentTimeMillis())
-                val cipherText = BackupCrypto.encrypt(json, password)
+                val zipBytes = ByteArrayOutputStream().also { buf ->
+                    BackupArchive.write(buf, buildBackupJson(), ReceiptStore.allFiles(context))
+                }.toByteArray()
+                val cipherText = BackupCrypto.encryptBytes(zipBytes, password)
                 password.fill(' ') // wipe in-memory copy
                 val out = File(context.cacheDir, "artha_backup_${System.currentTimeMillis()}.artha")
                 out.writeText(cipherText)
@@ -366,6 +373,12 @@ class SettingsViewModel(
             pendingExport.update { file }
         }
     }
+
+    /** Schema-v2 snapshot: every Room table PLUS the DataStore settings block. */
+    private suspend fun buildBackupJson(): String = BackupCodec.encode(
+        backupRepository.snapshot().copy(settings = settingsPreferences.snapshotForBackup()),
+        System.currentTimeMillis(),
+    )
 
     fun acknowledgeExport() {
         pendingExport.update { null }
@@ -384,10 +397,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             restoring.update { true }
             val outcome = withContext(Dispatchers.IO) {
-                runCatching {
-                    val raw = readText(context, uri)
-                    backupRepository.restore(BackupCodec.decode(raw))
-                }
+                runCatching { restorePayload(context, readBytes(context, uri)) }
             }
             restoring.update { false }
             restoreResult.update {
@@ -397,15 +407,18 @@ class SettingsViewModel(
     }
 
     /**
-     * Routes a just-picked backup file: peeks the first line to tell an encrypted `.artha`
-     * (magic-prefixed) from a plain `.json`. Encrypted -> stash the uri and let the UI prompt
-     * for a password; plain -> restore immediately. Keeps the file-format sniff out of the UI.
+     * Routes a just-picked backup file: a ZIP archive (v2 full backup) or plain JSON
+     * restores immediately; an encrypted `.artha` (magic-prefixed text) stashes the uri
+     * and lets the UI prompt for a password. Keeps the file-format sniff out of the UI.
      */
     fun prepareRestore(context: Context, uri: Uri) {
         if (restoring.value) return
         viewModelScope.launch {
             val encrypted = withContext(Dispatchers.IO) {
-                runCatching { BackupCrypto.isEncrypted(readText(context, uri)) }.getOrDefault(false)
+                runCatching {
+                    val bytes = readBytes(context, uri)
+                    !BackupArchive.isZip(bytes) && BackupCrypto.isEncrypted(bytes.toString(Charsets.UTF_8))
+                }.getOrDefault(false)
             }
             if (encrypted) {
                 pendingEncryptedRestoreUri.update { uri }
@@ -413,6 +426,46 @@ class SettingsViewModel(
                 importData(context, uri)
             }
         }
+    }
+
+    /**
+     * Restores either container: a v2 ZIP archive (backup.json + receipts/) or bare
+     * JSON (v1/v2). The JSON is fully decoded BEFORE the receipts are written or the
+     * database is touched; a restored settings block is applied last.
+     */
+    private suspend fun restorePayload(context: Context, bytes: ByteArray) {
+        val data: BackupData
+        if (BackupArchive.isZip(bytes)) {
+            val json = requireNotNull(BackupArchive.readJson(bytes)) { "archive has no ${BackupArchive.BACKUP_ENTRY}" }
+            val decoded = BackupCodec.decode(json)
+            val receiptsDir = ReceiptStore.dir(context)
+            val extracted = BackupArchive.extractReceipts(bytes, receiptsDir)
+            data = rewriteReceiptUris(decoded, receiptsDir, extracted)
+        } else {
+            data = BackupCodec.decode(bytes.toString(Charsets.UTF_8))
+        }
+        backupRepository.restore(data)
+        data.settings?.let { settingsPreferences.applyFromBackup(it) }
+    }
+
+    /** Receipt URIs in a backup point at the OLD install's filesDir; re-point every
+     *  transaction whose receipt file travelled in the archive at the fresh copy. */
+    private fun rewriteReceiptUris(
+        data: BackupData,
+        receiptsDir: File,
+        extracted: Set<String>,
+    ): BackupData {
+        if (extracted.isEmpty()) return data
+        return data.copy(
+            transactions = data.transactions.map { txn ->
+                val name = txn.receiptUri?.substringAfterLast('/')
+                if (name != null && name in extracted) {
+                    txn.copy(receiptUri = Uri.fromFile(File(receiptsDir, name)).toString())
+                } else {
+                    txn
+                }
+            },
+        )
     }
 
     /** User dismissed the encrypted-backup password prompt without restoring. */
@@ -432,18 +485,19 @@ class SettingsViewModel(
             pendingEncryptedRestoreUri.update { null }
             restoring.update { true }
             val outcome = withContext(Dispatchers.IO) {
-                val raw = runCatching { readText(context, uri) }.getOrNull()
+                val raw = runCatching { readBytes(context, uri).toString(Charsets.UTF_8) }.getOrNull()
                 if (raw == null) {
                     password.fill(' ')
                     return@withContext RestoreResult.InvalidFile
                 }
-                val decrypted = BackupCrypto.decrypt(raw, password)
+                // Decrypts to ZIP bytes (v2) or JSON text bytes (v1) — restorePayload sniffs.
+                val decrypted = BackupCrypto.decryptBytes(raw, password)
                 password.fill(' ')
                 if (decrypted.isFailure) {
                     return@withContext RestoreResult.WrongPassword
                 }
                 runCatching {
-                    backupRepository.restore(BackupCodec.decode(decrypted.getOrThrow()))
+                    restorePayload(context, decrypted.getOrThrow())
                 }.fold(
                     onSuccess = { RestoreResult.Success },
                     onFailure = { RestoreResult.InvalidFile },
@@ -458,8 +512,8 @@ class SettingsViewModel(
         restoreResult.update { RestoreResult.Idle }
     }
 
-    private fun readText(context: Context, uri: Uri): String =
-        context.contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+    private fun readBytes(context: Context, uri: Uri): ByteArray =
+        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             ?: throw IllegalStateException("Could not open backup file")
 
     // ----- reset -----

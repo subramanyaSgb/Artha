@@ -543,7 +543,7 @@
     <string name="settings_behavior_spouse_reset_done">Spouse prompt will ask again next time</string>
     <string name="settings_section_data">Data</string>
     <string name="settings_data_export">Export all data</string>
-    <string name="settings_data_export_subtitle">Save a complete JSON snapshot of every record — accounts, cards, categories, people, tags, transactions, investments, insurance, budgets, goals, subscriptions and rules</string>
+    <string name="settings_data_export_subtitle">Save everything in one file — every record, your settings, and receipt images (.zip)</string>
     <string name="settings_data_reset">Reset all data</string>
     <string name="settings_data_reset_subtitle">Wipe every record permanently — used for starting over</string>
     <string name="settings_data_reset_confirm_title">Reset all data?</string>
@@ -562,7 +562,7 @@
     <string name="settings_data_export_encrypted_password">Password</string>
     <string name="settings_data_export_encrypted_password_confirm">Re-enter to confirm</string>
     <string name="settings_data_restore">Restore from backup</string>
-    <string name="settings_data_restore_subtitle">Replace all current data with a backup file (.json or encrypted .artha)</string>
+    <string name="settings_data_restore_subtitle">Replace all current data with a backup file (.zip, .json or encrypted .artha) — settings and receipts restore too</string>
     <string name="settings_data_restore_pick_chooser">Pick a backup file</string>
     <string name="settings_data_restore_confirm_title">Restore from backup?</string>
     <string name="settings_data_restore_confirm_body">Restoring replaces ALL current data on this device with the contents of the backup. This cannot be undone. Continue?</string>

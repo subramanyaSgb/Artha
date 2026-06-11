@@ -28,6 +28,12 @@ object ReceiptStore {
     private const val MAX_DIMENSION = 1600
     private const val JPEG_QUALITY = 85
 
+    /** The app-private receipts directory (created on demand). */
+    fun dir(context: Context): File = File(context.filesDir, DIR_NAME).apply { mkdirs() }
+
+    /** Every stored receipt image — what the full-backup archive packages. */
+    fun allFiles(context: Context): List<File> = dir(context).listFiles()?.filter { it.isFile }.orEmpty()
+
     /**
      * Copies the image at [sourceUri] into app-private storage (downsampled JPEG).
      * Returns the stable `file://` URI string to persist on the transaction, or null
@@ -48,8 +54,7 @@ object ReceiptStore {
             val bitmap = resolver.openInputStream(sourceUri)?.use {
                 BitmapFactory.decodeStream(it, null, opts)
             } ?: return@runCatching null
-            val dir = File(context.filesDir, DIR_NAME).apply { mkdirs() }
-            val file = File(dir, "${UUID.randomUUID()}.jpg")
+            val file = File(dir(context), "${UUID.randomUUID()}.jpg")
             file.outputStream().use { out ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
             }

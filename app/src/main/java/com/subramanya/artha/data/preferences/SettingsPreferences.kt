@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.subramanya.artha.data.backup.BackupSettings
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /** User-visible theme mode toggle. SYSTEM follows the device's day/night setting. */
@@ -168,6 +170,56 @@ class SettingsPreferences(context: Context) {
         dataStore.edit { prefs ->
             val current = prefs[Keys.CUSTOM_ICONS]?.split(',')?.filter { it.isNotBlank() }.orEmpty()
             prefs[Keys.CUSTOM_ICONS] = (current - key).joinToString(",")
+        }
+    }
+
+    // ----- backup v2: settings travel with the data export -----
+
+    /** One-shot snapshot of every backed-up key (NOT the Gemini key / import version). */
+    suspend fun snapshotForBackup(): BackupSettings {
+        val prefs = dataStore.data.first()
+        return BackupSettings(
+            userName = prefs[Keys.USER_NAME].orEmpty(),
+            themeMode = prefs[Keys.THEME_MODE] ?: ThemeMode.SYSTEM.name,
+            useDynamicColor = prefs[Keys.USE_DYNAMIC_COLOR] ?: true,
+            spouseTransactionDefault = prefs[Keys.SPOUSE_DEFAULT] ?: SpouseTransactionDefault.ASK.name,
+            dashboardShowMonthly = prefs[Keys.DASH_SHOW_MONTHLY] ?: true,
+            dashboardShowAccounts = prefs[Keys.DASH_SHOW_ACCOUNTS] ?: true,
+            dashboardShowCards = prefs[Keys.DASH_SHOW_CARDS] ?: true,
+            dashboardShowRecent = prefs[Keys.DASH_SHOW_RECENT] ?: true,
+            dashboardShowSpending = prefs[Keys.DASH_SHOW_SPENDING] ?: true,
+            dashboardSectionOrder = prefs[Keys.DASH_SECTION_ORDER].orEmpty(),
+            biometricLockEnabled = prefs[Keys.BIOMETRIC_LOCK] ?: false,
+            smsAutoImportEnabled = prefs[Keys.SMS_AUTO_IMPORT] ?: false,
+            aiQuickEntryEnabled = prefs[Keys.AI_QUICK_ENTRY_ENABLED] ?: false,
+            customColours = prefs[Keys.CUSTOM_COLOURS].orEmpty(),
+            customIcons = prefs[Keys.CUSTOM_ICONS].orEmpty(),
+        )
+    }
+
+    /** Applies a restored settings block in one atomic edit. Enum-typed values are
+     *  validated; an unrecognised value falls back to its default rather than crash. */
+    suspend fun applyFromBackup(s: BackupSettings) {
+        dataStore.edit { prefs ->
+            prefs[Keys.USER_NAME] = s.userName.trim()
+            prefs[Keys.THEME_MODE] =
+                (runCatching { ThemeMode.valueOf(s.themeMode) }.getOrNull() ?: ThemeMode.SYSTEM).name
+            prefs[Keys.USE_DYNAMIC_COLOR] = s.useDynamicColor
+            prefs[Keys.SPOUSE_DEFAULT] = (
+                runCatching { SpouseTransactionDefault.valueOf(s.spouseTransactionDefault) }.getOrNull()
+                    ?: SpouseTransactionDefault.ASK
+                ).name
+            prefs[Keys.DASH_SHOW_MONTHLY] = s.dashboardShowMonthly
+            prefs[Keys.DASH_SHOW_ACCOUNTS] = s.dashboardShowAccounts
+            prefs[Keys.DASH_SHOW_CARDS] = s.dashboardShowCards
+            prefs[Keys.DASH_SHOW_RECENT] = s.dashboardShowRecent
+            prefs[Keys.DASH_SHOW_SPENDING] = s.dashboardShowSpending
+            prefs[Keys.DASH_SECTION_ORDER] = s.dashboardSectionOrder
+            prefs[Keys.BIOMETRIC_LOCK] = s.biometricLockEnabled
+            prefs[Keys.SMS_AUTO_IMPORT] = s.smsAutoImportEnabled
+            prefs[Keys.AI_QUICK_ENTRY_ENABLED] = s.aiQuickEntryEnabled
+            prefs[Keys.CUSTOM_COLOURS] = s.customColours
+            prefs[Keys.CUSTOM_ICONS] = s.customIcons
         }
     }
 
