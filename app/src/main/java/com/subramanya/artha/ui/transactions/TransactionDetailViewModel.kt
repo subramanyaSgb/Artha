@@ -26,10 +26,15 @@ data class TransactionDetailUiState(
     val transaction: Transaction? = null,
     val sourceName: String? = null,
     val destinationName: String? = null,
+    /** Resolved category object so the hero can show its real icon + colour. */
+    val category: com.subramanya.artha.domain.model.Category? = null,
     val categoryName: String? = null,
     val subCategoryName: String? = null,
     val peopleNames: List<String> = emptyList(),
     val tagNames: List<String> = emptyList(),
+    /** True when the source/destination is a CREDIT card — edit prefill must keep the flag. */
+    val sourceIsCreditCard: Boolean = false,
+    val destinationIsCreditCard: Boolean = false,
     val showDeleteConfirm: Boolean = false,
 )
 
@@ -75,14 +80,18 @@ class TransactionDetailViewModel(
             transactionRepository.getById(transactionId) ?: txn
         } else txn
 
+        val category = categories.firstOrNull { it.id == hydratedTxn.categoryId }
         TransactionDetailUiState(
             transaction = hydratedTxn,
             sourceName = resolveEndpointName(hydratedTxn.sourceType, hydratedTxn.sourceId, accounts, cards),
             destinationName = resolveEndpointName(hydratedTxn.destinationType, hydratedTxn.destinationId, accounts, cards),
-            categoryName = categories.firstOrNull { it.id == hydratedTxn.categoryId }?.name,
+            category = category,
+            categoryName = category?.name,
             subCategoryName = categories.firstOrNull { it.id == hydratedTxn.subCategoryId }?.name,
             peopleNames = hydratedTxn.peopleIds.mapNotNull { id -> people.firstOrNull { it.id == id }?.name },
             tagNames = hydratedTxn.tagIds.mapNotNull { id -> tags.firstOrNull { it.id == id }?.name },
+            sourceIsCreditCard = isCreditCard(hydratedTxn.sourceType, hydratedTxn.sourceId, cards),
+            destinationIsCreditCard = isCreditCard(hydratedTxn.destinationType, hydratedTxn.destinationId, cards),
             showDeleteConfirm = confirm,
         )
     }.flowOn(Dispatchers.Default)
@@ -117,6 +126,13 @@ class TransactionDetailViewModel(
             onDuplicated()
         }
     }
+
+    private fun isCreditCard(
+        kind: SourceKind?,
+        id: String?,
+        cards: List<com.subramanya.artha.domain.model.Card>,
+    ): Boolean = kind == SourceKind.CARD &&
+        cards.firstOrNull { it.id == id }?.type == "CREDIT"
 
     private fun resolveEndpointName(
         kind: SourceKind?,

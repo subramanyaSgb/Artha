@@ -1,6 +1,7 @@
-﻿package com.subramanya.artha.ui.transactions
+package com.subramanya.artha.ui.transactions
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,42 +10,46 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -52,18 +57,24 @@ import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.Transaction
+import com.subramanya.artha.ui.common.TransactionCategoryAvatar
+import com.subramanya.artha.ui.common.isIncomeLike
+import com.subramanya.artha.ui.common.transactionTypeLabel
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
+import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.Income
+import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.transaction.AddTransactionSheet
 import com.subramanya.artha.ui.transaction.AddTransactionViewModel
 import com.subramanya.artha.ui.transaction.AddTransactionViewModelFactory
 import com.subramanya.artha.ui.transaction.FundsEndpoint
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
+import com.subramanya.artha.utils.ReceiptStore
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionDetailScreen(
     transactionId: String,
@@ -131,10 +142,13 @@ fun TransactionDetailScreen(
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    AmountHero(txn = txn)
-                    Spacer(Modifier.height(16.dp))
-                    FieldsCard(state = state, txn = txn)
-                    Spacer(Modifier.height(16.dp))
+                    Hero(state = state, txn = txn)
+                    Spacer(Modifier.height(20.dp))
+                    FlowCard(state = state, txn = txn)
+                    DetailsCard(state = state, txn = txn)
+                    ReceiptSection(txn = txn)
+                    NotesSection(txn = txn)
+                    Spacer(Modifier.height(20.dp))
                     AuditRow(txn = txn)
                     Spacer(Modifier.height(32.dp))
                 }
@@ -163,7 +177,7 @@ fun TransactionDetailScreen(
                     kind = it.sourceType,
                     id = id,
                     displayName = state.sourceName ?: id,
-                    isCreditCard = false,
+                    isCreditCard = state.sourceIsCreditCard,
                 )
             }
         }
@@ -175,7 +189,7 @@ fun TransactionDetailScreen(
                     kind = kind,
                     id = id,
                     displayName = state.destinationName ?: id,
-                    isCreditCard = t.type == TransactionType.CARD_PAYMENT,
+                    isCreditCard = state.destinationIsCreditCard,
                 )
             } else null
         }
@@ -210,98 +224,233 @@ fun TransactionDetailScreen(
 
 // ---------------- pieces ----------------
 
+/**
+ * Centered hero: the category avatar (real icon + colour), the signed amount,
+ * the description, and a type · date meta line. Mirrors how the row looked in
+ * the list the user tapped, just bigger.
+ */
 @Composable
-private fun AmountHero(txn: Transaction) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
+private fun Hero(state: TransactionDetailUiState, txn: Transaction) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(stringResource(R.string.txn_detail_field_amount), style = MaterialTheme.typography.titleSmall)
-            Text(
-                text = signedAmount(txn),
-                style = ArthaAmountStyles.display.copy(fontWeight = FontWeight.SemiBold),
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = txn.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() },
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-    }
-}
-
-@Composable
-private fun FieldsCard(state: TransactionDetailUiState, txn: Transaction) {
-    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            DetailRow(stringResource(R.string.txn_detail_field_date), formatDate(txn.date))
-            DetailRow(stringResource(R.string.txn_detail_field_description), txn.description)
-            state.sourceName?.let {
-                DetailRow(stringResource(R.string.txn_detail_field_source), it)
-            }
-            state.destinationName?.let {
-                DetailRow(stringResource(R.string.txn_detail_field_destination), it)
-            }
-            state.categoryName?.let {
-                DetailRow(stringResource(R.string.txn_detail_field_category), it)
-            }
-            state.subCategoryName?.let {
-                DetailRow(stringResource(R.string.txn_detail_field_subcategory), it)
-            }
-            DetailRow(
-                stringResource(R.string.txn_detail_field_payment_app),
-                txn.paymentApp.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() },
-            )
-            if (state.peopleNames.isNotEmpty()) {
-                DetailRow(
-                    stringResource(R.string.txn_detail_field_people),
-                    state.peopleNames.joinToString(", "),
-                )
-            }
-            if (!txn.place.isNullOrBlank()) {
-                DetailRow(stringResource(R.string.txn_detail_field_place), txn.place)
-            }
-            if (state.tagNames.isNotEmpty()) {
-                DetailRow(
-                    stringResource(R.string.txn_detail_field_tags),
-                    state.tagNames.joinToString(", "),
-                )
-            }
-            if (!txn.receiptUri.isNullOrBlank()) {
-                Spacer(Modifier.height(8.dp))
-                ReceiptImage(
-                    uri = txn.receiptUri,
-                    fallbackLabel = stringResource(R.string.txn_detail_field_receipt),
-                    fallbackValue = stringResource(R.string.txn_detail_receipt_yes),
-                )
-            }
-            if (!txn.notes.isNullOrBlank()) {
-                DetailRow(stringResource(R.string.txn_detail_field_notes), txn.notes)
-            }
-        }
-    }
-}
-
-@Composable
-private fun DetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+        TransactionCategoryAvatar(
+            category = state.category,
+            type = txn.type,
+            size = 64.dp,
+            cornerRadius = 20.dp,
+            iconSize = 30.dp,
+        )
+        Spacer(Modifier.height(14.dp))
         Text(
-            text = label,
+            text = signedAmount(txn),
+            style = ArthaAmountStyles.display.copy(fontWeight = FontWeight.SemiBold),
+            color = if (txn.type.isIncomeLike()) Income else MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = txn.description.ifBlank { transactionTypeLabel(txn.type) },
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "${transactionTypeLabel(txn.type)} · ${formatDate(txn.date)}",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp),
+        )
+    }
+}
+
+/** From → To strip for anything that moved money between named endpoints. */
+@Composable
+private fun FlowCard(state: TransactionDetailUiState, txn: Transaction) {
+    val from = state.sourceName ?: return
+    val to = state.destinationName
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.txn_detail_field_source).uppercase(),
+                style = EyebrowStyle,
+                color = Text3,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = from,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+        if (to != null) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .size(18.dp),
+            )
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                Text(
+                    text = stringResource(R.string.txn_detail_field_destination).uppercase(),
+                    style = EyebrowStyle,
+                    color = Text3,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = to,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.End,
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+}
+
+/** Icon-led key/value rows for everything else on the transaction. */
+@Composable
+private fun DetailsCard(state: TransactionDetailUiState, txn: Transaction) {
+    val rows = buildList {
+        state.categoryName?.let { name ->
+            val value = state.subCategoryName?.let { "$name › $it" } ?: name
+            add(DetailItem(Icons.Filled.Category, R.string.txn_detail_field_category, value))
+        }
+        add(
+            DetailItem(
+                Icons.Filled.Payments,
+                R.string.txn_detail_field_payment_app,
+                txn.paymentApp.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() },
+            ),
+        )
+        if (state.peopleNames.isNotEmpty()) {
+            add(DetailItem(Icons.Filled.Group, R.string.txn_detail_field_people, state.peopleNames.joinToString(", ")))
+        }
+        if (!txn.place.isNullOrBlank()) {
+            add(DetailItem(Icons.Filled.Place, R.string.txn_detail_field_place, txn.place))
+        }
+        if (state.tagNames.isNotEmpty()) {
+            add(DetailItem(Icons.Filled.Sell, R.string.txn_detail_field_tags, state.tagNames.joinToString(", ")))
+        }
+    }
+    if (rows.isEmpty()) return
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        rows.forEachIndexed { i, row ->
+            DetailRowItem(row)
+            if (i < rows.size - 1) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 52.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+}
+
+private data class DetailItem(
+    val icon: ImageVector,
+    val labelRes: Int,
+    val value: String,
+)
+
+@Composable
+private fun DetailRowItem(item: DetailItem) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = item.icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(16.dp))
+        Text(
+            text = stringResource(item.labelRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
         )
         Text(
-            text = value,
+            text = item.value,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1.4f),
+        )
+    }
+}
+
+@Composable
+private fun ReceiptSection(txn: Transaction) {
+    val uri = txn.receiptUri
+    if (uri.isNullOrBlank()) return
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Text(
+            text = stringResource(R.string.txn_detail_section_receipt).uppercase(),
+            style = EyebrowStyle,
+            color = Text3,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+        )
+        ReceiptImage(uri = uri)
+    }
+    Spacer(Modifier.height(12.dp))
+}
+
+@Composable
+private fun NotesSection(txn: Transaction) {
+    val notes = txn.notes
+    if (notes.isNullOrBlank()) return
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Notes,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = stringResource(R.string.txn_detail_field_notes).uppercase(),
+                style = EyebrowStyle,
+                color = Text3,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = notes,
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
 }
@@ -352,31 +501,41 @@ private fun signedAmount(txn: Transaction): String {
 }
 
 /**
- * Shows a receipt image decoded from a content URI. Falls back to a text row if the
- * URI can't be resolved (e.g. revoked permission after the app is reinstalled).
+ * Shows the receipt image, decoded OFF the main thread. Falls back to a quiet
+ * "preview unavailable" row when the bytes can't be read (e.g. a legacy
+ * content:// URI whose grant died with the process — new receipts are copied
+ * into app storage by [ReceiptStore] and always resolve).
  */
 @Composable
-private fun ReceiptImage(uri: String, fallbackLabel: String, fallbackValue: String) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val bitmap = remember(uri) {
-        runCatching {
-            val parsedUri = android.net.Uri.parse(uri)
-            context.contentResolver.openInputStream(parsedUri)
-                ?.use { stream -> android.graphics.BitmapFactory.decodeStream(stream) }
-                ?.asImageBitmap()
-        }.getOrNull()
+private fun ReceiptImage(uri: String) {
+    val context = LocalContext.current
+    val bitmap by produceState<ImageBitmap?>(initialValue = null, uri) {
+        value = ReceiptStore.loadBitmap(context, uri)
     }
-    if (bitmap != null) {
+    val loaded = bitmap
+    if (loaded != null) {
         Image(
-            bitmap = bitmap,
-            contentDescription = fallbackLabel,
+            bitmap = loaded,
+            contentDescription = stringResource(R.string.txn_detail_section_receipt),
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .height(200.dp)
+                .height(220.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp)),
+                .clip(RoundedCornerShape(14.dp)),
         )
     } else {
-        DetailRow(fallbackLabel, fallbackValue)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .padding(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.txn_detail_receipt_unavailable),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }

@@ -635,6 +635,8 @@
     <string name="txn_detail_field_tags">Tags</string>
     <string name="txn_detail_field_notes">Notes</string>
     <string name="txn_detail_field_receipt">Receipt attached</string>
+    <string name="txn_detail_section_receipt">Receipt</string>
+    <string name="txn_detail_receipt_unavailable">Receipt attached — preview unavailable</string>
     <string name="txn_detail_audit_created">Created %1$s</string>
     <string name="txn_detail_audit_updated">Updated %1$s</string>
     <string name="txn_detail_audit_source">Source: %1$s</string>
