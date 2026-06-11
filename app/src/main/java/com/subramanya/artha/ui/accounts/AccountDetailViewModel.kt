@@ -8,8 +8,10 @@ import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.data.repository.AccountRepository
+import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Account
+import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Transaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +39,8 @@ data class AccountDetailUiState(
     val totalIn: Double = 0.0,
     val totalOut: Double = 0.0,
     val transactions: List<Transaction> = emptyList(),
+    /** For resolving each row's category icon/colour (same pattern as Dashboard). */
+    val categoriesById: Map<String, Category> = emptyMap(),
     /** End-of-day balance for the last [CHART_DAYS] days, oldest → newest. */
     val chartPoints: List<Double> = emptyList(),
     val showArchiveConfirm: Boolean = false,
@@ -47,6 +51,7 @@ class AccountDetailViewModel(
     private val accountId: String,
     private val accountRepository: AccountRepository,
     private val transactionRepository: TransactionRepository,
+    categoryRepository: CategoryRepository,
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
@@ -57,9 +62,10 @@ class AccountDetailViewModel(
     val state: StateFlow<AccountDetailUiState> = combine(
         accountRepository.observeById(accountId),
         transactionRepository.observeForAccountOrCard(accountId),
+        categoryRepository.observeAll(),
         showArchiveConfirm.asStateFlow(),
         showDeleteConfirm.asStateFlow(),
-    ) { account, transactions, archiveConfirm, deleteConfirm ->
+    ) { account, transactions, categories, archiveConfirm, deleteConfirm ->
         if (account == null) {
             return@combine AccountDetailUiState(
                 showArchiveConfirm = archiveConfirm,
@@ -80,6 +86,7 @@ class AccountDetailViewModel(
             totalIn = inSum,
             totalOut = outSum,
             transactions = transactions,
+            categoriesById = categories.associateBy { it.id },
             chartPoints = chart,
             showArchiveConfirm = archiveConfirm,
             showDeleteConfirm = deleteConfirm,
@@ -213,12 +220,13 @@ class AccountDetailViewModelFactory(
     private val accountId: String,
     private val accountRepository: AccountRepository,
     private val transactionRepository: TransactionRepository,
+    private val categoryRepository: CategoryRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         require(modelClass.isAssignableFrom(AccountDetailViewModel::class.java)) {
             "Unknown ViewModel class: $modelClass"
         }
-        return AccountDetailViewModel(accountId, accountRepository, transactionRepository) as T
+        return AccountDetailViewModel(accountId, accountRepository, transactionRepository, categoryRepository) as T
     }
 }

@@ -86,6 +86,7 @@ fun CardDetailScreen(
             cardId = cardId,
             cardRepository = app.cardRepository,
             transactionRepository = app.transactionRepository,
+            categoryRepository = app.categoryRepository,
         ),
     )
     val state by vm.state.collectAsStateWithLifecycle()
@@ -267,7 +268,12 @@ private fun CardDetailBody(
             }
         } else {
             items(state.transactions, key = { it.id }) { txn ->
-                TxnRow(txn, cardId = card.id, onClick = { onOpenTransaction(txn.id) })
+                TxnRow(
+                    txn = txn,
+                    category = txn.categoryId?.let { state.categoriesById[it] },
+                    cardId = card.id,
+                    onClick = { onOpenTransaction(txn.id) },
+                )
             }
         }
         item("bottomSpacer") { Spacer(modifier = Modifier.height(24.dp)) }
@@ -436,23 +442,25 @@ private fun ChartSection(state: CardDetailUiState) {
 }
 
 @Composable
-private fun TxnRow(txn: Transaction, cardId: String, onClick: () -> Unit) {
-    val typeLabel = txn.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }
+private fun TxnRow(
+    txn: Transaction,
+    category: com.subramanya.artha.domain.model.Category?,
+    cardId: String,
+    onClick: () -> Unit,
+) {
+    val typeLabel = com.subramanya.artha.ui.common.transactionTypeLabel(txn.type)
     ListItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         leadingContent = {
-            Icon(
-                imageVector = iconForType(txn.type),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            // Same category icon + colour the Dashboard/Ledger rows use.
+            com.subramanya.artha.ui.common.TransactionCategoryAvatar(category = category, type = txn.type)
         },
         headlineContent = { Text(txn.description.ifBlank { typeLabel }, maxLines = 1) },
         supportingContent = {
             Text(
-                text = typeLabel,
+                text = category?.name ?: typeLabel,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -483,11 +491,6 @@ private fun amountColor(txn: Transaction, cardId: String): Color = when (txn.typ
         if (txn.paysCard(cardId)) MaterialTheme.colorScheme.primary
         else com.subramanya.artha.ui.theme.Danger
     else -> MaterialTheme.colorScheme.onSurface
-}
-
-private fun iconForType(type: TransactionType) = when (type) {
-    TransactionType.CARD_PAYMENT -> Icons.Filled.CreditCard
-    else -> Icons.Filled.AccountBalance
 }
 
 private fun signedAmount(txn: Transaction, cardId: String): String {
