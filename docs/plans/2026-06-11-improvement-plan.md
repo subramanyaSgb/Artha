@@ -12,16 +12,15 @@ Items below are NOT yet built. Ranked within each section (top = recommended fir
 
 ## A. Cross-cutting "premium feel"
 
-1. **Screen transitions** — Compose Navigation currently snaps between tabs and
-   detail screens. Add shared-axis/fade-through `enterTransition`/`exitTransition`
-   on the NavHost + predictive-back support (`android:enableOnBackInvokedCallback`).
-   Single biggest "feels premium" win after the perf fixes.
-2. **Haptics** — `LocalHapticFeedback` ticks on save, delete-confirm, reorder
-   drag, and tab switch.
+1. ~~**Screen transitions**~~ — **SHIPPED 2026-06-11.** Push/pop slides existed
+   already; tab ↔ tab switches now use Material fade-through and predictive back
+   is opted in (`enableOnBackInvokedCallback`).
+2. ~~**Haptics**~~ — **SHIPPED 2026-06-11** (`ui/common/Haptics.kt`): tick on tab
+   switch, confirm on transaction save, heavy on destructive dialog confirms.
 3. **Consistent loading skeletons** — a few screens still flash empty on cold
    open; reuse the Accounts/Cards skeleton template everywhere.
-4. **Themed splash** — `androidx.core.splashscreen` with the अ mark, so cold
-   start doesn't show a blank window.
+4. ~~**Themed splash**~~ — **SHIPPED 2026-06-11** via core-splashscreen
+   (brand-teal window + अ mark, swaps to Theme.Artha on first frame).
 5. **R8/minified release build + baseline profile** — debug builds are what's
    being used daily; a minified release with a baseline profile noticeably cuts
    startup and jank on-device.
@@ -30,13 +29,14 @@ Items below are NOT yet built. Ranked within each section (top = recommended fir
 
 ## B. Explicitly requested (FeaturesiWant.txt)
 
-1. **Full export/import including settings** — extend `BackupCodec` with a
-   `settings` block (all `SettingsPreferences` keys), bump `SCHEMA_VERSION` → 2
-   (v1 restores must keep working), and package receipts into a `.zip`
-   (JSON + `receipts/` dir) so images survive reinstall. One file out, one file in.
-2. **Category-wise transaction report** — new Reports section: date-range picker,
-   per-category totals (sub-categories rolled into parents like the Dashboard
-   breakdown), bar/donut via Vico, and tap-through to a category-filtered Ledger.
+1. ~~**Full export/import including settings**~~ — **SHIPPED 2026-06-11.**
+   Backup schema v2: settings block in backup.json, both exports write a ZIP
+   (backup.json + receipts/), encrypted path wraps the ZIP, restore handles
+   .zip/.json/.artha, re-points receipt URIs, applies settings last.
+2. ~~**Category-wise transaction report**~~ — **SHIPPED 2026-06-11.** Parent
+   rollup, per-category icon/colour/count/share rows, inline transaction
+   drill-down with tap-through to detail. (A dedicated date-range picker beyond
+   This/Last month + FY, and CSV export, remain open ideas.)
 
 ## C. Per-screen improvements
 
@@ -61,10 +61,10 @@ Items below are NOT yet built. Ranked within each section (top = recommended fir
 
 ## D. Maintenance / hygiene
 
-- Orphaned receipt cleanup: delete the copied file when a transaction is deleted
-  or its receipt replaced (compare old vs new `receiptUri` in the repository).
-- EXIF rotation in `ReceiptStore.persist` (androidx.exifinterface) — gallery
-  photos can render sideways.
+- ~~Orphaned receipt cleanup~~ — **SHIPPED 2026-06-11** (startup sweep of
+  filesDir/receipts against `TransactionDao.allReceiptUris`).
+- ~~EXIF rotation in `ReceiptStore.persist`~~ — **SHIPPED 2026-06-11**
+  (androidx.exifinterface; bitmap rotated upright before re-encode).
 - Run the instrumented migration tests on a device (still pending since v7).
 - Standing deferred items (unchanged): SMS parsing receiver, crash reporting,
   cloud sync.
