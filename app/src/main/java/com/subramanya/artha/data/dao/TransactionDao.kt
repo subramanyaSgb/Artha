@@ -48,6 +48,10 @@ interface TransactionDao {
     @Query("SELECT tag_id FROM transaction_tags WHERE transaction_id = :transactionId")
     suspend fun getTagIds(transactionId: String): List<String>
 
+    /** Every non-null receipt URI — powers the startup orphan prune of filesDir/receipts. */
+    @Query("SELECT receipt_uri FROM transactions WHERE receipt_uri IS NOT NULL")
+    suspend fun allReceiptUris(): List<String>
+
     /** Whole-table snapshots used by Repository.observeAll/observeBetween to hydrate
      *  peopleIds + tagIds onto domain Transactions in a single round-trip. Without
      *  these, list flows return Transactions with peopleIds = [] and downstream

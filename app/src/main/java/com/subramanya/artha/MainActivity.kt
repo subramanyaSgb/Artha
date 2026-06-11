@@ -38,6 +38,7 @@ import com.subramanya.artha.ui.onboarding.OnboardingViewModel
 import com.subramanya.artha.ui.onboarding.OnboardingViewModelFactory
 import com.subramanya.artha.ui.splash.SplashScreen
 import com.subramanya.artha.ui.theme.ArthaTheme
+import com.subramanya.artha.utils.ReceiptStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -110,6 +111,11 @@ private fun ArthaInner(app: ArthaApplication) {
             if (app.settingsPreferences.bundledImportVersion.first() < CURRENT_BUNDLED_IMPORT_VERSION) {
                 runCatching { BankImporter(app, app.database).importBundled() }
                 app.settingsPreferences.setBundledImportVersion(CURRENT_BUNDLED_IMPORT_VERSION)
+            }
+            // Sweep receipt images no transaction references anymore (deleted txns,
+            // replaced receipts) — cheap, and keeps filesDir from growing forever.
+            runCatching {
+                ReceiptStore.pruneOrphans(app, app.database.transactionDao().allReceiptUris())
             }
             val name = app.settingsPreferences.userName.first()
             val elapsed = System.currentTimeMillis() - started

@@ -3,7 +3,9 @@ package com.subramanya.artha.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
+import androidx.exifinterface.media.ExifInterface
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +37,21 @@ object ReceiptStore {
     fun allFiles(context: Context): List<File> = dir(context).listFiles()?.filter { it.isFile }.orEmpty()
 
     /**
+     * Deletes stored receipts that no transaction references anymore — files orphaned
+     * by a transaction delete or a receipt replacement. Matching is by file name
+     * (the URI's last path segment). Run at startup off the main thread.
+     */
+    suspend fun pruneOrphans(context: Context, referencedUris: Collection<String>) =
+        withContext(Dispatchers.IO) {
+            val keep = referencedUris
+                .map { it.substringAfterLast('/') }
+                .filterTo(HashSet()) { it.isNotBlank() }
+            allFiles(context).forEach { file ->
+                if (file.name !in keep) file.delete()
+            }
+        }
+
+    /**
      * Copies the image at [sourceUri] into app-private storage (downsampled JPEG).
      * Returns the stable `file://` URI string to persist on the transaction, or null
      * if the source can't be read.
@@ -51,9 +68,20 @@ object ReceiptStore {
                 inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight)
             }
             // Pass 2: real decode (content streams aren't seekable, so reopen).
-            val bitmap = resolver.openInputStream(sourceUri)?.use {
+            val decoded = resolver.openInputStream(sourceUri)?.use {
                 BitmapFactory.decodeStream(it, null, opts)
             } ?: return@runCatching null
+            // Pass 3: honour EXIF orientation — gallery photos otherwise save sideways.
+            val rotationDegrees = resolver.openInputStream(sourceUri)?.use {
+                runCatching { ExifInterface(it).rotationDegrees }.getOrDefault(0)
+            } ?: 0
+            val bitmap = if (rotationDegrees != 0) {
+                val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
+                Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+                    .also { if (it !== decoded) decoded.recycle() }
+            } else {
+                decoded
+            }
             val file = File(dir(context), "${UUID.randomUUID()}.jpg")
             file.outputStream().use { out ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
