@@ -644,6 +644,47 @@
     <string name="txn_detail_delete_confirm_body">This permanently removes the transaction and adjusts your balances. This cannot be undone.</string>
     <string name="txn_detail_delete_confirm_yes">Delete</string>
 
+    <!-- Transaction Receipt (detail screen, receipt styling) -->
+    <string name="txn_receipt_eyebrow">Receipt</string>
+    <string name="txn_receipt_share">Share</string>
+    <!-- Hero amount eyebrows, by transaction direction -->
+    <string name="txn_receipt_amount_paid">Amount paid</string>
+    <string name="txn_receipt_amount_received">Amount received</string>
+    <string name="txn_receipt_amount_moved">Amount moved</string>
+    <string name="txn_receipt_amount_invested">Amount invested</string>
+    <!-- Rubber-stamp words, by transaction direction -->
+    <string name="txn_receipt_stamp_debited">Debited</string>
+    <string name="txn_receipt_stamp_credited">Credited</string>
+    <string name="txn_receipt_stamp_transferred">Transferred</string>
+    <string name="txn_receipt_stamp_invested">Invested</string>
+    <!-- Itemized body row labels -->
+    <string name="txn_receipt_row_date">Date</string>
+    <string name="txn_receipt_row_time">Time</string>
+    <string name="txn_receipt_row_paid_from">Paid from</string>
+    <string name="txn_receipt_row_credited_to">Credited to</string>
+    <string name="txn_receipt_row_route">Route</string>
+    <string name="txn_receipt_row_method">Method</string>
+    <string name="txn_receipt_row_reference">Reference</string>
+    <string name="txn_receipt_row_balance">Balance · %1$s</string>
+    <!-- Sections -->
+    <string name="txn_receipt_section_tags_people">Tags &amp; people</string>
+    <string name="txn_receipt_section_note">Note</string>
+    <string name="txn_receipt_add_note">Add a note</string>
+    <string name="txn_receipt_photo_caption">receipt photo</string>
+    <string name="txn_receipt_attach_photo_caption">attach photo</string>
+    <string name="txn_receipt_add_place_caption">add place</string>
+    <!-- Seal footer -->
+    <string name="txn_receipt_recorded">Recorded in Artha</string>
+    <string name="txn_receipt_synced">txn %1$s · synced locally</string>
+    <!-- Action row -->
+    <string name="txn_receipt_action_edit">Edit</string>
+    <string name="txn_receipt_action_split">Split</string>
+    <string name="txn_receipt_action_share">Share</string>
+    <string name="txn_receipt_action_duplicate">Duplicate</string>
+    <string name="txn_receipt_action_attach">Attach photo</string>
+    <string name="txn_receipt_action_delete">Delete</string>
+    <string name="txn_receipt_share_subject">Transaction receipt</string>
+
     <!-- Spouse-prompt dialog -->
     <string name="spouse_prompt_title">Sending %1$s to %2$s</string>
     <string name="spouse_prompt_question">How should this be tracked?</string>
@@ -1186,4 +1227,20 @@
     <string name="settings_data_wipe_import_confirm_body">This deletes:\n• The "Federal Bank (Jupiter)" and "ICICI Bank" accounts (if present)\n• Every transaction whose notes start with "Imported from"\n\nManually-entered accounts and transactions are untouched. Use this to retry the import after tweaking the categoriser.</string>
     <string name="settings_data_wipe_import_yes">Wipe imports</string>
     <string name="settings_data_wipe_import_done">Imported data removed: %1$d transactions, %2$d accounts.</string>
+
+    <!-- Withdrawal Sheet -->
+    <string name="withdrawal_sheet_title">Withdraw from %1$s</string>
+    <string name="withdrawal_sheet_current_balance">Current balance</string>
+    <string name="withdrawal_sheet_amount_label">Amount</string>
+    <string name="withdrawal_sheet_amount_required">Amount is required</string>
+    <string name="withdrawal_sheet_amount_positive">Amount must be greater than ₹0</string>
+    <string name="withdrawal_sheet_amount_exceeds">Amount cannot exceed %1$s</string>
+    <string name="withdrawal_sheet_destination_account">Destination account</string>
+    <string name="withdrawal_sheet_select_account">Select an account</string>
+    <string name="withdrawal_sheet_account_required">Please select an account</string>
+    <string name="withdrawal_sheet_summary">Summary</string>
+    <string name="withdrawal_sheet_confirmation">₹%1$s will be credited to %2$s</string>
+    <string name="withdrawal_sheet_remaining_balance">Remaining balance</string>
+    <string name="withdrawal_sheet_after_withdrawal">After withdrawal</string>
+    <string name="withdrawal_sheet_confirm">Confirm withdrawal</string>
 </resources>
