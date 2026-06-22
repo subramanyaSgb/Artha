@@ -48,7 +48,6 @@ import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.ui.common.ArthaSheetHandle
 import com.subramanya.artha.ui.common.FieldRow
-import com.subramanya.artha.ui.common.SavePrimaryButton
 import com.subramanya.artha.ui.common.SheetTitle
 import com.subramanya.artha.ui.common.SheetWindowInsets
 import com.subramanya.artha.ui.theme.Teal500
@@ -81,7 +80,7 @@ fun WithdrawalSheet(
     var expandedDropdown by remember { mutableStateOf(false) }
 
     // Filter to active accounts only
-    val activeAccounts = accounts.filter { !it.isArchived }
+    val activeAccounts = remember(accounts) { accounts.filter { !it.isArchived } }
 
     // Parse the withdrawal amount
     val withdrawalAmount = remember(withdrawalAmountText) {
@@ -154,34 +153,22 @@ fun WithdrawalSheet(
                     placeholder = { Text("25000") },
                     suffix = { Text("₹") },
                     isError = showErrors && !isValidAmount && withdrawalAmountText.isNotBlank(),
+                    supportingText = {
+                        when {
+                            showErrors && withdrawalAmountText.isBlank() ->
+                                Text(stringResource(R.string.withdrawal_sheet_amount_required))
+                            showErrors && withdrawalAmount != null && withdrawalAmount <= 0.0 ->
+                                Text(stringResource(R.string.withdrawal_sheet_amount_positive))
+                            showErrors && withdrawalAmount != null && withdrawalAmount > investment.currentValue ->
+                                Text(stringResource(R.string.withdrawal_sheet_amount_exceeds, IndianNumberFormat.format(investment.currentValue)))
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Next,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (showErrors && withdrawalAmountText.isBlank()) {
-                    Text(
-                        text = stringResource(R.string.withdrawal_sheet_amount_required),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                } else if (showErrors && withdrawalAmount != null && withdrawalAmount <= 0.0) {
-                    Text(
-                        text = stringResource(R.string.withdrawal_sheet_amount_positive),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                } else if (showErrors && withdrawalAmount != null && withdrawalAmount > investment.currentValue) {
-                    Text(
-                        text = stringResource(R.string.withdrawal_sheet_amount_exceeds, IndianNumberFormat.format(investment.currentValue)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
             }
 
             // Destination account dropdown
@@ -190,10 +177,16 @@ fun WithdrawalSheet(
                     OutlinedTextField(
                         value = selectedAccount?.name.orEmpty(),
                         onValueChange = {},
+                        // Read-only: uses dropdown for selection instead of direct text entry
                         readOnly = true,
                         placeholder = { Text(stringResource(R.string.withdrawal_sheet_select_account)) },
                         suffix = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
                         isError = showErrors && !isValidAccount,
+                        supportingText = {
+                            if (showErrors && !isValidAccount && selectedDestinationId.isBlank()) {
+                                Text(stringResource(R.string.withdrawal_sheet_account_required))
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { expandedDropdown = true },
@@ -213,14 +206,6 @@ fun WithdrawalSheet(
                             )
                         }
                     }
-                }
-                if (showErrors && !isValidAccount && selectedDestinationId.isBlank()) {
-                    Text(
-                        text = stringResource(R.string.withdrawal_sheet_account_required),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
                 }
             }
 
@@ -262,6 +247,7 @@ fun WithdrawalSheet(
                     Text(
                         text = IndianNumberFormat.format(remainingBalance),
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        // Display error color if withdrawal would exceed current balance (edge case)
                         color = if (remainingBalance < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                     )
                 }
