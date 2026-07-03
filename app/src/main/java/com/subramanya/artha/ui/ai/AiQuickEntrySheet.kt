@@ -99,7 +99,7 @@ import kotlinx.coroutines.withContext
  * While parsing a Teal500 dot pulses next to "Reading your entry…".
  * Parsed preview surfaces as a chip card with Cancel + Save footer.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiQuickEntrySheet(
     onDismiss: () -> Unit,
@@ -479,12 +479,10 @@ private fun ParsingIndicator() {
 }
 
 /**
- * Parsed preview rendered as a chip card. Per HANDOFF §3.10 the user should
- * be able to scan the result without reading prose — values become pills,
- * low-confidence ones get a Danger ring and Text2 label, high-confidence
- * ones go Surface4 + Text1.
+ * Parsed preview — clean list layout showing amount hero, then labelled field
+ * rows. Red text only appears when confidence is LOW and a value exists
+ * (genuinely suspicious). Missing optional fields are omitted, not shown as "—".
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ParsedCard(
     parsed: AiQuickEntryParsed,
@@ -499,55 +497,75 @@ private fun ParsedCard(
             .border(1.dp, LineTeal, RoundedCornerShape(16.dp))
             .padding(16.dp),
     ) {
+        // Amount hero
+        val amount = parsed.amount.value
+        val amountColor = if (parsed.amount.confidence == Confidence.LOW && amount != null) Danger
+            else MaterialTheme.colorScheme.onSurface
         Text(
-            text = stringResource(R.string.ai_quick_entry_preview_title),
-            style = EyebrowStyle,
-            color = MaterialTheme.colorScheme.primary,
+            text = if (amount != null) "₹${IndianNumberFormat.format(amount)}" else "Amount not detected",
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontFamily = IbmPlexMono,
+                fontFeatureSettings = "tnum, lnum",
+            ),
+            color = if (amount != null) amountColor else Danger,
         )
-        Spacer(Modifier.height(12.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            chipFor(
-                label = stringResource(R.string.ai_quick_entry_preview_amount),
-                field = parsed.amount,
-                render = { it?.let { v -> "₹${IndianNumberFormat.format(v)}" } ?: "—" },
-                mono = true,
-            )
-            chipFor(
-                label = stringResource(R.string.ai_quick_entry_preview_type),
-                field = parsed.type,
-                render = { it?.name ?: "—" },
-            )
-            chipFor(
-                label = stringResource(R.string.ai_quick_entry_preview_description),
-                field = parsed.description,
-                render = { it ?: "—" },
-            )
-            chipFor(
-                label = stringResource(R.string.ai_quick_entry_preview_category),
-                field = parsed.categoryHint,
-                render = { it ?: "—" },
-            )
-            chipFor(
-                label = stringResource(R.string.ai_quick_entry_preview_payment_app),
-                field = parsed.paymentApp,
-                render = { id -> id?.replace('_', ' ')?.lowercase()?.replaceFirstChar { it.titlecase() } ?: "—" },
-            )
-            chipFor(
-                label = stringResource(R.string.ai_quick_entry_preview_date),
-                field = parsed.dateMillis,
-                render = { it?.let(DateFormatter::longDate) ?: "—" },
-                mono = true,
-            )
-            chipFor(
-                label = stringResource(R.string.ai_quick_entry_preview_place),
-                field = parsed.place,
-                render = { it ?: "—" },
-            )
+
+        // Type badge
+        parsed.type.value?.let { txnType ->
+            Spacer(Modifier.height(6.dp))
+            Surface(
+                color = when (txnType.name) {
+                    "INCOME" -> Income.copy(alpha = 0.15f)
+                    "TRANSFER" -> MaterialTheme.colorScheme.primaryContainer
+                    else -> Danger.copy(alpha = 0.12f)
+                },
+                shape = RoundedCornerShape(6.dp),
+            ) {
+                Text(
+                    text = txnType.name,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = when (txnType.name) {
+                        "INCOME" -> Income
+                        "TRANSFER" -> MaterialTheme.colorScheme.primary
+                        else -> Danger
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
         }
-        Spacer(Modifier.height(16.dp))
+
+        Spacer(Modifier.height(14.dp))
+        androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(Modifier.height(12.dp))
+
+        // Field rows — only shown when a value is present
+        parsed.description.value?.let {
+            ParsedRow("Description", it, parsed.description.confidence)
+            Spacer(Modifier.height(10.dp))
+        }
+        parsed.dateMillis.value?.let {
+            ParsedRow("Date", DateFormatter.longDate(it), parsed.dateMillis.confidence)
+            Spacer(Modifier.height(10.dp))
+        }
+        parsed.categoryHint.value?.let {
+            ParsedRow("Category", it, parsed.categoryHint.confidence)
+            Spacer(Modifier.height(10.dp))
+        }
+        // Payment app: only show when it's not the generic "OTHER" fallback
+        parsed.paymentApp.value?.takeIf { it != "OTHER" }?.let { id ->
+            val label = id.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }
+            ParsedRow("Via", label, parsed.paymentApp.confidence)
+            Spacer(Modifier.height(10.dp))
+        }
+        // Place: skip if already in description
+        val descLower = parsed.description.value.orEmpty().lowercase()
+        parsed.place.value?.takeIf { it.isNotBlank() && !descLower.contains(it.lowercase()) }?.let {
+            ParsedRow("Place", it, parsed.place.confidence)
+            Spacer(Modifier.height(10.dp))
+        }
+
+        Spacer(Modifier.height(6.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -573,55 +591,38 @@ private fun ParsedCard(
             ) {
                 Text(
                     text = stringResource(R.string.ai_quick_entry_save_confirm),
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                    ),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                 )
             }
         }
     }
 }
 
-/** Single value pill — label eyebrow + value, tinted by confidence band. */
 @Composable
-private fun <T> chipFor(
-    label: String,
-    field: AiField<T>,
-    render: (T?) -> String,
-    mono: Boolean = false,
-) {
-    val (border, valueColor) = when (field.confidence) {
-        Confidence.LOW -> Danger to Danger
-        Confidence.MEDIUM -> MaterialTheme.colorScheme.outlineVariant to MaterialTheme.colorScheme.onSurfaceVariant
-        Confidence.HIGH -> LineTeal to MaterialTheme.colorScheme.onSurface
+private fun ParsedRow(label: String, value: String, confidence: Confidence) {
+    val valueColor = when (confidence) {
+        Confidence.LOW -> Danger
+        Confidence.MEDIUM -> MaterialTheme.colorScheme.onSurface
+        Confidence.HIGH -> MaterialTheme.colorScheme.onSurface
     }
-    val rendered = render(field.value)
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.border(1.dp, border, RoundedCornerShape(12.dp)),
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(
-                text = label.uppercase(),
-                style = EyebrowStyle,
-                color = Text3,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = rendered,
-                color = valueColor,
-                style = if (mono) {
-                    TextStyle(
-                        fontFamily = IbmPlexMono,
-                        fontSize = 13.sp,
-                        fontFeatureSettings = "tnum, lnum",
-                    )
-                } else {
-                    MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                },
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = Text3,
+            modifier = Modifier.weight(0.35f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+            color = valueColor,
+            modifier = Modifier.weight(0.65f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.End,
+        )
     }
 }
 

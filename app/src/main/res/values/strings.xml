@@ -1265,6 +1265,13 @@
     <string name="share_receipt_account_required">Select an account to save</string>
     <string name="share_receipt_save">Save expense</string>
     <string name="share_receipt_save_with_amount">Save expense · ₹%1$s</string>
+    <string name="share_receipt_description_label">Description</string>
+    <string name="share_receipt_description_placeholder">What was this payment for?</string>
+    <string name="share_receipt_amount_label">Amount (₹)</string>
+    <string name="share_receipt_amount_placeholder">Enter amount</string>
+    <string name="share_receipt_category_label">Category</string>
+    <string name="share_receipt_category_none">Uncategorised</string>
+    <string name="share_receipt_upi_app_label">Via</string>
 
     <!-- In-app update dialog -->
     <string name="update_dialog_eyebrow">Update available</string>

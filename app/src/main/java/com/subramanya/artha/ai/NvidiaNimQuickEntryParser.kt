@@ -175,16 +175,21 @@ class NvidiaNimQuickEntryParser(
         val builtinAppIds = SeedPaymentApps.BUILTINS.mapTo(HashSet()) { it.first }
         val app = paymentAppStr?.uppercase()?.takeIf { it in builtinAppIds } ?: SeedPaymentApps.DEFAULT_ID
 
+        // Default date to today if model didn't detect one — MEDIUM confidence (today is a safe assumption)
+        val now = Clock.System.now().toEpochMilliseconds()
+        val resolvedDate = dateText?.let(::resolveRelativeDate) ?: now
+        val dateConfidence = if (dateText != null) Confidence.MEDIUM else Confidence.MEDIUM
+
+        // "OTHER" is a valid fallback — show as MEDIUM so it doesn't alarm the user with red
+        val appConfidence = if (paymentAppStr != null) Confidence.HIGH else Confidence.MEDIUM
+
         return AiQuickEntryParsed(
             type = AiField(type, if (type != null) Confidence.HIGH else Confidence.LOW),
             amount = AiField(amount, if (amount != null) Confidence.HIGH else Confidence.LOW),
             description = AiField(description, if (description != null) Confidence.MEDIUM else Confidence.LOW),
             categoryHint = AiField(category, if (category != null) Confidence.MEDIUM else Confidence.LOW),
-            paymentApp = AiField(app, if (paymentAppStr != null) Confidence.HIGH else Confidence.LOW),
-            dateMillis = AiField(
-                dateText?.let(::resolveRelativeDate),
-                if (dateText != null) Confidence.MEDIUM else Confidence.LOW,
-            ),
+            paymentApp = AiField(app, appConfidence),
+            dateMillis = AiField(resolvedDate, dateConfidence),
             place = AiField(place, if (place != null) Confidence.MEDIUM else Confidence.LOW),
             rawModelResponse = raw,
         )

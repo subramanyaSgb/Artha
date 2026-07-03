@@ -1,7 +1,6 @@
 package com.subramanya.artha.ui.share
 
 import android.net.Uri
-import kotlinx.coroutines.flow.first
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,9 +19,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -36,6 +37,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,6 +61,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
+import com.subramanya.artha.domain.model.Account
+import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.ui.common.InlineTopBar
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.Expense
@@ -71,6 +77,7 @@ import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
 import com.subramanya.artha.utils.UpiReceiptParser
 import com.subramanya.artha.utils.upi.UpiParsedReceipt
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun ShareReceiptScreen(
@@ -88,13 +95,13 @@ fun ShareReceiptScreen(
                 keyProvider = { app.settingsPreferences.geminiApiKey.first() },
             ),
             accountRepository = app.accountRepository,
+            categoryRepository = app.categoryRepository,
             transactionRepository = app.transactionRepository,
             context = context,
         ),
     )
     val state by vm.state.collectAsStateWithLifecycle()
 
-    // Navigate away when saved
     LaunchedEffect(state) {
         if (state is ShareReceiptUiState.Saved) {
             onTransactionSaved((state as ShareReceiptUiState.Saved).transactionId)
@@ -120,10 +127,13 @@ fun ShareReceiptScreen(
                 is ShareReceiptUiState.Parsed -> ParsedContent(
                     state = currentState,
                     onSelectAccount = vm::selectAccount,
+                    onSelectCategory = vm::selectCategory,
+                    onDescriptionChange = vm::updateDescription,
+                    onAmountChange = vm::updateAmount,
                     onSave = vm::save,
                     onAddManually = onAddManually,
                 )
-                is ShareReceiptUiState.Saved -> ScanningContent() // brief flash before nav
+                is ShareReceiptUiState.Saved -> ScanningContent()
                 is ShareReceiptUiState.ScanError -> ErrorContent(
                     message = currentState.message,
                     onRetry = vm::retry,
@@ -136,10 +146,7 @@ fun ShareReceiptScreen(
 
 @Composable
 private fun ScanningContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(color = Teal500, modifier = Modifier.size(40.dp))
             Spacer(Modifier.height(20.dp))
@@ -159,9 +166,7 @@ private fun ErrorContent(
     onAddManually: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -191,17 +196,13 @@ private fun ErrorContent(
             modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Teal700),
-        ) {
-            Text(stringResource(R.string.share_receipt_retry))
-        }
+        ) { Text(stringResource(R.string.share_receipt_retry)) }
         Spacer(Modifier.height(12.dp))
         OutlinedButton(
             onClick = onAddManually,
             modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(12.dp),
-        ) {
-            Text(stringResource(R.string.share_receipt_add_manually))
-        }
+        ) { Text(stringResource(R.string.share_receipt_add_manually)) }
     }
 }
 
@@ -209,9 +210,16 @@ private fun ErrorContent(
 private fun ParsedContent(
     state: ShareReceiptUiState.Parsed,
     onSelectAccount: (String) -> Unit,
+    onSelectCategory: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onAmountChange: (String) -> Unit,
     onSave: () -> Unit,
     onAddManually: () -> Unit,
 ) {
+    // Local text state so TextFields don't jumble on fast typing (see compose-textfield-local-state memory)
+    var descriptionLocal by remember(state.receipt) { mutableStateOf(state.description) }
+    var amountLocal by remember(state.receipt) { mutableStateOf(state.amountText) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -221,14 +229,45 @@ private fun ParsedContent(
     ) {
         Spacer(Modifier.height(8.dp))
 
-        // Hero amount card
-        AmountHeroCard(receipt = state.receipt)
-
+        // Payment app chip
+        PaymentAppHeader(receipt = state.receipt)
         Spacer(Modifier.height(16.dp))
 
-        // Parsed detail fields
-        ReceiptFieldsCard(receipt = state.receipt)
+        // Editable amount field
+        EditableAmountField(
+            value = amountLocal,
+            onValueChange = { amountLocal = it; onAmountChange(it) },
+        )
+        Spacer(Modifier.height(12.dp))
 
+        // Editable description field
+        OutlinedTextField(
+            value = descriptionLocal,
+            onValueChange = { descriptionLocal = it; onDescriptionChange(it) },
+            label = { Text(stringResource(R.string.share_receipt_description_label)) },
+            placeholder = { Text(stringResource(R.string.share_receipt_description_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Teal500,
+                focusedLabelColor = Teal500,
+            ),
+        )
+        Spacer(Modifier.height(16.dp))
+
+        // Receipt read-only details (date, UPI ref, paid from)
+        if (state.receipt.dateTimeMillis != null || state.receipt.upiRef != null || state.receipt.sourceBankHint != null) {
+            ReceiptFieldsCard(receipt = state.receipt)
+            Spacer(Modifier.height(16.dp))
+        }
+
+        // Category picker
+        CategoryPickerSection(
+            categories = state.categories,
+            selectedCategoryId = state.selectedCategoryId,
+            onSelect = onSelectCategory,
+        )
         Spacer(Modifier.height(16.dp))
 
         // Account picker
@@ -237,10 +276,9 @@ private fun ParsedContent(
             selectedAccountId = state.selectedAccountId,
             onSelect = onSelectAccount,
         )
-
         Spacer(Modifier.height(24.dp))
 
-        // Actions
+        val parsedAmount = amountLocal.replace(",", "").toDoubleOrNull()
         Button(
             onClick = onSave,
             enabled = state.selectedAccountId != null && !state.isSaving,
@@ -255,86 +293,122 @@ private fun ParsedContent(
                     strokeWidth = 2.dp,
                 )
             } else {
-                val amount = state.receipt.amount
-                val label = if (amount != null) {
-                    stringResource(R.string.share_receipt_save_with_amount, IndianNumberFormat.format(amount))
+                val label = if (parsedAmount != null && parsedAmount > 0) {
+                    stringResource(R.string.share_receipt_save_with_amount, IndianNumberFormat.format(parsedAmount))
                 } else {
                     stringResource(R.string.share_receipt_save)
                 }
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                )
+                Text(text = label, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
             }
         }
-
         Spacer(Modifier.height(12.dp))
-
         OutlinedButton(
             onClick = onAddManually,
             modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-        ) {
-            Text(stringResource(R.string.share_receipt_add_manually))
-        }
-
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+        ) { Text(stringResource(R.string.share_receipt_add_manually)) }
         Spacer(Modifier.height(16.dp))
     }
 }
 
 @Composable
-private fun AmountHeroCard(receipt: UpiParsedReceipt) {
+private fun PaymentAppHeader(receipt: UpiParsedReceipt) {
     Surface(
         color = ExpenseSoft,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Expense.copy(alpha = 0.3f), RoundedCornerShape(20.dp)),
+            .border(1.dp, Expense.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PhoneAndroid,
+                contentDescription = null,
+                tint = Teal500,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = receipt.paymentApp.replace("_", " "),
+                style = EyebrowStyle,
+                color = Teal500,
+            )
+            Spacer(Modifier.weight(1f))
+            if (receipt.upiRef != null) {
+                Text(
+                    text = "Ref ${receipt.upiRef}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Text3,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditableAmountField(value: String, onValueChange: (String) -> Unit) {
+    Surface(
+        color = ExpenseSoft,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Expense.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.PhoneAndroid,
-                    contentDescription = null,
-                    tint = Teal500,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
+            Text(
+                text = stringResource(R.string.share_receipt_amount_label).uppercase(),
+                style = EyebrowStyle,
+                color = Text3,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text(
-                    text = stringResource(R.string.share_receipt_phonepe_label).uppercase(),
-                    style = EyebrowStyle,
-                    color = Teal500,
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            if (receipt.amount != null) {
-                Text(
-                    text = "₹${IndianNumberFormat.format(receipt.amount)}",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 40.sp,
-                    ),
+                    text = "₹",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                     color = Expense,
                 )
-            } else {
-                Text(
-                    text = stringResource(R.string.share_receipt_amount_unknown),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (receipt.merchantName != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = receipt.merchantName,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                Spacer(Modifier.width(4.dp))
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { new ->
+                        // Allow digits and a single decimal point only
+                        if (new.isEmpty() || new.matches(Regex("""^\d{0,10}(\.\d{0,2})?$"""))) {
+                            onValueChange(new)
+                        }
+                    },
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.share_receipt_amount_placeholder),
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 32.sp),
+                            color = Text3,
+                        )
+                    },
+                    textStyle = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 36.sp,
+                        color = Expense,
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Expense.copy(alpha = 0.6f),
+                        unfocusedBorderColor = Expense.copy(alpha = 0.2f),
+                        focusedContainerColor = ExpenseSoft,
+                        unfocusedContainerColor = ExpenseSoft,
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -355,60 +429,110 @@ private fun ReceiptFieldsCard(receipt: UpiParsedReceipt) {
                 color = Text3,
             )
             Spacer(Modifier.height(12.dp))
-
             receipt.dateTimeMillis?.let { millis ->
-                ReceiptField(
-                    label = stringResource(R.string.share_receipt_field_date),
-                    value = DateFormatter.longDate(millis),
-                )
+                ReceiptField(label = stringResource(R.string.share_receipt_field_date), value = DateFormatter.longDate(millis))
                 Spacer(Modifier.height(10.dp))
             }
-
-            receipt.upiRef?.let { ref ->
-                ReceiptField(
-                    label = stringResource(R.string.share_receipt_field_upi_ref),
-                    value = ref,
-                    mono = true,
-                )
-                Spacer(Modifier.height(10.dp))
-            }
-
             receipt.sourceBankHint?.let { bank ->
-                ReceiptField(
-                    label = stringResource(R.string.share_receipt_field_paid_from),
-                    value = bank,
-                )
+                ReceiptField(label = stringResource(R.string.share_receipt_field_paid_from), value = bank)
             }
         }
     }
 }
 
 @Composable
-private fun ReceiptField(label: String, value: String, mono: Boolean = false) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = Text2,
-        )
+private fun ReceiptField(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(text = label, style = MaterialTheme.typography.bodySmall, color = Text2)
         Text(
             text = value,
-            style = if (mono) {
-                MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
-            } else {
-                MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
-            },
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
 
 @Composable
+private fun CategoryPickerSection(
+    categories: List<Category>,
+    selectedCategoryId: String?,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = categories.firstOrNull { it.id == selectedCategoryId }
+
+    Column {
+        Text(
+            text = stringResource(R.string.share_receipt_category_label).uppercase(),
+            style = EyebrowStyle,
+            color = Text3,
+        )
+        Spacer(Modifier.height(8.dp))
+        Box {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        1.dp,
+                        if (selected != null) Teal500.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outlineVariant,
+                        RoundedCornerShape(12.dp),
+                    )
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { expanded = true },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Category,
+                        contentDescription = null,
+                        tint = if (selected != null) Teal500 else Text3,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = selected?.name ?: stringResource(R.string.share_receipt_category_none),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (selected != null) MaterialTheme.colorScheme.onSurface else Text3,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (selected != null) {
+                        Text(
+                            text = "auto",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Teal500,
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = Text3,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                categories.forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.name) },
+                        trailingIcon = if (category.id == selectedCategoryId) ({
+                            Icon(Icons.Filled.CheckCircle, null, tint = Income, modifier = Modifier.size(16.dp))
+                        }) else null,
+                        onClick = { onSelect(category.id); expanded = false },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun AccountPickerSection(
-    accounts: List<com.subramanya.artha.domain.model.Account>,
+    accounts: List<Account>,
     selectedAccountId: String?,
     onSelect: (String) -> Unit,
 ) {
@@ -422,7 +546,6 @@ private fun AccountPickerSection(
             color = Text3,
         )
         Spacer(Modifier.height(8.dp))
-
         Box {
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainer,
@@ -462,38 +585,21 @@ private fun AccountPickerSection(
                     )
                 }
             }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 accounts.forEach { account ->
                     DropdownMenuItem(
                         text = { Text(account.name) },
                         leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Filled.AccountBalance,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                            )
+                            Icon(Icons.Filled.AccountBalance, null, modifier = Modifier.size(16.dp))
                         },
                         trailingIcon = if (account.id == selectedAccountId) ({
-                            Icon(
-                                imageVector = Icons.Filled.CheckCircle,
-                                contentDescription = null,
-                                tint = Income,
-                                modifier = Modifier.size(16.dp),
-                            )
+                            Icon(Icons.Filled.CheckCircle, null, tint = Income, modifier = Modifier.size(16.dp))
                         }) else null,
-                        onClick = {
-                            onSelect(account.id)
-                            expanded = false
-                        },
+                        onClick = { onSelect(account.id); expanded = false },
                     )
                 }
             }
         }
-
         if (selected == null && accounts.isNotEmpty()) {
             Spacer(Modifier.height(4.dp))
             Text(
