@@ -232,7 +232,7 @@
     <string name="dashboard_add_account">Add account</string>
     <string name="dashboard_add_card">Add card</string>
     <string name="dashboard_card_outstanding">Outstanding %1$s</string>
-    <string name="dashboard_ai_card_title">Quick add with Gemini</string>
+    <string name="dashboard_ai_card_title">Quick add with AI</string>
     <string name="dashboard_ai_card_subtitle">\"Auto to MG Road ₹180\" — type, dictate, snap a receipt</string>
 
     <!-- Transactions screen -->
@@ -581,24 +581,24 @@
     <string name="settings_security_sms_body">Listen for bank transaction SMS and pre-fill them for your review. Requires SMS permissions; flipping this off revokes the listener.</string>
     <string name="settings_section_ai">AI Quick Entry</string>
     <string name="settings_ai_enable_title">Enable AI Quick Entry</string>
-    <string name="settings_ai_enable_body">Show the \"Quick add with Gemini\" card on the Dashboard. Off by default.</string>
-    <string name="settings_ai_key_add">Add Gemini API key</string>
-    <string name="settings_ai_key_change">Change Gemini API key</string>
+    <string name="settings_ai_enable_body">Show the \"Quick add with AI\" card on the Dashboard. Off by default.</string>
+    <string name="settings_ai_key_add">Add NVIDIA NIM API key</string>
+    <string name="settings_ai_key_change">Change NVIDIA NIM API key</string>
     <string name="settings_ai_key_present_subtitle">A working key is saved on this device. AI Quick Entry is active.</string>
-    <string name="settings_ai_key_absent_subtitle">Paste a key from aistudio.google.com/apikey. Without it, AI Quick Entry stays offline.</string>
+    <string name="settings_ai_key_absent_subtitle">Paste your NVIDIA NIM API key from build.nvidia.com. Without it, AI Quick Entry stays offline.</string>
     <string name="settings_ai_key_clear">Remove stored key</string>
     <string name="settings_ai_key_clear_subtitle">Disables AI Quick Entry until you paste another key</string>
-    <string name="settings_ai_key_dialog_title">Paste your Gemini API key</string>
-    <string name="settings_ai_key_dialog_body">Artha will round-trip a tiny request to Google to confirm the key works. Only valid keys are saved.</string>
+    <string name="settings_ai_key_dialog_title">Paste your NVIDIA NIM API key</string>
+    <string name="settings_ai_key_dialog_body">Artha will send a tiny test request to NVIDIA NIM to confirm the key works. Only valid keys are saved.</string>
     <string name="settings_ai_key_dialog_field">API key</string>
     <string name="settings_ai_key_dialog_show">Show</string>
     <string name="settings_ai_key_dialog_hide">Hide</string>
-    <string name="settings_ai_key_dialog_validating">Validating with Gemini…</string>
+    <string name="settings_ai_key_dialog_validating">Validating with NVIDIA NIM…</string>
     <string name="settings_ai_key_dialog_save">Save</string>
     <string name="settings_ai_key_saved">Key saved — AI Quick Entry is on</string>
     <string name="settings_ai_key_cleared">AI key removed</string>
     <string name="settings_ai_key_invalid_fmt">Key rejected — try a new one. (%1$s)</string>
-    <string name="settings_ai_key_network_fmt">Couldn\'t reach Gemini — try again on better signal. (%1$s)</string>
+    <string name="settings_ai_key_network_fmt">Couldn\'t reach NVIDIA NIM — try again on better signal. (%1$s)</string>
     <string name="settings_section_about">About</string>
     <string name="settings_about_open">Open About</string>
 
@@ -742,7 +742,7 @@
 
     <!-- AI Quick Entry (Phase 3) -->
     <string name="ai_quick_entry_title">AI Quick Entry</string>
-    <string name="ai_quick_entry_subtitle">Type, dictate, or attach a receipt photo — Gemini will pre-fill the transaction for you to confirm.</string>
+    <string name="ai_quick_entry_subtitle">Type, dictate, or attach a receipt photo — GLM-5.2 will pre-fill the transaction for you to confirm.</string>
     <string name="ai_quick_entry_text_label">What happened?</string>
     <string name="ai_quick_entry_text_placeholder">e.g. 350 at CCD via GPay yesterday</string>
     <string name="ai_quick_entry_voice">Voice</string>
@@ -751,8 +751,8 @@
     <string name="ai_quick_entry_photo_attached">Photo attached</string>
     <string name="ai_quick_entry_submit">Parse</string>
     <string name="ai_quick_entry_confirm">Continue → confirm fields</string>
-    <string name="ai_quick_entry_no_key_title">Gemini API key not set</string>
-    <string name="ai_quick_entry_no_key_body">Open Settings → AI Quick Entry to paste your Gemini API key. Without it, AI Quick Entry stays offline.</string>
+    <string name="ai_quick_entry_no_key_title">NVIDIA NIM API key not set</string>
+    <string name="ai_quick_entry_no_key_body">Open Settings → AI Quick Entry to paste your NVIDIA NIM API key. Without it, AI Quick Entry stays offline.</string>
     <string name="ai_quick_entry_error_title">Couldn\'t parse</string>
     <string name="ai_quick_entry_preview_title">Preview — verify low-confidence fields (red)</string>
     <string name="ai_quick_entry_preview_amount">Amount</string>
@@ -1243,4 +1243,33 @@
     <string name="withdrawal_sheet_remaining_balance">Remaining balance</string>
     <string name="withdrawal_sheet_after_withdrawal">After withdrawal</string>
     <string name="withdrawal_sheet_confirm">Confirm withdrawal</string>
+
+    <!-- UPI Receipt Share -->
+    <string name="share_receipt_title">Receipt Import</string>
+    <string name="share_receipt_scanning">Reading your receipt…</string>
+    <string name="share_receipt_error_title">Could not read receipt</string>
+    <string name="share_receipt_retry">Try again</string>
+    <string name="share_receipt_add_manually">Add transaction manually</string>
+    <string name="share_receipt_phonepe_label">PhonePe</string>
+    <string name="share_receipt_amount_unknown">Amount not detected</string>
+    <string name="share_receipt_details_label">Receipt details</string>
+    <string name="share_receipt_field_date">Date</string>
+    <string name="share_receipt_field_upi_ref">UPI Ref</string>
+    <string name="share_receipt_field_paid_from">Paid from</string>
+    <string name="share_receipt_account_label">Debit account</string>
+    <string name="share_receipt_account_placeholder">Select account</string>
+    <string name="share_receipt_account_required">Select an account to save</string>
+    <string name="share_receipt_save">Save expense</string>
+    <string name="share_receipt_save_with_amount">Save expense · ₹%1$s</string>
+
+    <!-- In-app update dialog -->
+    <string name="update_dialog_eyebrow">Update available</string>
+    <string name="update_dialog_title">Artha %1$s is ready</string>
+    <string name="update_dialog_whats_new">What\'s new</string>
+    <string name="update_dialog_download">Download &amp; Install</string>
+    <string name="update_dialog_later">Later</string>
+    <string name="update_dialog_downloading">Downloading… %1$d%%</string>
+    <string name="update_dialog_downloading_hint">Please keep the app open</string>
+    <string name="update_dialog_failed">Download failed. Check your connection and try again.</string>
+    <string name="update_dialog_retry">Try again</string>
 </resources>

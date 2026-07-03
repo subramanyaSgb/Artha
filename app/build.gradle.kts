@@ -125,6 +125,9 @@ dependencies {
     // Google Generative AI — backs Phase 3's AI Quick Entry. Key from local.properties.
     implementation(libs.generative.ai)
 
+    // ML Kit on-device text recognition — UPI receipt share feature
+    implementation(libs.mlkit.text.recognition)
+
     // Phase 5 hardening — biometric prompt + encrypted SharedPreferences + Fragment
     // (BiometricPrompt requires a FragmentActivity host).
     implementation(libs.androidx.biometric)

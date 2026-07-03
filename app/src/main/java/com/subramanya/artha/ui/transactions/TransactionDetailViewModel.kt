@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.data.entity.enums.SourceKind
+import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
@@ -35,6 +36,14 @@ data class TransactionDetailUiState(
     /** True when the source/destination is a CREDIT card — edit prefill must keep the flag. */
     val sourceIsCreditCard: Boolean = false,
     val destinationIsCreditCard: Boolean = false,
+    /**
+     * Running balance of the source ACCOUNT immediately after this transaction, for the
+     * receipt's BALANCE line. Null when the source isn't a plain account (cash/card/
+     * investment/external) — we don't surface a "balance" for those.
+     */
+    val balanceAfter: Double? = null,
+    /** Short label for the BALANCE line (e.g. "HDFC Savings"). */
+    val balanceAccountName: String? = null,
     val showDeleteConfirm: Boolean = false,
 )
 
@@ -66,8 +75,9 @@ class TransactionDetailViewModel(
             personRepository.observeAll(),
             tagRepository.observeAll(),
         ) { categories, people, tags -> Triple(categories, people, tags) },
+        transactionRepository.observeAll(),
         showDeleteConfirm,
-    ) { data, lookups, confirm ->
+    ) { data, lookups, allTxns, confirm ->
         val (txn, accounts, cards) = data
         val (categories, people, tags) = lookups
         if (txn == null) {
@@ -81,6 +91,9 @@ class TransactionDetailViewModel(
         } else txn
 
         val category = categories.firstOrNull { it.id == hydratedTxn.categoryId }
+        val sourceAccount = if (hydratedTxn.sourceType == SourceKind.ACCOUNT) {
+            accounts.firstOrNull { it.id == hydratedTxn.sourceId }
+        } else null
         TransactionDetailUiState(
             transaction = hydratedTxn,
             sourceName = resolveEndpointName(hydratedTxn.sourceType, hydratedTxn.sourceId, accounts, cards),
@@ -92,6 +105,8 @@ class TransactionDetailViewModel(
             tagNames = hydratedTxn.tagIds.mapNotNull { id -> tags.firstOrNull { it.id == id }?.name },
             sourceIsCreditCard = isCreditCard(hydratedTxn.sourceType, hydratedTxn.sourceId, cards),
             destinationIsCreditCard = isCreditCard(hydratedTxn.destinationType, hydratedTxn.destinationId, cards),
+            balanceAfter = sourceAccount?.let { runningBalanceAfter(hydratedTxn, it, allTxns) },
+            balanceAccountName = sourceAccount?.name,
             showDeleteConfirm = confirm,
         )
     }.flowOn(Dispatchers.Default)
@@ -127,6 +142,39 @@ class TransactionDetailViewModel(
         }
     }
 
+    /**
+     * The source account's running balance immediately AFTER [txn] — the figure printed on the
+     * receipt's BALANCE line. Replays every transaction touching [account] (as source or as a
+     * transfer/card-payment destination) in chronological order, stopping once [txn] is applied.
+     * Mirrors [com.subramanya.artha.data.balance.BalanceCalculator]'s direction rules; kept inline
+     * here because that calculator works on entities while this VM holds domain models.
+     */
+    private fun runningBalanceAfter(
+        txn: Transaction,
+        account: com.subramanya.artha.domain.model.Account,
+        allTxns: List<Transaction>,
+    ): Double {
+        val ordered = allTxns.sortedWith(compareBy({ it.date }, { it.createdAt }))
+        var balance = account.openingBalance
+        for (t in ordered) {
+            if (t.sourceType == SourceKind.ACCOUNT && t.sourceId == account.id) {
+                balance += when (t.type) {
+                    in MONEY_OUT_OF_SOURCE -> -t.amount
+                    in MONEY_INTO_SOURCE -> t.amount
+                    TransactionType.ADJUSTMENT -> t.amount
+                    else -> 0.0
+                }
+            }
+            if (t.destinationType == SourceKind.ACCOUNT && t.destinationId == account.id &&
+                t.type in MONEY_INTO_DESTINATION
+            ) {
+                balance += t.amount
+            }
+            if (t.id == txn.id) break
+        }
+        return balance
+    }
+
     private fun isCreditCard(
         kind: SourceKind?,
         id: String?,
@@ -148,6 +196,21 @@ class TransactionDetailViewModel(
             SourceKind.INVESTMENT -> "Investment"
             SourceKind.EXTERNAL -> "External"
         }
+    }
+
+    private companion object {
+        val MONEY_OUT_OF_SOURCE = setOf(
+            TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
+            TransactionType.INVESTMENT_BUY, TransactionType.TRANSFER, TransactionType.CARD_PAYMENT,
+        )
+        val MONEY_INTO_SOURCE = setOf(
+            TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
+            TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
+            TransactionType.INVESTMENT_SELL,
+        )
+        val MONEY_INTO_DESTINATION = setOf(
+            TransactionType.TRANSFER, TransactionType.CARD_PAYMENT,
+        )
     }
 }
 

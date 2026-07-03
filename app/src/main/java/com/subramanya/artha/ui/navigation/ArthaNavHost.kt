@@ -34,6 +34,7 @@ import com.subramanya.artha.ui.settings.AboutScreen
 import com.subramanya.artha.ui.subscriptions.SubscriptionsScreen
 import com.subramanya.artha.ui.settings.SettingsScreen
 import com.subramanya.artha.ui.tags.TagsScreen
+import com.subramanya.artha.ui.share.ShareReceiptScreen
 import com.subramanya.artha.ui.transactions.TransactionDetailScreen
 import com.subramanya.artha.ui.transactions.TransactionsScreen
 
@@ -76,6 +77,13 @@ object SubRoutes {
 
     /** Global search — opened from the Dashboard header search icon. */
     const val SEARCH = "search"
+
+    // UPI Receipt Share
+    private const val SHARE_RECEIPT_BASE = "share_receipt"
+    const val SHARE_RECEIPT_ARG_URI = "encodedUri"
+    const val SHARE_RECEIPT_PATTERN = "$SHARE_RECEIPT_BASE/{$SHARE_RECEIPT_ARG_URI}"
+    fun shareReceipt(uriString: String): String =
+        "$SHARE_RECEIPT_BASE/${android.net.Uri.encode(uriString)}"
 
     private const val INVESTMENT_DETAIL_BASE = "investment_detail"
     const val INVESTMENT_DETAIL_ARG_ID = "investmentId"
@@ -319,6 +327,23 @@ fun ArthaNavHost(
                 onOpenPeople = { navController.navigate(SubRoutes.PEOPLE) },
                 onOpenCategories = { navController.navigate(SubRoutes.CATEGORIES) },
                 onOpenTags = { navController.navigate(SubRoutes.TAGS) },
+            )
+        }
+        composable(
+            route = SubRoutes.SHARE_RECEIPT_PATTERN,
+            arguments = listOf(navArgument(SubRoutes.SHARE_RECEIPT_ARG_URI) { type = NavType.StringType }),
+        ) { entry ->
+            val encoded = entry.arguments?.getString(SubRoutes.SHARE_RECEIPT_ARG_URI).orEmpty()
+            val uriString = android.net.Uri.decode(encoded)
+            ShareReceiptScreen(
+                imageUriString = uriString,
+                onBack = { navController.popBackStack() },
+                onTransactionSaved = { txnId ->
+                    navController.navigate(SubRoutes.transactionDetail(txnId)) {
+                        popUpTo(SubRoutes.SHARE_RECEIPT_PATTERN) { inclusive = true }
+                    }
+                },
+                onAddManually = { navController.popBackStack() },
             )
         }
         // No `more` route on purpose — that tap opens a sheet, not a destination.
