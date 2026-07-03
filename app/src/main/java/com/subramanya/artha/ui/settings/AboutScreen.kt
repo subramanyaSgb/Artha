@@ -158,6 +158,9 @@ fun AboutScreen(
                 }
 
                 Spacer(Modifier.height(24.dp))
+                FeaturesSection()
+
+                Spacer(Modifier.height(24.dp))
                 AboutMetaRow(
                     eyebrow = stringResource(R.string.about_version_eyebrow),
                     value = BuildConfig.VERSION_NAME,
@@ -276,6 +279,93 @@ private fun UpdateCheckRow(
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(18.dp),
                 )
+            }
+        }
+    }
+}
+
+/**
+ * A grouped, checkmarked list of everything the app does — shown on the About page so the
+ * whole feature surface is visible in one place. Groups + items are string resources.
+ */
+@Composable
+private fun FeaturesSection() {
+    val groups = listOf(
+        R.string.about_features_group_money to listOf(
+            R.string.about_features_money_1, R.string.about_features_money_2,
+            R.string.about_features_money_3, R.string.about_features_money_4,
+        ),
+        R.string.about_features_group_ai to listOf(
+            R.string.about_features_ai_1, R.string.about_features_ai_2, R.string.about_features_ai_3,
+        ),
+        R.string.about_features_group_grow to listOf(
+            R.string.about_features_grow_1, R.string.about_features_grow_2, R.string.about_features_grow_3,
+        ),
+        R.string.about_features_group_plan to listOf(
+            R.string.about_features_plan_1, R.string.about_features_plan_2, R.string.about_features_plan_3,
+        ),
+        R.string.about_features_group_understand to listOf(
+            R.string.about_features_understand_1, R.string.about_features_understand_2,
+        ),
+        R.string.about_features_group_private to listOf(
+            R.string.about_features_private_1, R.string.about_features_private_2,
+            R.string.about_features_private_3, R.string.about_features_private_4,
+        ),
+        R.string.about_features_group_custom to listOf(
+            R.string.about_features_custom_1, R.string.about_features_custom_2, R.string.about_features_custom_3,
+        ),
+    )
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(width = 14.dp, height = 1.dp)
+                .background(LineTeal),
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            text = stringResource(R.string.about_features_eyebrow).uppercase(),
+            style = EyebrowStyle,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+    Spacer(Modifier.height(12.dp))
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            groups.forEachIndexed { index, (groupRes, items) ->
+                if (index > 0) Spacer(Modifier.height(16.dp))
+                Text(
+                    text = stringResource(groupRes).uppercase(),
+                    style = EyebrowStyle,
+                    color = Text3,
+                )
+                Spacer(Modifier.height(8.dp))
+                items.forEach { itemRes ->
+                    Row(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp).padding(top = 2.dp),
+                        )
+                        Spacer(Modifier.size(10.dp))
+                        Text(
+                            text = stringResource(itemRes),
+                            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
             }
         }
     }

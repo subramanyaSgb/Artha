@@ -112,6 +112,7 @@ fun DashboardScreen(
     // full list). The "+ Add" chips open the add-sheet locally instead (see below).
     onOpenAccounts: () -> Unit = {},
     onOpenCards: () -> Unit = {},
+    onOpenPendingSms: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
@@ -141,6 +142,8 @@ fun DashboardScreen(
     val sectionOrder by app.settingsPreferences.dashboardSectionOrder.collectAsStateWithLifecycle(initialValue = emptyList())
     // AI Quick Entry is opt-in — the card stays hidden until enabled in Settings (default off).
     val showAiQuickEntry by app.settingsPreferences.aiQuickEntryEnabled.collectAsStateWithLifecycle(initialValue = false)
+    // SMS review queue — surface a banner when there are parsed SMS awaiting confirmation.
+    val pendingSmsCount by app.pendingSmsRepository.observeCount().collectAsStateWithLifecycle(initialValue = 0)
 
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         RefreshableContent(modifier = Modifier.fillMaxSize()) {
@@ -171,6 +174,11 @@ fun DashboardScreen(
                         policies = state.premiumsDueThisWeek,
                         onTap = { onOpenInsurance(state.premiumsDueThisWeek.first().id) },
                     )
+                }
+
+                if (pendingSmsCount > 0) {
+                    Spacer(Modifier.height(12.dp))
+                    PendingSmsBanner(count = pendingSmsCount, onTap = onOpenPendingSms)
                 }
 
                 // AI Quick Entry is a pinned, opt-in card (not part of the reorderable set).
@@ -576,6 +584,43 @@ private fun PremiumDueBanner(
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PendingSmsBanner(count: Int, onTap: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clickable(onClick = onTap),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Filled.Inbox,
+                contentDescription = null,
+                tint = com.subramanya.artha.ui.theme.Teal500,
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.dashboard_pending_sms_title, count),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = stringResource(R.string.dashboard_pending_sms_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Text3,
+                )
+            }
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Text3)
         }
     }
 }

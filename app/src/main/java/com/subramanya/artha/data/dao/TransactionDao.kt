@@ -42,6 +42,11 @@ interface TransactionDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE source_id = :id OR destination_id = :id")
     suspend fun countReferencing(id: String): Int
 
+    /** How many transactions already record this UPI ref in their notes ("UPI Ref: <ref>").
+     *  Powers SMS/receipt duplicate detection so the same payment isn't counted twice. */
+    @Query("SELECT COUNT(*) FROM transactions WHERE notes LIKE '%' || :ref || '%'")
+    suspend fun countByNotesRef(ref: String): Int
+
     @Query("SELECT person_id FROM transaction_people WHERE transaction_id = :transactionId")
     suspend fun getPeopleIds(transactionId: String): List<String>
 

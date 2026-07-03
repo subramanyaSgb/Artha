@@ -80,6 +80,10 @@ class TransactionRepository(private val transactionDao: TransactionDao) {
     suspend fun insertTransaction(entity: com.subramanya.artha.data.entity.TransactionEntity) =
         transactionDao.insertTransaction(entity)
 
+    /** True if a transaction already records [ref] (a UPI ref) in its notes — duplicate guard
+     *  so a shared receipt and its bank SMS don't both create a transaction. */
+    suspend fun existsByRef(ref: String): Boolean = transactionDao.countByNotesRef(ref) > 0
+
     suspend fun delete(transaction: Transaction) =
         transactionDao.deleteTransaction(transaction.toEntity())
 

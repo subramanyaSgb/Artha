@@ -638,6 +638,38 @@
     <string name="about_up_to_date">You\'re up to date</string>
     <string name="about_update_error">Couldn\'t check — try again</string>
 
+    <!-- About → Features list -->
+    <string name="about_features_eyebrow">What\'s inside</string>
+    <string name="about_features_group_money">Money in &amp; out</string>
+    <string name="about_features_money_1">Multiple bank accounts &amp; cards with auto-computed balances</string>
+    <string name="about_features_money_2">Transactions with categories, tags &amp; people</string>
+    <string name="about_features_money_3">Transfers, refunds, cashback &amp; split expenses</string>
+    <string name="about_features_money_4">Attach receipts to any transaction</string>
+    <string name="about_features_group_ai">AI-powered entry</string>
+    <string name="about_features_ai_1">AI Quick Entry — type, speak, or snap a photo</string>
+    <string name="about_features_ai_2">UPI receipt scanning (PhonePe, GPay, Paytm…)</string>
+    <string name="about_features_ai_3">Bank SMS auto-import with a review queue</string>
+    <string name="about_features_group_grow">Grow &amp; protect</string>
+    <string name="about_features_grow_1">Investments with per-type valuation</string>
+    <string name="about_features_grow_2">Fixed-deposit partial withdrawal</string>
+    <string name="about_features_grow_3">Insurance policies &amp; premium reminders</string>
+    <string name="about_features_group_plan">Plan ahead</string>
+    <string name="about_features_plan_1">Budgets &amp; savings goals</string>
+    <string name="about_features_plan_2">Subscriptions &amp; recurring auto-entries</string>
+    <string name="about_features_plan_3">Rules engine to auto-categorise</string>
+    <string name="about_features_group_understand">Understand</string>
+    <string name="about_features_understand_1">Dashboard with net worth &amp; spending breakdown</string>
+    <string name="about_features_understand_2">Reports &amp; analytics</string>
+    <string name="about_features_group_private">Private &amp; yours</string>
+    <string name="about_features_private_1">100% on-device — no cloud, no tracking</string>
+    <string name="about_features_private_2">Biometric / PIN lock</string>
+    <string name="about_features_private_3">Encrypted backup &amp; restore</string>
+    <string name="about_features_private_4">In-app updates</string>
+    <string name="about_features_group_custom">Make it yours</string>
+    <string name="about_features_custom_1">Light &amp; dark themes with Material You</string>
+    <string name="about_features_custom_2">Custom categories, colours &amp; icons</string>
+    <string name="about_features_custom_3">Reorderable dashboard sections</string>
+
     <!-- Transaction Detail -->
     <string name="txn_detail_title">Transaction</string>
     <string name="txn_detail_back">Back</string>
@@ -762,6 +794,8 @@
     <string name="dashboard_section_cards_empty">Add a credit/debit card from More → Cards.</string>
     <string name="dashboard_premium_due_one">Insurance premium due soon</string>
     <string name="dashboard_premium_due_many">%1$d insurance premiums due soon</string>
+    <string name="dashboard_pending_sms_title">%1$d SMS transaction(s) to review</string>
+    <string name="dashboard_pending_sms_body">Tap to confirm, edit, or dismiss them</string>
 
     <!-- AI Quick Entry (Phase 3) -->
     <string name="ai_quick_entry_title">AI Quick Entry</string>

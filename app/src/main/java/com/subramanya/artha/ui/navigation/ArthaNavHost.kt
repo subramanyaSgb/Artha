@@ -184,6 +184,7 @@ fun ArthaNavHost(
                         launchSingleTop = true
                     }
                 },
+                onOpenPendingSms = { navController.navigate(SubRoutes.PENDING_SMS) },
             )
         }
         composable(ArthaDestination.Transactions.route) {

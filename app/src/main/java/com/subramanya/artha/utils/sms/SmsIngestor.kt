@@ -24,9 +24,13 @@ object SmsIngestor {
         // Need at least an amount to be worth queuing.
         val amount = parsed.amount ?: return
 
-        // Duplicate guard: same ref already queued (e.g. the receiver + a re-delivered SMS).
+        // Duplicate guard by ref:
+        //  - already queued (receiver + a re-delivered SMS), or
+        //  - already a real transaction (e.g. the user shared the UPI receipt, which stored
+        //    "UPI Ref: <ref>" in notes) — don't double-count the same payment.
         parsed.refNo?.let { ref ->
             if (app.pendingSmsRepository.existsByRef(ref)) return
+            if (app.transactionRepository.existsByRef(ref)) return
         }
 
         val matchedAccountId = parsed.accountHint?.let { hint ->
