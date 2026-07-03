@@ -43,7 +43,7 @@ goes live once `/hooks` is opened or Claude Code is restarted (the config watche
 
 **Maintenance & extension.** All planned phases are complete — Phases 1–4 done, Phase 5 partial — see **Phase Roadmap (status)** at the bottom for exactly what's built and what's deferred. The app is feature-complete for daily use.
 
-Work from the goal I state at session start; don't start speculative features. When I ask for something, first check whether it's already a deferred item (SMS parsing, recurring auto-fire via WorkManager, crash reporting, cloud sync) versus genuinely new. `docs/phase1_tasks.md` is retained as historical reference for the original MVP build.
+Work from the goal I state at session start; don't start speculative features. When I ask for something, first check whether it's already a deferred item (crash reporting, cloud sync) versus genuinely new. `docs/phase1_tasks.md` is retained as historical reference for the original MVP build.
 
 ---
 
@@ -158,10 +158,11 @@ file as the SDK path) or AI silently no-ops.
   API key" section above.)
 - **Phase 4 done** — Budgets + Goals + Subscriptions + Recurring + People.
 - **Phase 5 partial** — Biometric/device-credential lock, Reports/Analytics, AES-GCM
-  encrypted backup. **Deferred:** SMS parsing receiver, recurring-rule auto-fire via
-  WorkManager, crash reporting, cloud sync. SMS in particular needs a bank-specific
-  regex catalogue + runtime-permission UX flow; the Settings toggle + DataStore key
-  are already in place so the receiver can drop in cleanly.
+  encrypted backup, **SMS auto-import (done, v0.13.0** — review-queue + hybrid regex/NIM
+  parser, live-only RECEIVE_SMS; DB v7→v8 `pending_sms` table; see the `sms-auto-import`
+  memory), recurring-rule auto-fire via WorkManager (done). **Deferred:** crash reporting,
+  cloud sync. SMS follow-ups still open: Dashboard surfacing (only a Settings entry today)
+  and transaction-level dedup (SMS vs shared UPI receipt).
 - **Configurable pick-lists done (2026-06-06)** — All three phases shipped:
   Phase 1 (custom colours/icons + Settings manage-UI), Phase 2 (PaymentApp catalogue,
   DB v5→v6), Phase 3 (Account/Card/Insurance type catalogues, DB v6→v7). DB is now
