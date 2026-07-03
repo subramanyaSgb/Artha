@@ -7,10 +7,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Gemini API key is no longer baked into the APK — the user pastes their own key
-// in Settings → AI Quick Entry, which validates it against Gemini before storing
-// it in DataStore. No hardcoded fallback, no local.properties dependency.
-@Suppress("unused")
+// NVIDIA NIM API key is baked in from local.properties (gitignored — never committed)
+// into BuildConfig.NIM_API_KEY. Single-user app: the key ships in the build so there's
+// no in-app paste step. NOTE: the release APK is public, so this key is extractable by
+// anyone who decompiles it — rotate the (free, revocable) NIM key if it's ever abused.
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -27,8 +27,15 @@ android {
         applicationId = "com.subramanya.artha"
         minSdk = 26
         targetSdk = 34
-        versionCode = 11
-        versionName = "0.11.0"
+        versionCode = 12
+        versionName = "0.12.0"
+
+        // Baked NIM API key (see localProps note above). Empty string if not set.
+        buildConfigField(
+            "String",
+            "NIM_API_KEY",
+            "\"${localProps.getProperty("NIM_API_KEY", "")}\"",
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

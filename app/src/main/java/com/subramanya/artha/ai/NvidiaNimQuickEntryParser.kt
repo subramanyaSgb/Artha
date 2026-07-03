@@ -28,7 +28,10 @@ class NvidiaNimQuickEntryParser(
 ) : AiQuickEntryParser {
 
     private val endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
-    private val model = "z-ai/glm-5.2"
+    // Unified across all AI tasks with the receipt parser — NVIDIA's omni model has the
+    // strongest verified vision + text grounding. It's a reasoning model (emits
+    // reasoning_content separately), so clean JSON still lands in message.content.
+    private val model = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
 
     override suspend fun parse(input: AiQuickEntryInput): AiQuickEntryResult {
         val key = keyProvider()
@@ -102,7 +105,8 @@ class NvidiaNimQuickEntryParser(
                 })
             })
             put("temperature", 0.3)
-            put("max_tokens", 512)
+            // Generous budget: reasoning tokens count toward the completion limit.
+            put("max_tokens", 4096)
             put("stream", false)
         }.toString()
     }

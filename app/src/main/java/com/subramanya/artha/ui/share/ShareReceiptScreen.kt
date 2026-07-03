@@ -92,7 +92,7 @@ fun ShareReceiptScreen(
         factory = ShareReceiptViewModelFactory(
             imageUri = Uri.parse(imageUriString),
             upiReceiptParser = UpiReceiptParser(
-                keyProvider = { app.settingsPreferences.geminiApiKey.first() },
+                keyProvider = { app.nimApiKey() },
             ),
             accountRepository = app.accountRepository,
             categoryRepository = app.categoryRepository,

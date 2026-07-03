@@ -106,10 +106,19 @@ class ArthaApplication : Application() {
         RecurringRuleRepository(database.recurringRuleDao())
     }
 
-    /** Backed by [NvidiaNimQuickEntryParser] (z-ai/glm-5.2) reading the user's stored key from
-     *  [SettingsPreferences]. The lambda runs per-call so a key paste in Settings
-     *  takes effect immediately — no process restart, no hardcoded BuildConfig key. */
+    /**
+     * The NVIDIA NIM API key used by EVERY AI task (AI Quick Entry + UPI receipt parsing).
+     * Baked into the build from local.properties → [BuildConfig.NIM_API_KEY]. A non-blank
+     * value stored in DataStore still wins (legacy/override path), but there is no in-app
+     * key UI anymore, so in practice this returns the baked key.
+     */
+    suspend fun nimApiKey(): String {
+        val stored = settingsPreferences.geminiApiKey.first()
+        return stored.ifBlank { BuildConfig.NIM_API_KEY }
+    }
+
+    /** Backed by [NvidiaNimQuickEntryParser], keyed by the single baked [nimApiKey]. */
     val aiQuickEntryParser: AiQuickEntryParser by lazy {
-        NvidiaNimQuickEntryParser(keyProvider = { settingsPreferences.geminiApiKey.first() })
+        NvidiaNimQuickEntryParser(keyProvider = { nimApiKey() })
     }
 }
