@@ -78,11 +78,11 @@ class UpiReceiptParser(
         val prompt = """
             Extract UPI payment details from this receipt screenshot. Reply with ONLY a JSON object, no markdown:
             {
-              "amount": <number, INR rupees, digits only>,
-              "merchantName": "<recipient or merchant name>",
-              "upiRef": "<UPI reference / transaction ID, 8-15 digits>",
-              "dateText": "<date as shown, e.g. 25 Jun 2026>",
-              "sourceBankHint": "<payer bank name, e.g. HDFC Bank>",
+              "amount": <number, INR rupees, digits only — look for ₹ symbol>,
+              "merchantName": "<recipient or merchant name, e.g. HARISHKUMAR K>",
+              "upiRef": "<UTR number if present (prefer UTR over Transaction ID), digits only>",
+              "dateText": "<full date and time as shown, e.g. '02:46 pm on 03 Jul 2026'>",
+              "sourceBankHint": "<payer bank name, e.g. Jupiter, HDFC Bank, SBI>",
               "paymentApp": "<one of: PHONEPE, GPAY, PAYTM, BHIM, OTHER>"
             }
             Omit any field you cannot determine.
@@ -112,12 +112,31 @@ class UpiReceiptParser(
     }
 
     private fun parseDateText(text: String): Long? {
+        val raw = text.trim()
+
+        // Extract 12-hour time if present: "02:46 pm"
+        val time12 = Regex("""(\d{1,2}):(\d{2})\s*(am|pm)""", RegexOption.IGNORE_CASE).find(raw)
+        var hourOffset = 0L
+        if (time12 != null) {
+            var h = time12.groupValues[1].toInt()
+            val m = time12.groupValues[2].toInt()
+            if (time12.groupValues[3].lowercase() == "pm" && h != 12) h += 12
+            if (time12.groupValues[3].lowercase() == "am" && h == 12) h = 0
+            hourOffset = h * 3_600_000L + m * 60_000L
+        }
+
+        // Strip PhonePe datetime prefix: "HH:mm am/pm on " → keep the date portion only
+        val dateStr = raw.replace(
+            Regex("""^\d{1,2}:\d{2}\s*(am|pm)\s+on\s+""", RegexOption.IGNORE_CASE), "",
+        ).trim()
+
         val formats = listOf("d MMM yyyy", "dd MMM yyyy", "MMM d yyyy", "yyyy-MM-dd", "d/M/yyyy")
-        val cleaned = text.trim()
         for (fmt in formats) {
             runCatching {
-                SimpleDateFormat(fmt, Locale.US).parse(cleaned)?.time
-            }.getOrNull()?.let { return it }
+                val sdf = SimpleDateFormat(fmt, Locale.US)
+                sdf.isLenient = false
+                sdf.parse(dateStr)?.time
+            }.getOrNull()?.let { return it + hourOffset }
         }
         return null
     }

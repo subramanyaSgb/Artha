@@ -34,8 +34,10 @@ data class UpiParsedReceipt(
 object PhonePeReceiptParser {
 
     private val AMOUNT_RE = Regex("""₹\s*([\d,]+(?:\.\d{1,2})?)""")
+    // Prefer UTR (short numeric) over Transaction ID (which may have letter prefixes)
+    private val UTR_RE = Regex("""(?i)UTR\s*[:\-]?\s*(\d{8,20})""")
     private val UPI_REF_RE = Regex(
-        """(?i)UPI\s+(?:Ref(?:erence)?(?:\s+No\.?)?|Transaction\s*ID)\s*[:\-]?\s*(\d{8,15})""",
+        """(?i)UPI\s+(?:Ref(?:erence)?(?:\s+No\.?)?|Transaction\s*ID)\s*[:\-]?\s*([A-Z]?\d{8,25})""",
     )
 
     // Label lines that precede the merchant name
@@ -49,6 +51,7 @@ object PhonePeReceiptParser {
         "phonepe",
         "paid successfully",
         "payment successful",
+        "transaction successful",
         "paid to upi",
     )
 
@@ -85,7 +88,8 @@ object PhonePeReceiptParser {
             ?.toDoubleOrNull()
 
     private fun extractUpiRef(text: String): String? =
-        UPI_REF_RE.find(text)?.groupValues?.get(1)
+        UTR_RE.find(text)?.groupValues?.get(1)
+            ?: UPI_REF_RE.find(text)?.groupValues?.get(1)
 
     private fun extractLineAfterLabel(lines: List<String>, labels: Set<String>): String? {
         for (i in lines.indices) {
@@ -115,10 +119,12 @@ object PhonePeReceiptParser {
         )
         val month = monthMap[monthStr.lowercase()] ?: return null
 
-        // Try to extract time from the same region of text
+        // Try to extract time from the region around the date — in PhonePe the time
+        // appears BEFORE the date ("02:46 pm on 03 Jul 2026"), so search before and after.
         var hour = 0
         var minute = 0
-        val timeText = text.substring(dateMatch.range.first).take(40)
+        val searchStart = maxOf(0, dateMatch.range.first - 30)
+        val timeText = text.substring(searchStart, minOf(text.length, dateMatch.range.last + 40))
         val time12 = TIME_12_RE.find(timeText)
         val time24 = TIME_24_RE.find(timeText)
         if (time12 != null) {

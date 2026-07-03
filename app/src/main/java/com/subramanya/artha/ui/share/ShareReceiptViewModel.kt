@@ -14,6 +14,7 @@ import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Transaction
+import com.subramanya.artha.utils.ReceiptStore
 import com.subramanya.artha.utils.UpiReceiptParser
 import com.subramanya.artha.utils.upi.UpiParsedReceipt
 import kotlinx.coroutines.Dispatchers
@@ -132,6 +133,8 @@ class ShareReceiptViewModel(
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val receipt = current.receipt
+            // Copy the shared image into app-private storage so it survives process restarts
+            val savedReceiptUri = ReceiptStore.persist(context, imageUri)
             val txn = Transaction(
                 id = UUID.randomUUID().toString(),
                 type = TransactionType.EXPENSE,
@@ -151,7 +154,7 @@ class ShareReceiptViewModel(
                 longitude = null,
                 peopleIds = emptyList(),
                 tagIds = emptyList(),
-                receiptUri = null,
+                receiptUri = savedReceiptUri,
                 notes = receipt.upiRef?.let { "UPI Ref: $it" },
                 taxSection = null,
                 recurringRuleId = null,
