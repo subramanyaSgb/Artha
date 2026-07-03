@@ -110,19 +110,23 @@ fun UpdateDialog(
                         color = Text3,
                     )
                     Spacer(Modifier.height(6.dp))
-                    Column(
+                    // Viewport Box with fixed cap — verticalScroll must be on the CHILD,
+                    // not the same composable as heightIn, to work reliably inside a Dialog.
+                    androidx.compose.foundation.layout.Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 180.dp)   // viewport cap — must come before verticalScroll
+                            .heightIn(max = 160.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                            .verticalScroll(rememberScrollState())
-                            .padding(12.dp),
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     ) {
                         Text(
                             text = info.releaseNotes,
                             style = MaterialTheme.typography.bodySmall,
                             color = Text2,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(12.dp),
                         )
                     }
                 }

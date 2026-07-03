@@ -502,7 +502,7 @@ private fun ParsedCard(
         val amountColor = if (parsed.amount.confidence == Confidence.LOW && amount != null) Danger
             else MaterialTheme.colorScheme.onSurface
         Text(
-            text = if (amount != null) "₹${IndianNumberFormat.format(amount)}" else "Amount not detected",
+            text = if (amount != null) IndianNumberFormat.format(amount) else "Amount not detected",
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
                 fontFamily = IbmPlexMono,
