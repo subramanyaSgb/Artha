@@ -120,3 +120,36 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         }
     }
 }
+
+/**
+ * v7 -> v8: SMS auto-import review queue.
+ *
+ * Purely additive: CREATE the new `pending_sms` table that holds bank-SMS-derived
+ * transactions awaiting user review. No existing table is touched. The CREATE TABLE
+ * must match Room's generated schema for [com.subramanya.artha.data.entity.PendingSmsEntity]
+ * exactly (kept in sync with app/schemas/…/8.json), or post-migration validation throws.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `pending_sms` (" +
+                "`id` TEXT NOT NULL, " +
+                "`received_at` INTEGER NOT NULL, " +
+                "`sender` TEXT NOT NULL, " +
+                "`raw_body` TEXT NOT NULL, " +
+                "`amount` REAL, " +
+                "`direction` TEXT NOT NULL, " +
+                "`merchant` TEXT, " +
+                "`account_hint` TEXT, " +
+                "`ref_no` TEXT, " +
+                "`occurred_at` INTEGER, " +
+                "`matched_account_id` TEXT, " +
+                "`suggested_category_id` TEXT, " +
+                "`parse_source` TEXT NOT NULL, " +
+                "PRIMARY KEY(`id`))",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_pending_sms_received_at` ON `pending_sms` (`received_at`)",
+        )
+    }
+}

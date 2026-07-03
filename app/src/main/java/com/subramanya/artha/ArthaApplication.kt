@@ -18,6 +18,7 @@ import com.subramanya.artha.data.repository.AccountTypeRepository
 import com.subramanya.artha.data.repository.CardTypeRepository
 import com.subramanya.artha.data.repository.InsuranceTypeRepository
 import com.subramanya.artha.data.repository.PaymentAppRepository
+import com.subramanya.artha.data.repository.PendingSmsRepository
 import com.subramanya.artha.data.repository.PersonRepository
 import com.subramanya.artha.data.repository.RecurringRuleRepository
 import com.subramanya.artha.data.repository.SubscriptionRepository
@@ -104,6 +105,11 @@ class ArthaApplication : Application() {
     }
     val recurringRuleRepository: RecurringRuleRepository by lazy {
         RecurringRuleRepository(database.recurringRuleDao())
+    }
+
+    // Phase 5 — SMS auto-import review queue
+    val pendingSmsRepository: PendingSmsRepository by lazy {
+        PendingSmsRepository(database.pendingSmsDao())
     }
 
     /**

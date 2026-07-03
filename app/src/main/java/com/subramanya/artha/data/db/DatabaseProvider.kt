@@ -32,7 +32,7 @@ object DatabaseProvider {
                 // Real, data-preserving migrations run first. v3->v4 adds investment valuation
                 // columns; v4->v5 adds transactions.excluded_from_expense_total; v5->v6 adds the
                 // payment-app catalogue; v6->v7 adds account/card/insurance type catalogues.
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
 
         // Destructive fallback in DEBUG ONLY. During development a schema gap not covered by an
         // explicit migration resets the local DB instead of crashing — convenient for iteration.

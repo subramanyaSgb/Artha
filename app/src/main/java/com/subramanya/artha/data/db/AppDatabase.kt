@@ -15,6 +15,7 @@ import com.subramanya.artha.data.dao.AccountTypeDao
 import com.subramanya.artha.data.dao.CardTypeDao
 import com.subramanya.artha.data.dao.InsuranceTypeDao
 import com.subramanya.artha.data.dao.PaymentAppDao
+import com.subramanya.artha.data.dao.PendingSmsDao
 import com.subramanya.artha.data.dao.PersonDao
 import com.subramanya.artha.data.dao.RecurringRuleDao
 import com.subramanya.artha.data.dao.SubscriptionDao
@@ -32,6 +33,7 @@ import com.subramanya.artha.data.entity.AccountTypeEntity
 import com.subramanya.artha.data.entity.CardTypeEntity
 import com.subramanya.artha.data.entity.InsuranceTypeEntity
 import com.subramanya.artha.data.entity.PaymentAppEntity
+import com.subramanya.artha.data.entity.PendingSmsEntity
 import com.subramanya.artha.data.entity.PersonEntity
 import com.subramanya.artha.data.entity.RecurringRuleEntity
 import com.subramanya.artha.data.entity.SubscriptionEntity
@@ -66,8 +68,10 @@ import com.subramanya.artha.data.entity.TransactionTagCrossRef
         AccountTypeEntity::class,
         CardTypeEntity::class,
         InsuranceTypeEntity::class,
+        // Phase 5 — SMS auto-import review queue
+        PendingSmsEntity::class,
     ],
-    version = 7,
+    version = 8,
     // Schemas are exported to app/schemas (room.schemaLocation in build.gradle.kts) so
     // MigrationTestHelper can validate migrations against the generated schema.
     exportSchema = true,
@@ -91,6 +95,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun accountTypeDao(): AccountTypeDao
     abstract fun cardTypeDao(): CardTypeDao
     abstract fun insuranceTypeDao(): InsuranceTypeDao
+    abstract fun pendingSmsDao(): PendingSmsDao
     abstract fun backupDao(): BackupDao
 
     companion object {
