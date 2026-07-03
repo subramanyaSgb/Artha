@@ -75,11 +75,14 @@ class UpiReceiptParser(
 
     private suspend fun parseWithNim(key: String, bitmap: Bitmap): UpiParsedReceipt? {
         val b64 = bitmapToBase64(bitmap)
-        // minimaxai/minimax-m3 — multimodal, extracts vision fields more reliably than
-        // glm-5.2 which was dropping amount/merchant. Same OpenAI-compatible endpoint.
+        // nvidia/nemotron-3-nano-omni-30b-a3b-reasoning — NVIDIA's image-to-text omni model.
+        // Verified (2026-07-03) to have stronger vision grounding than minimax-m3/glm-5.2
+        // (correctly read a test pixel the others hallucinated). It's a reasoning model:
+        // it emits `reasoning_content` separately, so the clean JSON stays in `content`.
+        // max_tokens is generous because reasoning tokens count toward the completion budget.
         val body = """
             {
-              "model": "minimaxai/minimax-m3",
+              "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
               "messages": [{
                 "role": "user",
                 "content": [
@@ -87,8 +90,8 @@ class UpiReceiptParser(
                   {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,$b64"}}
                 ]
               }],
-              "temperature": 0.1,
-              "max_tokens": 1024,
+              "temperature": 0.2,
+              "max_tokens": 4096,
               "stream": false
             }
         """.trimIndent()
