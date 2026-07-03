@@ -98,14 +98,26 @@ Worktree directory convention: create feature worktrees under `.worktrees/`
 (project-local, gitignored). `local.properties` (the SDK path) is gitignored and is
 **not** copied into a new worktree, so copy it in or Gradle can't find the Android SDK.
 
-### Phase 3 — Gemini API key
+### AI provider & key (updated 2026-07-03 — supersedes the Phase-3 BYOK note)
 
-AI Quick Entry uses Google's Generative AI SDK. The user pastes their own key
-into **Settings → AI Quick Entry**, which validates the key against Gemini
-before storing it in `SettingsPreferences` (DataStore). No build-time key, no
-`local.properties` hook, no `BuildConfig` baking — keys are per-install and
-revocable from inside the app. Empty key → the parser returns `NoApiKey` and
-the UI nudges the user toward Settings.
+ALL AI tasks (AI Quick Entry + UPI receipt parsing) use **NVIDIA NIM**, model
+`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`, via `HttpURLConnection` POST to
+`https://integrate.api.nvidia.com/v1/chat/completions`. (Not Gemini; not glm-5.2/
+minimax — nemotron-omni won on verified vision accuracy.) It's a reasoning model:
+`reasoning_content` is separate, clean JSON stays in `message.content`; use
+`max_tokens` ~4096.
+
+**Key is now BAKED**, not BYOK. Single-user app: the key lives in `local.properties`
+(gitignored) as `NIM_API_KEY`, is exposed via `BuildConfig.NIM_API_KEY`, and read by
+`ArthaApplication.nimApiKey()` (a non-blank DataStore value still wins, but there's no
+in-app UI to set one). The Settings key-entry UI was removed; only the AI on/off toggle
+remains. **This intentionally reverses the earlier "no BuildConfig baking, keys
+per-install" rule.**
+
+⚠️ The repo + release APKs are PUBLIC, so the baked key is extractable by decompiling
+the APK. Accepted tradeoff (NIM keys are free + revocable). Key never goes in source/git
+— only `local.properties`. After a fresh clone/worktree, set `NIM_API_KEY` there (same
+file as the SDK path) or AI silently no-ops.
 
 ## What NOT to Do
 
