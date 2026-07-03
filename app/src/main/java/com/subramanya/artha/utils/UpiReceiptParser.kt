@@ -10,6 +10,9 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.subramanya.artha.utils.upi.PhonePeReceiptParser
 import com.subramanya.artha.utils.upi.UpiParsedReceipt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -23,11 +26,11 @@ import kotlin.coroutines.resumeWithException
 /**
  * Parses a UPI payment receipt image into structured fields.
  *
- * Primary path (when [keyProvider] is set): sends the image to NVIDIA NIM (z-ai/glm-5.2)
- * which handles any UPI app layout — PhonePe, GPay, Paytm, etc.
+ * Both paths run in parallel and their results are merged field-by-field:
+ *  - NIM vision (z-ai/glm-5.2): handles any UPI app layout, requires API key + internet.
+ *  - ML Kit OCR + PhonePeReceiptParser: on-device, works offline, PhonePe only.
  *
- * Fallback path (no key, or NIM fails): on-device ML Kit OCR + per-app regex.
- * Currently the regex only covers PhonePe; add more parsers in the fallback block as needed.
+ * Merging means a field that NIM misses can still come from ML Kit and vice-versa.
  */
 class UpiReceiptParser(
     private val keyProvider: (suspend () -> String)? = null,
@@ -38,15 +41,36 @@ class UpiReceiptParser(
             BitmapFactory.decodeStream(it)
         } ?: return null
 
-        // Try NIM vision first when a key is configured
         val key = keyProvider?.invoke()?.takeIf { it.isNotBlank() }
-        if (key != null) {
-            runCatching { parseWithNim(key, bitmap) }.getOrNull()?.let { return it }
-        }
 
-        // Fallback: ML Kit OCR → regex
-        val text = runOcr(bitmap)
-        return PhonePeReceiptParser.parse(text)
+        // Run NIM and ML Kit in parallel — total wait = slowest of the two, not the sum.
+        return coroutineScope {
+            val nimDeferred = async(Dispatchers.IO) {
+                if (key != null) runCatching { parseWithNim(key, bitmap) }.getOrNull() else null
+            }
+            val mlDeferred = async {
+                runCatching {
+                    val text = runOcr(bitmap)
+                    PhonePeReceiptParser.parse(text)
+                }.getOrNull()
+            }
+            merge(nimDeferred.await(), mlDeferred.await())
+        }
+    }
+
+    /** Prefer NIM for each field; fall back to ML Kit where NIM returned null. */
+    private fun merge(nim: UpiParsedReceipt?, ml: UpiParsedReceipt?): UpiParsedReceipt? {
+        if (nim == null && ml == null) return null
+        if (nim == null) return ml
+        if (ml == null) return nim
+        return UpiParsedReceipt(
+            amount = nim.amount ?: ml.amount,
+            merchantName = nim.merchantName ?: ml.merchantName,
+            dateTimeMillis = nim.dateTimeMillis ?: ml.dateTimeMillis,
+            upiRef = nim.upiRef ?: ml.upiRef,
+            sourceBankHint = nim.sourceBankHint ?: ml.sourceBankHint,
+            paymentApp = if (nim.paymentApp != "OTHER") nim.paymentApp else ml.paymentApp,
+        )
     }
 
     private suspend fun parseWithNim(key: String, bitmap: Bitmap): UpiParsedReceipt? {
@@ -62,7 +86,7 @@ class UpiReceiptParser(
                 ]
               }],
               "temperature": 0.1,
-              "max_tokens": 256,
+              "max_tokens": 512,
               "stream": false
             }
         """.trimIndent()
@@ -74,44 +98,46 @@ class UpiReceiptParser(
     }
 
     private fun nimPrompt(): String {
-        // JSON-encoded string literal for embedding in the request body
         val prompt = """
-            Extract UPI payment details from this receipt screenshot. Reply with ONLY a JSON object, no markdown:
-            {
-              "amount": <the rupee amount paid — return as a plain number like 434, not "₹434">,
-              "merchantName": "<full recipient name from text — ignore the 2-letter coloured avatar/circle, use the full name like HARISHKUMAR K>",
-              "upiRef": "<UTR number if present (prefer UTR: digits only), else Transaction ID>",
-              "dateText": "<full date and time as shown, e.g. '02:46 pm on 03 Jul 2026'>",
-              "sourceBankHint": "<payer bank name, e.g. Jupiter, HDFC Bank, SBI>",
-              "paymentApp": "<one of: PHONEPE, GPAY, PAYTM, BHIM, OTHER>"
-            }
-            Omit any field you cannot determine.
+            Extract UPI payment details from this receipt screenshot. Reply with ONLY a JSON object, no markdown fences.
+            Return ONLY these keys (omit any you cannot determine):
+            amount       - the rupee amount as a plain number, e.g. 434
+            merchantName - the full recipient name from text, NOT the 2-letter avatar initials (e.g. HARISHKUMAR K not HK)
+            upiRef       - the UTR number (digits only, prefer UTR over Transaction ID)
+            dateText     - full date+time as shown, e.g. 02:46 pm on 03 Jul 2026
+            sourceBankHint - payer bank name, e.g. Jupiter, HDFC Bank, SBI
+            paymentApp   - one of PHONEPE GPAY PAYTM BHIM OTHER
         """.trimIndent()
         return JSONObject.quote(prompt)
     }
 
     private fun decodeReceipt(json: JSONObject): UpiParsedReceipt? {
-        // Models often return "₹434" or "Rs.434" despite being asked for digits-only.
-        // Strip any non-numeric prefix/suffix and extract the first decimal number.
+        // Models often return "₹434" or "Rs.434" despite being asked for plain numbers.
+        // Use a digit-extraction regex so any currency prefix is stripped automatically.
         val amountRaw = json.opt("amount")?.toString().orEmpty()
         val amount = Regex("""\d+(?:\.\d{1,2})?""")
             .find(amountRaw.replace(",", ""))
             ?.value?.toDoubleOrNull()
-        // Still require a positive amount — a zero means the model missed it entirely
-        if (amount == null || amount <= 0) return null
 
+        val merchantName = json.optString("merchantName").takeIf { it.isNotBlank() }
         val dateText = json.optString("dateText").takeIf { it.isNotBlank() }
-        val paymentApp = json.optString("paymentApp")
-            .takeIf { it.isNotBlank() }
-            ?.uppercase()
-            ?: "OTHER"
+        // Strip any non-digit chars from upiRef — model sometimes returns "UTR: 540548535287"
+        val upiRef = json.optString("upiRef")
+            .filter { it.isDigit() }.takeIf { it.isNotBlank() }
+        val sourceBankHint = json.optString("sourceBankHint").takeIf { it.isNotBlank() }
+        val paymentApp = json.optString("paymentApp").takeIf { it.isNotBlank() }?.uppercase() ?: "OTHER"
+
+        // Return null only if NIM gave us absolutely nothing — merge() will fill gaps from ML Kit
+        val hasData = amount != null || merchantName != null || dateText != null ||
+            upiRef != null || sourceBankHint != null
+        if (!hasData) return null
 
         return UpiParsedReceipt(
             amount = amount,
-            merchantName = json.optString("merchantName").takeIf { it.isNotBlank() },
+            merchantName = merchantName,
             dateTimeMillis = dateText?.let(::parseDateText),
-            upiRef = json.optString("upiRef").takeIf { it.isNotBlank() },
-            sourceBankHint = json.optString("sourceBankHint").takeIf { it.isNotBlank() },
+            upiRef = upiRef,
+            sourceBankHint = sourceBankHint,
             paymentApp = paymentApp,
         )
     }
@@ -192,7 +218,7 @@ class UpiReceiptParser(
             val scale = 1024f / maxOf(bitmap.width, bitmap.height)
             Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true)
         } else bitmap
-        scaled.compress(Bitmap.CompressFormat.JPEG, 80, out)
+        scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
         return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
     }
 
