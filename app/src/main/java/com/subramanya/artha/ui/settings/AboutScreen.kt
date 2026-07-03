@@ -2,6 +2,7 @@ package com.subramanya.artha.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,20 +17,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -44,17 +50,37 @@ import com.subramanya.artha.ui.theme.InstrumentSerif
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.TiroDevanagariHindi
+import com.subramanya.artha.ui.update.UpdateDialog
+import com.subramanya.artha.ui.update.UpdateDialogState
+import com.subramanya.artha.utils.AppUpdateChecker
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+
+private sealed interface UpdateCheckState {
+    data object Idle : UpdateCheckState
+    data object Checking : UpdateCheckState
+    data object UpToDate : UpdateCheckState
+    data object Error : UpdateCheckState
+}
 
 /**
  * HANDOFF §3.7 About — 88dp BrandMark (22dp radius), Devanagari "अर्थ"
  * caption in Tiro 18sp teal-300, followed by the four-puruṣārthas essay.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var checkState by remember { mutableStateOf<UpdateCheckState>(UpdateCheckState.Idle) }
+    var updateDialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
+    var downloadedApk by remember { mutableStateOf<File?>(null) }
+
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -68,7 +94,6 @@ fun AboutScreen(
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Spacer(Modifier.height(8.dp))
 
-                // Eyebrow over the editorial body.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -84,14 +109,12 @@ fun AboutScreen(
                 }
                 Spacer(Modifier.height(16.dp))
 
-                // 88dp BrandMark, 22dp corner radius (matches design spec).
                 BrandMark(
                     size = 88.dp,
                     cornerRadiusDp = 22.dp,
                 )
                 Spacer(Modifier.height(16.dp))
 
-                // Devanagari title: "अर्थ" in Tiro Devanagari Hindi 18sp teal-300.
                 Text(
                     text = stringResource(R.string.about_devanagari),
                     style = TextStyle(
@@ -119,7 +142,6 @@ fun AboutScreen(
                 )
 
                 Spacer(Modifier.height(20.dp))
-                // The essay body, in a soft Surface2 card to set it apart.
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     shape = RoundedCornerShape(16.dp),
@@ -145,7 +167,115 @@ fun AboutScreen(
                     eyebrow = stringResource(R.string.about_credit_title),
                     value = stringResource(R.string.about_credit_value),
                 )
+                Spacer(Modifier.height(10.dp))
+
+                // Manual update check row
+                val checker = remember { AppUpdateChecker(context) }
+                UpdateCheckRow(
+                    state = checkState,
+                    onClick = {
+                        if (checkState == UpdateCheckState.Checking) return@UpdateCheckRow
+                        checkState = UpdateCheckState.Checking
+                        scope.launch {
+                            val info = withContext(Dispatchers.IO) {
+                                runCatching { checker.checkForUpdate() }.getOrNull()
+                            }
+                            when {
+                                info == null && checkState == UpdateCheckState.Checking ->
+                                    checkState = UpdateCheckState.Error
+                                info != null -> {
+                                    checkState = UpdateCheckState.Idle
+                                    updateDialogState = UpdateDialogState.Available(info)
+                                }
+                                else -> checkState = UpdateCheckState.UpToDate
+                            }
+                        }
+                    },
+                )
+
                 Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+
+    // Update dialog — same download + install flow as the auto-check in MainApp
+    val dialogState = updateDialogState
+    if (dialogState != null) {
+        val checker = remember { AppUpdateChecker(context) }
+        UpdateDialog(
+            state = dialogState,
+            onDismiss = { updateDialogState = null },
+            onDownload = { info ->
+                updateDialogState = UpdateDialogState.Downloading(info, 0f)
+                scope.launch {
+                    val apk = checker.downloadApk(info.downloadUrl) { progress ->
+                        updateDialogState = UpdateDialogState.Downloading(info, progress)
+                    }
+                    if (apk != null) {
+                        downloadedApk = apk
+                        checker.triggerInstall(apk)
+                        updateDialogState = null
+                    } else {
+                        updateDialogState = UpdateDialogState.Failed(info)
+                    }
+                }
+            },
+            onInstall = {
+                downloadedApk?.let { checker.triggerInstall(it) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun UpdateCheckRow(
+    state: UpdateCheckState,
+    onClick: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = state != UpdateCheckState.Checking, onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(R.string.about_check_updates).uppercase(),
+                style = EyebrowStyle,
+                color = Text3,
+            )
+            when (state) {
+                UpdateCheckState.Idle -> Icon(
+                    imageVector = Icons.Default.SystemUpdate,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                UpdateCheckState.Checking -> CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                )
+                UpdateCheckState.UpToDate -> Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                UpdateCheckState.Error -> Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }
