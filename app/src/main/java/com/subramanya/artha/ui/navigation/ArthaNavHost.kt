@@ -74,6 +74,7 @@ object SubRoutes {
 
     // Phase 5
     const val REPORTS = "reports"
+    const val PENDING_SMS = "pending_sms"
 
     /** Global search — opened from the Dashboard header search icon. */
     const val SEARCH = "search"
@@ -239,6 +240,13 @@ fun ArthaNavHost(
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onOpenAbout = { navController.navigate(SubRoutes.ABOUT) },
+                onOpenPendingSms = { navController.navigate(SubRoutes.PENDING_SMS) },
+            )
+        }
+        composable(SubRoutes.PENDING_SMS) {
+            com.subramanya.artha.ui.sms.PendingSmsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenTransaction = { id -> navController.navigate(SubRoutes.transactionDetail(id)) },
             )
         }
         composable(SubRoutes.ABOUT) {
