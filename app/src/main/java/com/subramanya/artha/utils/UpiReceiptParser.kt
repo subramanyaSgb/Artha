@@ -78,9 +78,9 @@ class UpiReceiptParser(
         val prompt = """
             Extract UPI payment details from this receipt screenshot. Reply with ONLY a JSON object, no markdown:
             {
-              "amount": <number, INR rupees, digits only — look for ₹ symbol>,
-              "merchantName": "<recipient or merchant name, e.g. HARISHKUMAR K>",
-              "upiRef": "<UTR number if present (prefer UTR over Transaction ID), digits only>",
+              "amount": <the rupee amount paid — return as a plain number like 434, not "₹434">,
+              "merchantName": "<full recipient name from text — ignore the 2-letter coloured avatar/circle, use the full name like HARISHKUMAR K>",
+              "upiRef": "<UTR number if present (prefer UTR: digits only), else Transaction ID>",
               "dateText": "<full date and time as shown, e.g. '02:46 pm on 03 Jul 2026'>",
               "sourceBankHint": "<payer bank name, e.g. Jupiter, HDFC Bank, SBI>",
               "paymentApp": "<one of: PHONEPE, GPAY, PAYTM, BHIM, OTHER>"
@@ -91,8 +91,13 @@ class UpiReceiptParser(
     }
 
     private fun decodeReceipt(json: JSONObject): UpiParsedReceipt? {
-        val amount = json.opt("amount")?.toString()?.replace(",", "")?.toDoubleOrNull()
-        // Require at least an amount to be useful
+        // Models often return "₹434" or "Rs.434" despite being asked for digits-only.
+        // Strip any non-numeric prefix/suffix and extract the first decimal number.
+        val amountRaw = json.opt("amount")?.toString().orEmpty()
+        val amount = Regex("""\d+(?:\.\d{1,2})?""")
+            .find(amountRaw.replace(",", ""))
+            ?.value?.toDoubleOrNull()
+        // Still require a positive amount — a zero means the model missed it entirely
         if (amount == null || amount <= 0) return null
 
         val dateText = json.optString("dateText").takeIf { it.isNotBlank() }

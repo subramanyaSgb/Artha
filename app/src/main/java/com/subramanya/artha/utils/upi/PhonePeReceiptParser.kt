@@ -34,6 +34,8 @@ data class UpiParsedReceipt(
 object PhonePeReceiptParser {
 
     private val AMOUNT_RE = Regex("""₹\s*([\d,]+(?:\.\d{1,2})?)""")
+    // OCR sometimes outputs "Rs." instead of "₹" depending on font rendering
+    private val AMOUNT_RS_RE = Regex("""(?:Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
     // Prefer UTR (short numeric) over Transaction ID (which may have letter prefixes)
     private val UTR_RE = Regex("""(?i)UTR\s*[:\-]?\s*(\d{8,20})""")
     private val UPI_REF_RE = Regex(
@@ -82,10 +84,11 @@ object PhonePeReceiptParser {
         )
     }
 
-    private fun extractAmount(text: String): Double? =
-        AMOUNT_RE.find(text)?.groupValues?.get(1)
-            ?.replace(",", "")
-            ?.toDoubleOrNull()
+    private fun extractAmount(text: String): Double? {
+        val strip = { s: String -> s.replace(",", "").toDoubleOrNull() }
+        return AMOUNT_RE.find(text)?.groupValues?.get(1)?.let(strip)
+            ?: AMOUNT_RS_RE.find(text)?.groupValues?.get(1)?.let(strip)
+    }
 
     private fun extractUpiRef(text: String): String? =
         UTR_RE.find(text)?.groupValues?.get(1)
@@ -94,13 +97,17 @@ object PhonePeReceiptParser {
     private fun extractLineAfterLabel(lines: List<String>, labels: Set<String>): String? {
         for (i in lines.indices) {
             if (lines[i].lowercase() in labels) {
-                val next = lines.getOrNull(i + 1) ?: continue
-                val nextLower = next.lowercase()
-                // Skip if the next line is itself a label
-                if (nextLower in PAID_TO_LABELS || nextLower in PAID_FROM_LABELS) continue
-                // Skip if it looks like an amount line
-                if (next.startsWith("₹")) continue
-                return next
+                // Look at the next few lines — skip avatar initials (2-3 uppercase letters)
+                // and label lines, to get to the actual name/bank.
+                for (j in (i + 1)..minOf(i + 4, lines.lastIndex)) {
+                    val next = lines.getOrNull(j) ?: break
+                    val nextLower = next.lowercase()
+                    if (nextLower in PAID_TO_LABELS || nextLower in PAID_FROM_LABELS) break
+                    if (next.startsWith("₹")) break
+                    // Skip 1-3 letter avatar initials like "HK", "SB", etc.
+                    if (next.matches(Regex("""[A-Z]{1,3}"""))) continue
+                    return next
+                }
             }
         }
         return null
