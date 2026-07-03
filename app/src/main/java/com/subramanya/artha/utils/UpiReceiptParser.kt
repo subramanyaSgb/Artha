@@ -75,9 +75,11 @@ class UpiReceiptParser(
 
     private suspend fun parseWithNim(key: String, bitmap: Bitmap): UpiParsedReceipt? {
         val b64 = bitmapToBase64(bitmap)
+        // minimaxai/minimax-m3 — multimodal, extracts vision fields more reliably than
+        // glm-5.2 which was dropping amount/merchant. Same OpenAI-compatible endpoint.
         val body = """
             {
-              "model": "z-ai/glm-5.2",
+              "model": "minimaxai/minimax-m3",
               "messages": [{
                 "role": "user",
                 "content": [
@@ -86,7 +88,7 @@ class UpiReceiptParser(
                 ]
               }],
               "temperature": 0.1,
-              "max_tokens": 512,
+              "max_tokens": 1024,
               "stream": false
             }
         """.trimIndent()
@@ -114,18 +116,17 @@ class UpiReceiptParser(
     private fun decodeReceipt(json: JSONObject): UpiParsedReceipt? {
         // Models often return "₹434" or "Rs.434" despite being asked for plain numbers.
         // Use a digit-extraction regex so any currency prefix is stripped automatically.
-        val amountRaw = json.opt("amount")?.toString().orEmpty()
+        val amountRaw = str(json, "amount").orEmpty()
         val amount = Regex("""\d+(?:\.\d{1,2})?""")
             .find(amountRaw.replace(",", ""))
             ?.value?.toDoubleOrNull()
 
-        val merchantName = json.optString("merchantName").takeIf { it.isNotBlank() }
-        val dateText = json.optString("dateText").takeIf { it.isNotBlank() }
+        val merchantName = str(json, "merchantName")
+        val dateText = str(json, "dateText")
         // Strip any non-digit chars from upiRef — model sometimes returns "UTR: 540548535287"
-        val upiRef = json.optString("upiRef")
-            .filter { it.isDigit() }.takeIf { it.isNotBlank() }
-        val sourceBankHint = json.optString("sourceBankHint").takeIf { it.isNotBlank() }
-        val paymentApp = json.optString("paymentApp").takeIf { it.isNotBlank() }?.uppercase() ?: "OTHER"
+        val upiRef = str(json, "upiRef")?.filter { it.isDigit() }?.takeIf { it.isNotBlank() }
+        val sourceBankHint = str(json, "sourceBankHint")
+        val paymentApp = str(json, "paymentApp")?.uppercase() ?: "OTHER"
 
         // Return null only if NIM gave us absolutely nothing — merge() will fill gaps from ML Kit
         val hasData = amount != null || merchantName != null || dateText != null ||
@@ -140,6 +141,22 @@ class UpiReceiptParser(
             sourceBankHint = sourceBankHint,
             paymentApp = paymentApp,
         )
+    }
+
+    /**
+     * Reads a string field, treating absent, JSON-null, AND the literal strings
+     * "null"/"n/a"/"none"/"-" as "not present".
+     *
+     * Why this matters: `org.json`'s [JSONObject.optString] returns the 4-char string
+     * "null" (not empty!) when the value is `JSONObject.NULL`. The model returns JSON
+     * null for fields it can't read, so without this guard the UI showed literal
+     * "null"/"NULL" for merchant, bank and payment-app.
+     */
+    private fun str(json: JSONObject, key: String): String? {
+        if (json.isNull(key)) return null
+        val v = json.optString(key).trim()
+        if (v.isEmpty()) return null
+        return if (v.lowercase() in ABSENT_TOKENS) null else v
     }
 
     private fun parseDateText(text: String): Long? {
@@ -240,4 +257,9 @@ class UpiReceiptParser(
                 cont.resumeWithException(e)
             }
         }
+
+    private companion object {
+        // Values a model returns to mean "I couldn't find this" — treated as absent.
+        val ABSENT_TOKENS = setOf("null", "n/a", "na", "none", "-", "unknown", "not found")
+    }
 }
