@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.recurring
+package com.subramanya.artha.ui.recurring
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -75,6 +75,7 @@ import com.subramanya.artha.data.entity.enums.RecurringFrequency
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.RecurringRule
+import com.subramanya.artha.domain.recurring.RecurringFireEngine
 import com.subramanya.artha.domain.recurring.RecurringTemplate
 import com.subramanya.artha.domain.recurring.RecurringTemplateCodec
 import com.subramanya.artha.utils.IndianNumberFormat
@@ -82,17 +83,9 @@ import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Ochre
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Teal900
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import kotlinx.coroutines.launch
@@ -106,21 +99,22 @@ fun RecurringScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
-    val rules by app.recurringRuleRepository.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
+    // Nullable so we can tell "still loading" (null → skeleton) from "no rules" (empty → CTA).
+    val rules: List<RecurringRule>? by app.recurringRuleRepository.observeAll().collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
 
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: RecurringRule? by remember { mutableStateOf(null) }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = Text1,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.recurring_fab_add)) },
@@ -139,22 +133,27 @@ fun RecurringScreen(
                     )
                 }
                 item { OchreInfoBanner(text = stringResource(R.string.recurring_banner)) }
-                if (rules.isEmpty()) {
-                    item {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            EmptyState(icon = Icons.Filled.EventRepeat, title = stringResource(R.string.recurring_empty))
+                val list = rules
+                when {
+                    list == null -> item { RecurringSkeleton() }
+                    list.isEmpty() -> {
+                        item {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                EmptyState(icon = Icons.Filled.EventRepeat, title = stringResource(R.string.recurring_empty))
+                            }
                         }
                     }
-                } else {
-                    items(rules, key = { it.id }) { rule ->
-                        RecurringRow(
-                            rule = rule,
-                            onTap = { formMode = FormMode.Edit(rule) },
-                            onToggle = { active ->
-                                scope.launch { app.recurringRuleRepository.upsert(rule.copy(isActive = active)) }
-                            },
-                            onDelete = { pendingDelete = rule },
-                        )
+                    else -> {
+                        items(list, key = { it.id }) { rule ->
+                            RecurringRow(
+                                rule = rule,
+                                onTap = { formMode = FormMode.Edit(rule) },
+                                onToggle = { active ->
+                                    scope.launch { app.recurringRuleRepository.upsert(rule.copy(isActive = active)) }
+                                },
+                                onDelete = { pendingDelete = rule },
+                            )
+                        }
                     }
                 }
             }
@@ -217,7 +216,7 @@ private fun OchreInfoBanner(text: String) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
-                color = Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -231,13 +230,13 @@ private fun RecurringRow(
     onDelete: () -> Unit,
 ) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
                 1.dp,
-                if (rule.isActive) LineTeal else Line1,
+                if (rule.isActive) LineTeal else MaterialTheme.colorScheme.outlineVariant,
                 RoundedCornerShape(16.dp),
             )
             .clickable(onClick = onTap),
@@ -247,7 +246,7 @@ private fun RecurringRow(
                 Icon(
                     imageVector = Icons.Filled.Refresh,
                     contentDescription = null,
-                    tint = Teal300,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.size(8.dp))
@@ -257,12 +256,12 @@ private fun RecurringRow(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.5.sp,
                     ),
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 if (rule.autoConfirm) {
                     Surface(
-                        color = Teal900,
+                        color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(4.dp),
                     ) {
                         Text(
@@ -271,7 +270,7 @@ private fun RecurringRow(
                                 fontFamily = IbmPlexMono,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Teal300,
+                                color = MaterialTheme.colorScheme.primary,
                                 letterSpacing = 0.06.em,
                             ),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -283,29 +282,32 @@ private fun RecurringRow(
                     checked = rule.isActive,
                     onCheckedChange = onToggle,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Text1,
+                        checkedThumbColor = MaterialTheme.colorScheme.onSurface,
                         checkedTrackColor = Teal700,
-                        uncheckedThumbColor = Text2,
-                        uncheckedTrackColor = Surface4,
-                        uncheckedBorderColor = Line1,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                     ),
                 )
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Filled.Delete,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.recurring_delete_rule, rule.name),
                         tint = Text3,
                         modifier = Modifier.size(18.dp),
                     )
                 }
             }
-            RecurringTemplateCodec.decode(rule.transactionTemplate)?.let { t ->
+            val template = remember(rule.transactionTemplate) {
+                RecurringTemplateCodec.decode(rule.transactionTemplate)
+            }
+            template?.let { t ->
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "${IndianNumberFormat.format(t.amount)} · ${t.type.name.lowercase().replaceFirstChar { it.titlecase() }}" +
                         if (t.description.isNotBlank()) " · ${t.description}" else "",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -327,6 +329,21 @@ private fun RecurringRow(
                     ),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RecurringSkeleton() {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(88.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
         }
     }
 }
@@ -382,7 +399,7 @@ private fun RecurringFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
@@ -509,7 +526,7 @@ private fun RecurringFormSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(com.subramanya.artha.ui.theme.Surface2, RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -517,7 +534,7 @@ private fun RecurringFormSheet(
                     Text(
                         text = stringResource(R.string.recurring_form_auto_confirm),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = com.subramanya.artha.ui.theme.Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Fire and forget · for fixed amounts like rent",
@@ -557,7 +574,10 @@ private fun RecurringFormSheet(
                             transactionTemplate = encodedTemplate,
                             frequency = freq,
                             dayOfPeriod = day,
-                            nextRunDate = editing?.nextRunDate ?: now,
+                            // New rules start at the next scheduled occurrence (this period if the
+                            // chosen day hasn't passed, else next) — not `now`, which would fire on
+                            // the next worker tick regardless of the chosen day.
+                            nextRunDate = editing?.nextRunDate ?: RecurringFireEngine.firstRunDate(freq, day, now),
                             lastRunDate = editing?.lastRunDate,
                             autoConfirm = autoConfirm,
                             isActive = editing?.isActive ?: true,

@@ -51,6 +51,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -58,7 +59,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -71,6 +75,7 @@ import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.Category
+import com.subramanya.artha.domain.model.Tag
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.ui.common.MonoMeta
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
@@ -78,11 +83,9 @@ import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
-import com.subramanya.artha.ui.theme.IncomeSoft
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
 import com.subramanya.artha.ui.theme.Text3
+import com.subramanya.artha.ui.theme.incomeSoftFill
 import com.subramanya.artha.ui.transaction.AddTransactionSheet
 import com.subramanya.artha.ui.transaction.AddTransactionViewModel
 import com.subramanya.artha.ui.transaction.AddTransactionViewModelFactory
@@ -104,11 +107,16 @@ fun TransactionsScreen(
             accountRepository = app.accountRepository,
             cardRepository = app.cardRepository,
             categoryRepository = app.categoryRepository,
+            tagRepository = app.tagRepository,
         ),
     )
     val state by vm.state.collectAsStateWithLifecycle()
     var sortMenuOpen by remember { mutableStateOf(false) }
     var showAddSheet by remember { mutableStateOf(false) }
+    // Search text held locally so it updates synchronously with each keystroke; the VM is
+    // fed separately to run the filter (which re-derives the whole list on Default). Binding
+    // the field straight to the VM's StateFlow would lag the IME and jumble fast typing.
+    var query by rememberSaveable { mutableStateOf("") }
 
     Box(modifier = modifier.fillMaxSize()) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -131,20 +139,47 @@ fun TransactionsScreen(
 
                 TotalsStrip(inSum = state.inSum, outSum = state.outSum, net = state.net)
 
-                SearchField(query = state.query, onQueryChanged = vm::onQueryChanged)
+                SearchField(
+                    query = query,
+                    onQueryChanged = { query = it; vm.onQueryChanged(it) },
+                )
                 Spacer(Modifier.height(8.dp))
-                FilterRow(state = state, viewModel = vm)
+                FilterRow(
+                    state = state,
+                    viewModel = vm,
+                    queryActive = query.isNotEmpty(),
+                    onClearAll = { query = ""; vm.clearFilters() },
+                )
                 Spacer(Modifier.height(4.dp))
+                if (state.count > 0) {
+                    Text(
+                        text = pluralStringResource(R.plurals.transactions_count, state.count, state.count),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Text3,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                    )
+                }
 
                 if (state.rows.isEmpty()) {
+                    // Distinguish "no matches for this filter/search" from "no transactions at all".
+                    val filtersActive = state.filter != TransactionsFilter() || query.isNotEmpty()
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Filled.Inbox, contentDescription = null, tint = Text3, modifier = Modifier.size(28.dp))
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = stringResource(R.string.transactions_empty),
+                                text = stringResource(
+                                    if (filtersActive) R.string.transactions_empty_filtered
+                                    else R.string.transactions_empty,
+                                ),
                                 color = Text3,
                             )
+                            if (filtersActive) {
+                                Spacer(Modifier.height(8.dp))
+                                TextButton(onClick = { query = ""; vm.clearFilters() }) {
+                                    Text(stringResource(R.string.transactions_filter_clear_all))
+                                }
+                            }
                         }
                     }
                     return@Column
@@ -170,7 +205,7 @@ fun TransactionsScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(shape)
-                                            .background(Surface2),
+                                            .background(MaterialTheme.colorScheme.surfaceContainer),
                                     ) {
                                         TransactionRow(
                                             txn = item.txn,
@@ -264,7 +299,7 @@ private fun LedgerHeader(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "THE LEDGER",
+                text = stringResource(R.string.ledger_title).uppercase(),
                 style = EyebrowStyle,
                 color = Text3,
             )
@@ -306,17 +341,17 @@ private fun TotalsStrip(inSum: Double, outSum: Double, net: Double) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TotalCell(label = "IN", value = inSum, color = Income, dot = Income)
+        TotalCell(label = stringResource(R.string.ledger_total_in).uppercase(), value = inSum, color = Income, dot = Income)
         VerticalSep()
-        TotalCell(label = "OUT", value = outSum, color = MaterialTheme.colorScheme.onSurface, dot = Expense)
+        TotalCell(label = stringResource(R.string.ledger_total_out).uppercase(), value = outSum, color = MaterialTheme.colorScheme.onSurface, dot = Expense)
         VerticalSep()
-        TotalCell(label = "NET", value = net, color = MaterialTheme.colorScheme.onSurface, dot = null, sign = true)
+        TotalCell(label = stringResource(R.string.ledger_total_net).uppercase(), value = net, color = MaterialTheme.colorScheme.onSurface, dot = null, sign = true)
     }
 }
 
@@ -378,8 +413,8 @@ private fun SearchField(query: String, onQueryChanged: (String) -> Unit) {
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         shape = RoundedCornerShape(12.dp),
         colors = TextFieldDefaults.colors(
-            unfocusedContainerColor = Surface2,
-            focusedContainerColor = Surface2,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
             unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
             focusedIndicatorColor = MaterialTheme.colorScheme.primary,
         ),
@@ -391,7 +426,12 @@ private fun SearchField(query: String, onQueryChanged: (String) -> Unit) {
 }
 
 @Composable
-private fun FilterRow(state: TransactionsUiState, viewModel: TransactionsViewModel) {
+private fun FilterRow(
+    state: TransactionsUiState,
+    viewModel: TransactionsViewModel,
+    queryActive: Boolean,
+    onClearAll: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -422,8 +462,13 @@ private fun FilterRow(state: TransactionsUiState, viewModel: TransactionsViewMod
             currentId = state.filter.categoryId,
             onPick = { id -> viewModel.onFilterChanged { it.copy(categoryId = id) } },
         )
-        if (state.filter != TransactionsFilter() || state.query.isNotEmpty()) {
-            TextButton(onClick = { viewModel.clearFilters() }) {
+        TagFilterChip(
+            tags = state.tags,
+            currentId = state.filter.tagId,
+            onPick = { id -> viewModel.onFilterChanged { it.copy(tagId = id) } },
+        )
+        if (state.filter != TransactionsFilter() || queryActive) {
+            TextButton(onClick = onClearAll) {
                 Text(stringResource(R.string.transactions_filter_clear_all))
             }
         }
@@ -461,10 +506,10 @@ private fun rangeLabel(range: TimeRange): String = when (range) {
 
 @Composable
 private fun rangeDisplay(range: TimeRange): String = when (range) {
-    TimeRange.TODAY -> "Today"
-    TimeRange.THIS_WEEK -> "This week"
-    TimeRange.THIS_MONTH -> "This month"
-    TimeRange.ALL_TIME -> "All time"
+    TimeRange.TODAY -> stringResource(R.string.ledger_range_today)
+    TimeRange.THIS_WEEK -> stringResource(R.string.ledger_range_week)
+    TimeRange.THIS_MONTH -> stringResource(R.string.ledger_range_month)
+    TimeRange.ALL_TIME -> stringResource(R.string.ledger_range_all)
 }
 
 @Composable
@@ -554,16 +599,53 @@ private fun CategoryFilterChip(categories: List<Category>, currentId: String?, o
             onClick = { expanded = true },
             label = { Text(currentName ?: stringResource(R.string.transactions_filter_category)) },
         )
-        val parents = remember(categories) { categories.filter { it.parentId == null } }
+        // Parents followed by their children (indented), so you can filter by a main
+        // category OR a specific sub-category. applyFilters matches categoryId OR subCategoryId.
+        val ordered = remember(categories) {
+            val parents = categories.filter { it.parentId == null }
+            val childrenByParent = categories.filter { it.parentId != null }.groupBy { it.parentId }
+            buildList {
+                parents.forEach { parent ->
+                    add(parent to false)
+                    childrenByParent[parent.id]?.forEach { child -> add(child to true) }
+                }
+            }
+        }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.transactions_filter_any)) },
                 onClick = { onPick(null); expanded = false },
             )
-            parents.forEach { cat ->
+            ordered.forEach { (cat, isChild) ->
                 DropdownMenuItem(
-                    text = { Text(cat.name) },
+                    text = { Text(if (isChild) "    ${cat.name}" else cat.name) },
                     onClick = { onPick(cat.id); expanded = false },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagFilterChip(tags: List<Tag>, currentId: String?, onPick: (String?) -> Unit) {
+    if (tags.isEmpty()) return
+    var expanded by remember { mutableStateOf(false) }
+    val currentName = currentId?.let { id -> tags.firstOrNull { it.id == id }?.name }
+    Box {
+        ElevatedFilterChip(
+            selected = currentId != null,
+            onClick = { expanded = true },
+            label = { Text(currentName ?: stringResource(R.string.transactions_filter_tag)) },
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.transactions_filter_any)) },
+                onClick = { onPick(null); expanded = false },
+            )
+            tags.forEach { tag ->
+                DropdownMenuItem(
+                    text = { Text(tag.name) },
+                    onClick = { onPick(tag.id); expanded = false },
                 )
             }
         }
@@ -614,6 +696,9 @@ private fun TransactionRow(
             .fillMaxWidth()
             .background(container)
             .combinedClickable(onClick = onTap, onLongClick = onLongPress)
+            // One focusable element for TalkBack (description + type + amount), and announce the
+            // selected state in selection mode (it's otherwise conveyed only by background colour).
+            .semantics(mergeDescendants = true) { if (selectionMode) this.selected = selected }
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -621,7 +706,7 @@ private fun TransactionRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(11.dp))
-                .background(if (isIncome) IncomeSoft else Surface4),
+                .background(if (isIncome) incomeSoftFill() else MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

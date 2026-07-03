@@ -8,9 +8,18 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.subramanya.artha.data.preferences.ThemeMode
+
+/**
+ * True when the active Artha theme is the dark scheme. Screens that still use the raw
+ * dark design tokens (Color.kt) can resolve a light counterpart from this instead of
+ * guessing by luminance. Migration aid while screens move onto colorScheme slots.
+ */
+val LocalArthaIsDark = staticCompositionLocalOf { true }
 
 /**
  * Artha colour scheme — dark theme is the primary surface per the design.
@@ -119,9 +128,11 @@ fun ArthaTheme(
         else -> ArthaLightColors
     }
 
-    MaterialTheme(
-        colorScheme = colors,
-        typography = ArthaTypography,
-        content = content,
-    )
+    CompositionLocalProvider(LocalArthaIsDark provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colors,
+            typography = ArthaTypography,
+            content = content,
+        )
+    }
 }

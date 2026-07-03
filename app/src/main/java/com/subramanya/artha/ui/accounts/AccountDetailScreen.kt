@@ -76,6 +76,7 @@ fun AccountDetailScreen(
             accountId = accountId,
             accountRepository = app.accountRepository,
             transactionRepository = app.transactionRepository,
+            categoryRepository = app.categoryRepository,
         ),
     )
     val state by vm.state.collectAsStateWithLifecycle()
@@ -83,7 +84,7 @@ fun AccountDetailScreen(
     var editing: Account? by remember { mutableStateOf(null) }
 
     Surface(
-        color = com.subramanya.artha.ui.theme.Surface1,
+        color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize(),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -97,7 +98,7 @@ fun AccountDetailScreen(
                             Icon(
                                 Icons.Filled.Edit,
                                 contentDescription = stringResource(R.string.account_detail_action_edit),
-                                tint = com.subramanya.artha.ui.theme.Text2,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         if (account.isArchived) {
@@ -105,7 +106,7 @@ fun AccountDetailScreen(
                                 Icon(
                                     Icons.Filled.Unarchive,
                                     contentDescription = stringResource(R.string.account_detail_action_restore),
-                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         } else {
@@ -113,7 +114,7 @@ fun AccountDetailScreen(
                                 Icon(
                                     Icons.Filled.Archive,
                                     contentDescription = stringResource(R.string.account_detail_action_archive),
-                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
@@ -204,8 +205,9 @@ private fun AccountDetailBody(
         item("hero") { Hero(state = state) }
         item("chart") { ChartSection(state = state) }
         item("txnsHeader") {
+            val title = stringResource(R.string.account_detail_txns_title)
             Text(
-                text = stringResource(R.string.account_detail_txns_title),
+                text = if (state.transactions.isNotEmpty()) "$title · ${state.transactions.size}" else title,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 4.dp),
             )
@@ -219,7 +221,12 @@ private fun AccountDetailBody(
             }
         } else {
             items(state.transactions, key = { it.id }) { txn ->
-                TxnRow(txn, onClick = { onOpenTransaction(txn.id) })
+                TxnRow(
+                    txn = txn,
+                    category = txn.categoryId?.let { state.categoriesById[it] },
+                    accountId = account.id,
+                    onClick = { onOpenTransaction(txn.id) },
+                )
             }
         }
         item("bottomSpacer") { Spacer(modifier = Modifier.height(24.dp)) }
@@ -338,31 +345,34 @@ private fun ChartSection(state: AccountDetailUiState) {
 }
 
 @Composable
-private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
+private fun TxnRow(
+    txn: Transaction,
+    category: com.subramanya.artha.domain.model.Category?,
+    accountId: String,
+    onClick: () -> Unit,
+) {
+    val typeLabel = com.subramanya.artha.ui.common.transactionTypeLabel(txn.type)
     ListItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         leadingContent = {
-            Icon(
-                imageVector = iconForType(txn.type),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            // Same category icon + colour the Dashboard/Ledger rows use.
+            com.subramanya.artha.ui.common.TransactionCategoryAvatar(category = category, type = txn.type)
         },
-        headlineContent = { Text(txn.description, maxLines = 1) },
+        headlineContent = { Text(txn.description.ifBlank { typeLabel }, maxLines = 1) },
         supportingContent = {
             Text(
-                text = txn.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() },
+                text = category?.name ?: typeLabel,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
         trailingContent = {
             Text(
-                text = signedAmount(txn),
+                text = signedAmount(txn, accountId),
                 style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
-                color = amountColor(txn.type),
+                color = amountColor(txn, accountId),
             )
         },
     )
@@ -370,22 +380,25 @@ private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
 
 // ---------------- helpers (duplicated from DashboardScreen — extract in Session 10 if reused once more) ----------------
 
+/** True when this transfer / card-payment moved money INTO [accountId] (this account is the
+ *  destination). Otherwise this account is the source, so money left it. */
+private fun Transaction.entersAccount(accountId: String): Boolean = destinationId == accountId
+
 @Composable
-private fun amountColor(type: TransactionType): Color = when (type) {
+private fun amountColor(txn: Transaction, accountId: String): Color = when (txn.type) {
     TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
     TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
     -> MaterialTheme.colorScheme.primary
     TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
     -> com.subramanya.artha.ui.theme.Danger
+    // Transfers / card payments: colour by direction relative to THIS account.
+    TransactionType.TRANSFER, TransactionType.CARD_PAYMENT ->
+        if (txn.entersAccount(accountId)) MaterialTheme.colorScheme.primary
+        else com.subramanya.artha.ui.theme.Danger
     else -> MaterialTheme.colorScheme.onSurface
 }
 
-private fun iconForType(type: TransactionType) = when (type) {
-    TransactionType.CARD_PAYMENT -> Icons.Filled.CreditCard
-    else -> Icons.Filled.AccountBalance
-}
-
-private fun signedAmount(txn: Transaction): String {
+private fun signedAmount(txn: Transaction, accountId: String): String {
     val abs = IndianNumberFormat.format(txn.amount)
     return when (txn.type) {
         TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
@@ -393,6 +406,9 @@ private fun signedAmount(txn: Transaction): String {
         -> "+$abs"
         TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
         -> "−$abs"
+        // Sign transfers / card payments by whether money entered or left THIS account.
+        TransactionType.TRANSFER, TransactionType.CARD_PAYMENT ->
+            if (txn.entersAccount(accountId)) "+$abs" else "−$abs"
         else -> abs
     }
 }

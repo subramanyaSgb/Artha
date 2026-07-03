@@ -61,7 +61,10 @@ import org.json.JSONObject
  */
 object BackupCodec {
 
-    const val SCHEMA_VERSION = 1
+    // v2 (2026-06-11): adds the optional "settings" object (DataStore snapshot).
+    // v1 backups decode fine — settings comes back null and restore leaves the
+    // device's settings alone.
+    const val SCHEMA_VERSION = 2
 
     // ---- top-level encode/decode ----
 
@@ -88,6 +91,7 @@ object BackupCodec {
         root.put("account_types", data.accountTypes.toArray(::accountTypeToJson))
         root.put("card_types", data.cardTypes.toArray(::cardTypeToJson))
         root.put("insurance_types", data.insuranceTypes.toArray(::insuranceTypeToJson))
+        data.settings?.let { root.put("settings", settingsToJson(it)) }
         return root.toString(2)
     }
 
@@ -113,8 +117,47 @@ object BackupCodec {
             accountTypes = root.read("account_types", ::accountTypeFromJson),
             cardTypes = root.read("card_types", ::cardTypeFromJson),
             insuranceTypes = root.read("insurance_types", ::insuranceTypeFromJson),
+            settings = root.optJSONObject("settings")?.let(::settingsFromJson),
         )
     }
+
+    // ---- settings block (schema v2) ----
+
+    private fun settingsToJson(s: BackupSettings) = JSONObject().apply {
+        put("user_name", s.userName)
+        put("theme_mode", s.themeMode)
+        put("use_dynamic_color", s.useDynamicColor)
+        put("spouse_transaction_default", s.spouseTransactionDefault)
+        put("dashboard_show_monthly", s.dashboardShowMonthly)
+        put("dashboard_show_accounts", s.dashboardShowAccounts)
+        put("dashboard_show_cards", s.dashboardShowCards)
+        put("dashboard_show_recent", s.dashboardShowRecent)
+        put("dashboard_show_spending", s.dashboardShowSpending)
+        put("dashboard_section_order", s.dashboardSectionOrder)
+        put("biometric_lock_enabled", s.biometricLockEnabled)
+        put("sms_auto_import_enabled", s.smsAutoImportEnabled)
+        put("ai_quick_entry_enabled", s.aiQuickEntryEnabled)
+        put("custom_colours", s.customColours)
+        put("custom_icons", s.customIcons)
+    }
+
+    private fun settingsFromJson(o: JSONObject) = BackupSettings(
+        userName = o.optString("user_name", ""),
+        themeMode = o.optString("theme_mode", "SYSTEM"),
+        useDynamicColor = o.optBoolean("use_dynamic_color", true),
+        spouseTransactionDefault = o.optString("spouse_transaction_default", "ASK"),
+        dashboardShowMonthly = o.optBoolean("dashboard_show_monthly", true),
+        dashboardShowAccounts = o.optBoolean("dashboard_show_accounts", true),
+        dashboardShowCards = o.optBoolean("dashboard_show_cards", true),
+        dashboardShowRecent = o.optBoolean("dashboard_show_recent", true),
+        dashboardShowSpending = o.optBoolean("dashboard_show_spending", true),
+        dashboardSectionOrder = o.optString("dashboard_section_order", ""),
+        biometricLockEnabled = o.optBoolean("biometric_lock_enabled", false),
+        smsAutoImportEnabled = o.optBoolean("sms_auto_import_enabled", false),
+        aiQuickEntryEnabled = o.optBoolean("ai_quick_entry_enabled", false),
+        customColours = o.optString("custom_colours", ""),
+        customIcons = o.optString("custom_icons", ""),
+    )
 
     // ---- per-entity encoders ----
 
@@ -387,7 +430,8 @@ object BackupCodec {
         sourceId = o.stringOrNull("source_id"),
         destinationType = o.stringOrNull("destination_type")?.let { enumValueOf<SourceKind>(it) },
         destinationId = o.stringOrNull("destination_id"),
-        paymentApp = o.getString("payment_app"),
+        // optString: pre-payment-app backups (DB < v6) have no "payment_app" key.
+        paymentApp = o.optString("payment_app", "OTHER"),
         place = o.stringOrNull("place"), latitude = o.doubleOrNull("latitude"),
         longitude = o.doubleOrNull("longitude"), receiptUri = o.stringOrNull("receipt_uri"),
         notes = o.stringOrNull("notes"), taxSection = o.stringOrNull("tax_section"),

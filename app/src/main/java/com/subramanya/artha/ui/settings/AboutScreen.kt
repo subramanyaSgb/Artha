@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -32,7 +33,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.BuildConfig
@@ -41,13 +41,7 @@ import com.subramanya.artha.ui.common.BrandMark
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Teal300
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.TiroDevanagariHindi
 
@@ -61,7 +55,7 @@ fun AboutScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -78,14 +72,14 @@ fun AboutScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .height(1.dp)
-                            .background(LineTeal)
-                            .padding(end = 14.dp),
+                            .size(width = 14.dp, height = 1.dp)
+                            .background(LineTeal),
                     )
+                    Spacer(Modifier.size(8.dp))
                     Text(
                         text = stringResource(R.string.about_eyebrow).uppercase(),
                         style = EyebrowStyle,
-                        color = Teal300,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
                 Spacer(Modifier.height(16.dp))
@@ -105,7 +99,7 @@ fun AboutScreen(
                         fontSize = 28.sp,
                         lineHeight = 32.sp,
                     ),
-                    color = Teal300,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -115,7 +109,7 @@ fun AboutScreen(
                         fontSize = 22.sp,
                         lineHeight = 26.sp,
                     ),
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -127,16 +121,16 @@ fun AboutScreen(
                 Spacer(Modifier.height(20.dp))
                 // The essay body, in a soft Surface2 card to set it apart.
                 Surface(
-                    color = Surface2,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, Line1, RoundedCornerShape(16.dp)),
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
                 ) {
                     Text(
                         text = stringResource(R.string.about_essay),
                         style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                        color = Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp),
                     )
                 }
@@ -151,15 +145,6 @@ fun AboutScreen(
                     eyebrow = stringResource(R.string.about_credit_title),
                     value = stringResource(R.string.about_credit_value),
                 )
-                Spacer(Modifier.height(20.dp))
-
-                Text(
-                    text = stringResource(R.string.about_built_with),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Text3,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -169,11 +154,11 @@ fun AboutScreen(
 @Composable
 private fun AboutMetaRow(eyebrow: String, value: String) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(12.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
     ) {
         Row(
             modifier = Modifier
@@ -193,13 +178,10 @@ private fun AboutMetaRow(eyebrow: String, value: String) {
                     fontFamily = IbmPlexMono,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFeatureSettings = "tnum, lnum",
                 ),
             )
         }
     }
 }
-
-@Suppress("unused")
-private val keepTextStyleReference = Text1

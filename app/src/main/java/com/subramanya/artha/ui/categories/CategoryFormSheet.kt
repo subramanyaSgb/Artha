@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -39,8 +40,6 @@ import com.subramanya.artha.ui.common.PillRadio
 import com.subramanya.artha.ui.common.SavePrimaryButton
 import com.subramanya.artha.ui.common.SheetTitle
 import com.subramanya.artha.ui.common.SheetWindowInsets
-import com.subramanya.artha.ui.theme.Surface3
-import com.subramanya.artha.ui.theme.Text3
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Celebration
@@ -92,14 +91,17 @@ fun CategoryFormSheet(
     val isSystem = editing?.isSystem == true
     val isValid = name.isNotBlank()
 
-    val typeOptions = CategoryType.entries.map { t ->
-        PillOption(t, t.name.lowercase().replaceFirstChar { it.titlecase() })
-    }
+    val typeOptions = listOf(
+        PillOption(CategoryType.EXPENSE, stringResource(R.string.categories_filter_expense)),
+        PillOption(CategoryType.INCOME, stringResource(R.string.categories_filter_income)),
+        PillOption(CategoryType.TRANSFER, stringResource(R.string.categories_filter_transfer)),
+        PillOption(CategoryType.INVESTMENT, stringResource(R.string.categories_filter_investment)),
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {
@@ -200,8 +202,6 @@ fun CategoryFormSheet(
                 },
             )
             Spacer(Modifier.height(20.dp))
-
-            @Suppress("UNUSED_EXPRESSION") Text3
         }
     }
 

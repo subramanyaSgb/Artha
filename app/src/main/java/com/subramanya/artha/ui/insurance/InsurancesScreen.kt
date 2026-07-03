@@ -67,15 +67,9 @@ import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Ochre
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
@@ -98,15 +92,15 @@ fun InsurancesScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Insurance? by remember { mutableStateOf(null) }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = Text1,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.insurance_fab_add)) },
@@ -199,7 +193,7 @@ private sealed interface FormMode {
 @Composable
 private fun HeroCard(annualTotal: Double, count: Int, dueSoonCount: Int) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -218,7 +212,7 @@ private fun HeroCard(annualTotal: Double, count: Int, dueSoonCount: Int) {
                     fontFamily = InstrumentSerif,
                     fontSize = 40.sp,
                     lineHeight = 46.sp,
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFeatureSettings = "tnum, lnum",
                 ),
             )
@@ -266,7 +260,7 @@ private fun DueSoonBanner(items: List<Insurance>) {
                 Text(
                     text = stringResource(R.string.insurance_due_banner_title),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 val due = nearest.nextPremiumDate?.let { DateFormatter.longDate(it) }.orEmpty()
                 Text(
@@ -274,7 +268,7 @@ private fun DueSoonBanner(items: List<Insurance>) {
                     style = TextStyle(
                         fontFamily = IbmPlexMono,
                         fontSize = 11.sp,
-                        color = Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFeatureSettings = "tnum, lnum",
                     ),
                 )
@@ -292,13 +286,13 @@ private fun TypeHeader(typeId: String, label: String) {
         Box(
             modifier = Modifier
                 .size(width = 14.dp, height = 1.dp)
-                .background(Teal300),
+                .background(MaterialTheme.colorScheme.primary),
         )
         Spacer(Modifier.size(8.dp))
         Text(
             text = label.uppercase(),
             style = EyebrowStyle,
-            color = Teal300,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -321,13 +315,13 @@ private fun InsuranceRow(
     }
     val dueSoon = daysUntil != null && daysUntil <= 30
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
                 1.dp,
-                if (dueSoon) Ochre.copy(alpha = 0.40f) else Line1,
+                if (dueSoon) Ochre.copy(alpha = 0.40f) else MaterialTheme.colorScheme.outlineVariant,
                 RoundedCornerShape(16.dp),
             )
             .clickable(onClick = onTap),
@@ -344,7 +338,7 @@ private fun InsuranceRow(
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.SemiBold,
                     ),
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(2.dp))
                 val parts = buildList {
@@ -392,7 +386,7 @@ private fun InsuranceRow(
                     style = TextStyle(
                         fontFamily = InstrumentSerif,
                         fontSize = 16.sp,
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFeatureSettings = "tnum, lnum",
                     ),
                 )
@@ -401,7 +395,7 @@ private fun InsuranceRow(
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
                         Icons.Filled.MoreVert,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.insurance_more_options),
                         tint = Text3,
                         modifier = Modifier.size(18.dp),
                     )
@@ -448,7 +442,7 @@ private fun InsuranceAvatar(color: Long) {
             .background(Color(color)),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Filled.Shield, contentDescription = null, tint = Text1)
+        Icon(Icons.Filled.Shield, contentDescription = null, tint = Color.White)
     }
 }
 

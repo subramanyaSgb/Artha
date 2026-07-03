@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.investments
+package com.subramanya.artha.ui.investments
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -98,16 +98,16 @@ fun InvestmentsScreen(
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Investment? by remember { mutableStateOf(null) }
 
-    Surface(modifier = modifier.fillMaxSize(), color = com.subramanya.artha.ui.theme.Surface1) {
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 androidx.compose.material3.ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.investments_fab_add)) },
                 )
@@ -285,9 +285,12 @@ private fun AllocationBar(rows: List<com.subramanya.artha.domain.model.Investmen
         com.subramanya.artha.ui.theme.AccMagenta,
         com.subramanya.artha.ui.theme.AccViolet,
     )
+    // Colour by TYPE so same-type holdings share a colour and the bar matches the legend.
+    val colorForType = rows.map { it.investment.type }.distinct()
+        .withIndex().associate { (i, type) -> type to palette[i % palette.size] }
     Column(modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
         Text(
-            text = "ALLOCATION",
+            text = stringResource(R.string.investments_allocation).uppercase(),
             style = com.subramanya.artha.ui.theme.EyebrowStyle,
             color = com.subramanya.artha.ui.theme.Text3,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
@@ -300,7 +303,7 @@ private fun AllocationBar(rows: List<com.subramanya.artha.domain.model.Investmen
         ) {
             rows.forEachIndexed { i, row ->
                 val weight = (row.value / total).toFloat().coerceAtLeast(0.001f)
-                val tone = palette[i % palette.size]
+                val tone = colorForType.getValue(row.investment.type)
                 Box(
                     modifier = Modifier
                         .weight(weight)
@@ -311,17 +314,14 @@ private fun AllocationBar(rows: List<com.subramanya.artha.domain.model.Investmen
             }
         }
         Spacer(Modifier.height(8.dp))
-        // Legend — group by InvestmentType, show one chip per unique kind.
-        val byType = rows.groupBy { it.investment.type }
+        // Legend — one chip per unique type, sharing the bar's per-type colour.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            byType.entries.forEachIndexed { idx, (type, items) ->
-                val first = rows.indexOf(items.first())
-                val tone = palette[first % palette.size]
+            colorForType.forEach { (type, tone) ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -331,10 +331,8 @@ private fun AllocationBar(rows: List<com.subramanya.artha.domain.model.Investmen
                     )
                     Spacer(Modifier.width(5.dp))
                     Text(
-                        text = type.name.lowercase()
-                            .replaceFirstChar { it.titlecase() }
-                            .replace('_', ' '),
-                        color = com.subramanya.artha.ui.theme.Text2,
+                        text = type.displayName(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
                     )
                 }
@@ -468,7 +466,7 @@ private fun InvestmentRow(
                 }
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = null)
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.investments_more_options))
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(

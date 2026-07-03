@@ -5,8 +5,11 @@ import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Goal
 import com.subramanya.artha.domain.model.GoalWithProgress
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -51,7 +54,7 @@ class GoalRepository(
             }
             GoalWithProgress(goal = g, currentAmount = current, percentDone = pct, daysRemaining = daysLeft)
         }
-    }
+    }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     suspend fun upsert(goal: Goal) = goalDao.upsert(goal.toEntity())
     suspend fun delete(goal: Goal) = goalDao.delete(goal.toEntity())

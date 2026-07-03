@@ -44,18 +44,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.R
 import com.subramanya.artha.ui.common.ArthaSheetHandle
 import com.subramanya.artha.ui.theme.EyebrowStyle
-import com.subramanya.artha.ui.theme.Line1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface3
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
-import com.subramanya.artha.ui.theme.Text1
 import com.subramanya.artha.ui.theme.Text3
 
 enum class MoreAction {
@@ -133,7 +128,7 @@ fun MoreSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {
@@ -149,13 +144,13 @@ fun MoreSheet(
             Text(
                 text = stringResource(R.string.more_eyebrow).uppercase(),
                 style = EyebrowStyle,
-                color = Teal300,
+                color = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.more_title),
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Normal),
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(20.dp))
 
@@ -182,8 +177,8 @@ private fun MoreSectionCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Surface2)
-            .border(1.dp, Line1, RoundedCornerShape(16.dp)),
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
     ) {
         rows.forEachIndexed { i, row ->
             if (i > 0) {
@@ -193,7 +188,7 @@ private fun MoreSectionCard(
                         .fillMaxWidth()
                         .padding(start = 64.dp)
                         .height(1.dp)
-                        .background(Line1),
+                        .background(MaterialTheme.colorScheme.outlineVariant),
                 )
             }
             MoreActionRow(row = row, onClick = { onClick(row.action) })
@@ -208,19 +203,21 @@ private fun MoreActionRow(row: MoreRow, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            // One focusable element for TalkBack (title + subtitle read together).
+            .semantics(mergeDescendants = true) {}
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Box(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(Surface4),
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = row.icon,
                 contentDescription = null,
-                tint = Teal300,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -232,7 +229,7 @@ private fun MoreActionRow(row: MoreRow, onClick: () -> Unit) {
                     fontSize = 14.5.sp,
                     fontWeight = FontWeight.Medium,
                 ),
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(2.dp))
             Text(

@@ -52,4 +52,7 @@ data class BackupData(
     val accountTypes: List<AccountTypeEntity> = emptyList(),
     val cardTypes: List<CardTypeEntity> = emptyList(),
     val insuranceTypes: List<InsuranceTypeEntity> = emptyList(),
+    /** Schema v2: DataStore settings snapshot. Null when restoring a v1 backup —
+     *  the restorer then leaves the device's current settings untouched. */
+    val settings: BackupSettings? = null,
 )

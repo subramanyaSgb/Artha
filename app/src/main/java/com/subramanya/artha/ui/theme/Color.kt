@@ -1,5 +1,7 @@
 package com.subramanya.artha.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 // ─────────────────────────────────────────────────────────────
@@ -55,6 +57,21 @@ val AccEmerald = Color(0xFF2F8F6B)
 val AccSaffron = Color(0xFFC97A2A)
 val AccMagenta = Color(0xFFB14A6E)
 val AccViolet = Color(0xFF7D5BB8)
+
+// ─────────────────────────────────────────────────────────────
+// Theme-aware fills — for dark tokens that have no Material colorScheme slot.
+// Dark returns the original token (so dark mode is unchanged); light returns a pale
+// counterpart of the same hue so the element reads correctly on a bright surface.
+// ─────────────────────────────────────────────────────────────
+@Composable @ReadOnlyComposable
+fun incomeSoftFill(): Color = if (LocalArthaIsDark.current) IncomeSoft else Color(0xFFD6EEDF)
+
+@Composable @ReadOnlyComposable
+fun expenseSoftFill(): Color = if (LocalArthaIsDark.current) ExpenseSoft else Color(0xFFF8DDD2)
+
+/** AI Quick Entry card gradient end (deep teal in dark, pale teal in light). */
+@Composable @ReadOnlyComposable
+fun aiCardGradientEnd(): Color = if (LocalArthaIsDark.current) Teal950 else Color(0xFFCDEFE8)
 
 // ─────────────────────────────────────────────────────────────
 // Legacy aliases — older code still imports these. Map onto the

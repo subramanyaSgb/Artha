@@ -1,21 +1,27 @@
 package com.subramanya.artha
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -26,6 +32,10 @@ import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.preferences.ThemeMode
 import com.subramanya.artha.ui.common.ArthaBottomBar
 import com.subramanya.artha.ui.common.ArthaTopBar
+import com.subramanya.artha.ui.update.UpdateDialog
+import com.subramanya.artha.ui.update.UpdateDialogState
+import com.subramanya.artha.utils.AppUpdateChecker
+import com.subramanya.artha.utils.UpdateInfo
 import com.subramanya.artha.ui.lock.BiometricLockGate
 import com.subramanya.artha.ui.more.MoreAction
 import com.subramanya.artha.ui.more.MoreSheet
@@ -37,20 +47,47 @@ import com.subramanya.artha.ui.onboarding.OnboardingViewModel
 import com.subramanya.artha.ui.onboarding.OnboardingViewModelFactory
 import com.subramanya.artha.ui.splash.SplashScreen
 import com.subramanya.artha.ui.theme.ArthaTheme
+import com.subramanya.artha.utils.ReceiptStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * Switched to [FragmentActivity] in Phase 5 — BiometricPrompt requires a
  * FragmentActivity host. Behaviour is otherwise unchanged from ComponentActivity.
  */
 class MainActivity : FragmentActivity() {
+
+    // Compose-observable state — changes from onNewIntent recompose ArthaRoot automatically.
+    private var pendingShareUri by mutableStateOf<Uri?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { ArthaRoot() }
+        pendingShareUri = extractShareImageUri(intent)
+        setContent { ArthaRoot(pendingShareUri = pendingShareUri) }
+    }
+
+    /** Handles share intents when Artha is already running (singleTop). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        extractShareImageUri(intent)?.let { pendingShareUri = it }
+    }
+
+    private fun extractShareImageUri(intent: Intent?): Uri? {
+        if (intent?.action != Intent.ACTION_SEND) return null
+        if (intent.type?.startsWith("image/") != true) return null
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(Intent.EXTRA_STREAM)
+        }
     }
 }
 
@@ -76,7 +113,7 @@ private const val MIN_SPLASH_MILLIS: Long = 500L
 private const val CURRENT_BUNDLED_IMPORT_VERSION: Int = 3
 
 @Composable
-private fun ArthaRoot() {
+private fun ArthaRoot(pendingShareUri: Uri?) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
 
@@ -85,21 +122,16 @@ private fun ArthaRoot() {
     val biometricLock by app.settingsPreferences.biometricLockEnabled.collectAsState(initial = false)
 
     ArthaTheme(themeMode = themeMode, useDynamicColor = useDynamicColor) {
-        // Biometric gate wraps the whole inner scope when enabled.
         if (biometricLock) {
-            BiometricLockGate { ArthaInner(app) }
+            BiometricLockGate { ArthaInner(app, pendingShareUri) }
         } else {
-            ArthaInner(app)
+            ArthaInner(app, pendingShareUri)
         }
     }
 }
 
 @Composable
-private fun ArthaInner(app: ArthaApplication) {
-    // Triggers DB init + reads userName once; emits a Ready/NeedsOnboarding terminal state.
-    // Also runs the bundled bank-statement importer when its tracked version is older
-    // than [CURRENT_BUNDLED_IMPORT_VERSION] — that covers fresh installs AND post-upgrade
-    // re-runs when a schema bump destroys the old Room DB.
+private fun ArthaInner(app: ArthaApplication, pendingShareUri: Uri?) {
     val startup by produceState<StartupState>(initialValue = StartupState.Loading, app) {
         value = withContext(Dispatchers.IO) {
             val started = System.currentTimeMillis()
@@ -108,6 +140,9 @@ private fun ArthaInner(app: ArthaApplication) {
                 runCatching { BankImporter(app, app.database).importBundled() }
                 app.settingsPreferences.setBundledImportVersion(CURRENT_BUNDLED_IMPORT_VERSION)
             }
+            runCatching {
+                ReceiptStore.pruneOrphans(app, app.database.transactionDao().allReceiptUris())
+            }
             val name = app.settingsPreferences.userName.first()
             val elapsed = System.currentTimeMillis() - started
             if (elapsed < MIN_SPLASH_MILLIS) delay(MIN_SPLASH_MILLIS - elapsed)
@@ -115,8 +150,6 @@ private fun ArthaInner(app: ArthaApplication) {
         }
     }
 
-    // Local override so completing onboarding can transition us into MainApp without
-    // re-running the produceState block.
     var override: StartupState? by remember { mutableStateOf(null) }
     val current = override ?: startup
 
@@ -137,6 +170,7 @@ private fun ArthaInner(app: ArthaApplication) {
         is StartupState.Ready -> MainApp(
             settingsPreferences = app.settingsPreferences,
             initialName = state.userName,
+            pendingShareUri = pendingShareUri,
         )
     }
 }
@@ -145,7 +179,9 @@ private fun ArthaInner(app: ArthaApplication) {
 private fun MainApp(
     settingsPreferences: SettingsPreferences,
     initialName: String,
+    pendingShareUri: Uri?,
 ) {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = ArthaDestination.fromRoute(backStackEntry?.destination?.route)
@@ -153,24 +189,43 @@ private fun MainApp(
     val userName by settingsPreferences.userName.collectAsState(initial = initialName)
     var showMoreSheet by remember { mutableStateOf(false) }
 
-    // Show the global greeting top-bar only on the five bottom-nav destinations.
-    // Sub-routes (Settings/Categories/Tags/About/details) bring their own TopAppBar
-    // with a back button; stacking two would leave a giant gap above their title.
+    // In-app update state
+    var updateDialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
+    var downloadedApk by remember { mutableStateOf<File?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Check for updates 4 s after the main screen settles — non-blocking, silent on failure.
+    LaunchedEffect(Unit) {
+        delay(4_000)
+        val checker = AppUpdateChecker(context)
+        val info = withContext(Dispatchers.IO) {
+            runCatching { checker.checkForUpdate() }.getOrNull()
+        }
+        if (info != null) updateDialogState = UpdateDialogState.Available(info)
+    }
+
+    // When the user shares a UPI receipt image, navigate to the import screen.
+    // Using the URI string as key so a new share from onNewIntent re-triggers.
+    LaunchedEffect(pendingShareUri) {
+        if (pendingShareUri != null) {
+            navController.navigate(SubRoutes.shareReceipt(pendingShareUri.toString())) {
+                launchSingleTop = true
+            }
+        }
+    }
+
     val isBottomNavRoute = currentDestination != null
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        // Insets are handled by each screen's own chrome — ArthaTopBar uses
-        // statusBarsPadding, ArthaBottomBar uses navigationBarsPadding, and
-        // sub-screens with their own Scaffold/TopAppBar inset there. Setting
-        // this to WindowInsets(0) avoids double-padding when a sub-screen's
-        // inner Scaffold inserts its own status-bar inset on top of ours.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         topBar = {
             if (isBottomNavRoute) {
                 ArthaTopBar(
                     userName = userName,
-                    onSearchClick = { navController.navigate(SubRoutes.SEARCH) },
+                    onSearchClick = {
+                        navController.navigate(SubRoutes.SEARCH) { launchSingleTop = true }
+                    },
                 )
             }
         },
@@ -181,11 +236,6 @@ private fun MainApp(
                     if (destination == ArthaDestination.More) {
                         showMoreSheet = true
                     } else {
-                        // Always navigate (don't skip when "already selected") — that lets the
-                        // user tap Dashboard from anywhere to come home cleanly. Skipping
-                        // saveState/restoreState avoids the bug where revisiting Cards (or any
-                        // tab whose stack contained a sub-route at exit time) re-restores the
-                        // sub-route and makes the bottom-nav pill flicker off.
                         navController.navigate(destination.route) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 inclusive = false
@@ -209,6 +259,33 @@ private fun MainApp(
             onActionSelected = { action ->
                 showMoreSheet = false
                 navigateForMoreAction(navController, action)
+            },
+        )
+    }
+
+    val dialogState = updateDialogState
+    if (dialogState != null) {
+        val checker = AppUpdateChecker(context)
+        UpdateDialog(
+            state = dialogState,
+            onDismiss = { updateDialogState = null },
+            onDownload = { info ->
+                updateDialogState = UpdateDialogState.Downloading(info, 0f)
+                scope.launch {
+                    val apk = checker.downloadApk(info.downloadUrl) { progress ->
+                        updateDialogState = UpdateDialogState.Downloading(info, progress)
+                    }
+                    if (apk != null) {
+                        downloadedApk = apk
+                        checker.triggerInstall(apk)
+                        updateDialogState = null
+                    } else {
+                        updateDialogState = UpdateDialogState.Failed(info)
+                    }
+                }
+            },
+            onInstall = {
+                downloadedApk?.let { checker.triggerInstall(it) }
             },
         )
     }

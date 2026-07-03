@@ -24,11 +24,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
@@ -49,7 +53,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -76,20 +83,14 @@ import com.subramanya.artha.ui.theme.AccViolet
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.Expense
-import com.subramanya.artha.ui.theme.ExpenseSoft
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
-import com.subramanya.artha.ui.theme.IncomeSoft
 import com.subramanya.artha.ui.theme.LineTeal
-import com.subramanya.artha.ui.theme.Ochre
-import com.subramanya.artha.ui.theme.OchreSoft
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Teal900
-import com.subramanya.artha.ui.theme.Teal950
 import com.subramanya.artha.ui.theme.Text3
+import com.subramanya.artha.ui.theme.aiCardGradientEnd
+import com.subramanya.artha.ui.theme.expenseSoftFill
+import com.subramanya.artha.ui.theme.incomeSoftFill
 import com.subramanya.artha.ui.theme.TiroDevanagariHindi
 import com.subramanya.artha.ui.transaction.AddTransactionSheet
 import com.subramanya.artha.ui.transaction.AddTransactionViewModel
@@ -107,8 +108,10 @@ fun DashboardScreen(
     onOpenCard: (String) -> Unit = {},
     onOpenTransaction: (String) -> Unit = {},
     onOpenInsurance: (String) -> Unit = {},
-    onAddAccount: () -> Unit = {},
-    onAddCard: () -> Unit = {},
+    // "View all" on the section headers — navigate to the Accounts / Cards tab (the
+    // full list). The "+ Add" chips open the add-sheet locally instead (see below).
+    onOpenAccounts: () -> Unit = {},
+    onOpenCards: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
@@ -120,22 +123,39 @@ fun DashboardScreen(
             transactionRepository = app.transactionRepository,
             investmentRepository = app.investmentRepository,
             insuranceRepository = app.insuranceRepository,
+            categoryRepository = app.categoryRepository,
         ),
     )
     val state by vm.state.collectAsStateWithLifecycle()
     var showSheet by remember { mutableStateOf(false) }
     var showAiSheet by remember { mutableStateOf(false) }
+    var showAccountForm by remember { mutableStateOf(false) }
+    var showCardForm by remember { mutableStateOf(false) }
     var pendingAiPrefill: AiQuickEntryParsed? by remember { mutableStateOf(null) }
 
     val showMonthly by app.settingsPreferences.dashboardShowMonthly.collectAsStateWithLifecycle(initialValue = true)
     val showAccounts by app.settingsPreferences.dashboardShowAccounts.collectAsStateWithLifecycle(initialValue = true)
     val showCards by app.settingsPreferences.dashboardShowCards.collectAsStateWithLifecycle(initialValue = true)
     val showRecent by app.settingsPreferences.dashboardShowRecent.collectAsStateWithLifecycle(initialValue = true)
+    val showSpending by app.settingsPreferences.dashboardShowSpending.collectAsStateWithLifecycle(initialValue = true)
+    val sectionOrder by app.settingsPreferences.dashboardSectionOrder.collectAsStateWithLifecycle(initialValue = emptyList())
     // AI Quick Entry is opt-in — the card stays hidden until enabled in Settings (default off).
     val showAiQuickEntry by app.settingsPreferences.aiQuickEntryEnabled.collectAsStateWithLifecycle(initialValue = false)
 
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         RefreshableContent(modifier = Modifier.fillMaxSize()) {
+            // Cold-open placeholder: show a skeleton until the first data emission so
+            // the user doesn't briefly see a ₹0 net position and empty rows.
+            val isFirstRun = state.accounts.isEmpty() && state.cards.isEmpty() &&
+                state.recentTransactions.isEmpty() && state.investmentTotalValue == 0.0
+            if (state.isLoading) {
+                DashboardSkeleton()
+            } else if (isFirstRun) {
+                FirstRunGuide(
+                    onAddAccount = { showAccountForm = true },
+                    onAddTransaction = { showSheet = true },
+                )
+            } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -153,42 +173,53 @@ fun DashboardScreen(
                     )
                 }
 
-                if (showMonthly) {
-                    Spacer(Modifier.height(14.dp))
-                    FlowStrip(state)
-                }
-
+                // AI Quick Entry is a pinned, opt-in card (not part of the reorderable set).
                 if (showAiQuickEntry) {
                     Spacer(Modifier.height(14.dp))
                     AiEntryCard(onOpen = { showAiSheet = true })
                 }
 
-                if (showAccounts) {
-                    Spacer(Modifier.height(20.dp))
-                    AccountsRow(
-                        accounts = state.accounts,
-                        onOpenAccount = onOpenAccount,
-                        onAddAccount = onAddAccount,
-                    )
+                // Reorderable content sections, in the user's saved order (Settings → Dashboard).
+                DashboardSection.ordered(sectionOrder).forEach { section ->
+                    when (section) {
+                        DashboardSection.MONTHLY -> if (showMonthly) {
+                            Spacer(Modifier.height(14.dp))
+                            FlowStrip(state)
+                        }
+                        DashboardSection.SPENDING -> if (showSpending) {
+                            Spacer(Modifier.height(20.dp))
+                            SpendingBreakdown(state.topSpending)
+                        }
+                        DashboardSection.ACCOUNTS -> if (showAccounts) {
+                            Spacer(Modifier.height(20.dp))
+                            AccountsRow(
+                                accounts = state.accounts,
+                                onOpenAccount = onOpenAccount,
+                                onViewAll = onOpenAccounts,
+                                onAddAccount = { showAccountForm = true },
+                            )
+                        }
+                        DashboardSection.CARDS -> if (showCards) {
+                            Spacer(Modifier.height(18.dp))
+                            CardsRow(
+                                cards = state.cards,
+                                onOpenCard = onOpenCard,
+                                onViewAll = onOpenCards,
+                                onAddCard = { showCardForm = true },
+                            )
+                        }
+                        DashboardSection.RECENT -> if (showRecent) {
+                            Spacer(Modifier.height(20.dp))
+                            RecentSection(
+                                transactions = state.recentTransactions,
+                                categoriesById = state.categoriesById,
+                                onViewAll = onOpenTransactions,
+                                onOpenTransaction = onOpenTransaction,
+                            )
+                        }
+                    }
                 }
-
-                if (showCards) {
-                    Spacer(Modifier.height(18.dp))
-                    CardsRow(
-                        cards = state.cards,
-                        onOpenCard = onOpenCard,
-                        onAddCard = onAddCard,
-                    )
-                }
-
-                if (showRecent) {
-                    Spacer(Modifier.height(20.dp))
-                    RecentSection(
-                        transactions = state.recentTransactions,
-                        onViewAll = onOpenTransactions,
-                        onOpenTransaction = onOpenTransaction,
-                    )
-                }
+            }
             }
 
             FabRow(
@@ -234,6 +265,23 @@ fun DashboardScreen(
             },
         )
     }
+
+    // The "+ Add" chips open the real add-sheets here (editing = null) rather than
+    // just switching tabs — the sheets are self-contained (they read repos from the
+    // app context), so no extra wiring is needed.
+    if (showAccountForm) {
+        com.subramanya.artha.ui.accounts.AccountFormSheet(
+            editing = null,
+            onDismiss = { showAccountForm = false },
+        )
+    }
+
+    if (showCardForm) {
+        com.subramanya.artha.ui.cards.CardFormSheet(
+            editing = null,
+            onDismiss = { showCardForm = false },
+        )
+    }
 }
 
 // ───────────────────────────── Net Position Hero ─────────────────────────────
@@ -249,7 +297,7 @@ private fun NetPositionHero(state: DashboardUiState) {
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(width = 1.dp, color = LineTeal, shape = RoundedCornerShape(20.dp)),
     ) {
         // Jaali / block-print overlay
@@ -257,7 +305,7 @@ private fun NetPositionHero(state: DashboardUiState) {
             modifier = Modifier
                 .matchParentSize()
                 .clip(RoundedCornerShape(20.dp)),
-            tint = Teal300,
+            tint = MaterialTheme.colorScheme.primary,
             alpha = 0.05f,
         )
 
@@ -275,7 +323,7 @@ private fun NetPositionHero(state: DashboardUiState) {
         ) {
             Text(
                 text = "अ",
-                color = Teal300,
+                color = MaterialTheme.colorScheme.primary,
                 fontFamily = TiroDevanagariHindi,
                 fontSize = 13.sp,
                 lineHeight = 13.sp,
@@ -300,9 +348,11 @@ private fun NetPositionHero(state: DashboardUiState) {
             // Change row: ↑ ₹delta · +x.x% · this month
             Spacer(Modifier.height(10.dp))
             val change = state.netChangeThisMonth
-            val pct = if (state.netPosition - change != 0.0) {
-                change / (state.netPosition - change) * 100.0
-            } else 0.0
+            // Baseline = net position at the start of the month (netPosition - change).
+            // When it's zero (brand-new data, no prior month) a percentage is
+            // meaningless, so we omit the "· +x.x%" chip rather than show "+0.0%".
+            val baseline = state.netPosition - change
+            val pct: Double? = if (baseline != 0.0) change / baseline * 100.0 else null
             val positive = change >= 0
             val changeTint = if (positive) Income else Expense
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -324,20 +374,27 @@ private fun NetPositionHero(state: DashboardUiState) {
                         fontFeatureSettings = "tnum",
                     ),
                 )
-                Spacer(Modifier.width(8.dp))
-                Text("•", color = Text3, fontSize = 13.sp)
+                if (pct != null) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("•", color = Text3, fontSize = 13.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = (if (pct >= 0) "+" else "") +
+                            String.format(java.util.Locale.US, "%.1f%%", pct),
+                        color = changeTint,
+                        style = androidx.compose.ui.text.TextStyle(
+                            fontFamily = IbmPlexMono,
+                            fontSize = 13.sp,
+                            fontFeatureSettings = "tnum",
+                        ),
+                    )
+                }
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = (if (pct >= 0) "+" else "") + "%.1f%%".format(pct),
-                    color = changeTint,
-                    style = androidx.compose.ui.text.TextStyle(
-                        fontFamily = IbmPlexMono,
-                        fontSize = 13.sp,
-                        fontFeatureSettings = "tnum",
-                    ),
+                    text = stringResource(R.string.dashboard_net_change_suffix),
+                    color = Text3,
+                    style = MaterialTheme.typography.bodySmall,
                 )
-                Spacer(Modifier.width(8.dp))
-                Text("this month", color = Text3, style = MaterialTheme.typography.bodySmall)
             }
 
             // Sparkline — 30 days of end-of-day net position. Hidden if no history.
@@ -363,9 +420,9 @@ private fun NetPositionHero(state: DashboardUiState) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                BreakdownCell(label = "Liquid", value = liquid, color = Teal300, modifier = Modifier.weight(1f))
-                BreakdownCell(label = "Invested", value = invested, color = OchreSoft, modifier = Modifier.weight(1f))
-                BreakdownCell(label = "Card o/s", value = -cardOs, color = Expense, modifier = Modifier.weight(1f))
+                BreakdownCell(label = stringResource(R.string.dashboard_breakdown_liquid), value = liquid, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                BreakdownCell(label = stringResource(R.string.dashboard_breakdown_invested), value = invested, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.weight(1f))
+                BreakdownCell(label = stringResource(R.string.dashboard_breakdown_card_os), value = -cardOs, color = Expense, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -383,6 +440,100 @@ private fun BreakdownCell(label: String, value: Double, color: Color, modifier: 
             fontSize = 16.sp,
             lineHeight = 18.sp,
         )
+    }
+}
+
+// ───────────────────────────── Cold-open skeleton ────────────────────────────
+
+/** Static placeholder shown only until the first data emission (state.isLoading),
+ *  so the dashboard doesn't flash ₹0 / empty rows on a cold open. */
+@Composable
+private fun DashboardSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+    ) {
+        Spacer(Modifier.height(8.dp))
+        SkeletonBlock(height = 150.dp) // hero
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SkeletonBlock(height = 92.dp, modifier = Modifier.weight(1f))
+            SkeletonBlock(height = 92.dp, modifier = Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(20.dp))
+        SkeletonBlock(height = 116.dp) // accounts row
+        Spacer(Modifier.height(18.dp))
+        SkeletonBlock(height = 116.dp) // cards row
+        Spacer(Modifier.height(20.dp))
+        repeat(3) {
+            SkeletonBlock(height = 56.dp)
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun SkeletonBlock(height: Dp, modifier: Modifier = Modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .height(height)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+    )
+}
+
+// ───────────────────────────── First-run guide ───────────────────────────────
+
+/** Shown when there's no data at all (no accounts, cards, transactions, or investments)
+ *  so a fresh install lands on a friendly call-to-action instead of an empty dashboard. */
+@Composable
+private fun FirstRunGuide(onAddAccount: () -> Unit, onAddTransaction: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.AccountBalanceWallet,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(30.dp),
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.dashboard_firstrun_title),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = stringResource(R.string.dashboard_firstrun_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Text3,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(20.dp))
+        androidx.compose.material3.Button(
+            onClick = onAddAccount,
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            Text(stringResource(R.string.dashboard_add_account))
+        }
+        Spacer(Modifier.height(4.dp))
+        androidx.compose.material3.TextButton(onClick = onAddTransaction) {
+            Text(stringResource(R.string.dashboard_firstrun_add_txn))
+        }
     }
 }
 
@@ -469,11 +620,11 @@ private fun FlowTile(
     footer: String,
 ) {
     val tint = if (inDirection) Income else Expense
-    val softTint = if (inDirection) IncomeSoft else ExpenseSoft
+    val softTint = if (inDirection) incomeSoftFill() else expenseSoftFill()
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
             .padding(14.dp),
     ) {
@@ -515,6 +666,109 @@ private fun FlowTile(
     }
 }
 
+// ───────────────────────────── Spending breakdown ────────────────────────────
+
+@Composable
+private fun SpendingBreakdown(items: List<CategorySpend>) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = stringResource(R.string.dashboard_section_spending),
+            action = null,
+            onAction = {},
+        )
+        if (items.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+                    .padding(20.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.dashboard_spending_empty),
+                    color = Text3,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            return@Column
+        }
+        // Bars are sized relative to the biggest spender so the top row is always full-width.
+        val maxAmount = items.maxOf { it.amount }.coerceAtLeast(1.0)
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer),
+        ) {
+            items.forEachIndexed { i, spend ->
+                SpendRow(spend = spend, fraction = (spend.amount / maxAmount).toFloat())
+                if (i < items.size - 1) {
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 62.dp)
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendRow(spend: CategorySpend, fraction: Float) {
+    val cat = spend.category
+    val avatarColor = cat?.let { Color(it.color) }
+    val barColor = avatarColor ?: MaterialTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(11.dp))
+                .background(avatarColor ?: MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = com.subramanya.artha.utils.MaterialIcons.resolve(cat?.icon),
+                contentDescription = null,
+                tint = if (avatarColor != null) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(17.dp),
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = cat?.name ?: stringResource(R.string.dashboard_uncategorized),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
+            Spacer(Modifier.height(6.dp))
+            com.subramanya.artha.ui.common.LinearMeter(
+                fraction = fraction,
+                fillColor = barColor,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                heightDp = 4,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = IndianNumberFormat.format(spend.amount),
+            color = MaterialTheme.colorScheme.onSurface,
+            style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
+        )
+    }
+}
+
 // ───────────────────────────── AI Quick Entry Card ───────────────────────────
 
 @Composable
@@ -526,7 +780,7 @@ private fun AiEntryCard(onOpen: () -> Unit) {
             .clip(RoundedCornerShape(16.dp))
             .background(
                 brush = Brush.linearGradient(
-                    colors = listOf(Surface2, Teal950),
+                    colors = listOf(MaterialTheme.colorScheme.surfaceContainer, aiCardGradientEnd()),
                 ),
             )
             .border(1.dp, LineTeal, RoundedCornerShape(16.dp))
@@ -539,7 +793,7 @@ private fun AiEntryCard(onOpen: () -> Unit) {
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(Teal700)
-                    .border(1.dp, Teal300.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -552,19 +806,19 @@ private fun AiEntryCard(onOpen: () -> Unit) {
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Quick add with Gemini",
+                    text = stringResource(R.string.dashboard_ai_card_title),
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "\"Auto to MG Road ₹180\" — type, dictate, snap a receipt",
+                    text = stringResource(R.string.dashboard_ai_card_subtitle),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.5.sp,
                 )
             }
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Teal300, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -572,18 +826,20 @@ private fun AiEntryCard(onOpen: () -> Unit) {
 // ───────────────────────────── Accounts Row ──────────────────────────────────
 
 private val ACCOUNT_GRADIENTS = listOf(AccTeal, AccIndigo, AccSaffron, AccEmerald, AccMagenta, AccViolet)
+private val CARD_GRADIENTS = listOf(AccIndigo, AccMagenta, AccSaffron, AccViolet)
 
 @Composable
 private fun AccountsRow(
     accounts: List<AccountWithBalance>,
     onOpenAccount: (String) -> Unit,
+    onViewAll: () -> Unit,
     onAddAccount: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         SectionHeader(
             title = stringResource(R.string.dashboard_section_accounts),
             action = stringResource(R.string.dashboard_view_all),
-            onAction = onAddAccount,
+            onAction = onViewAll,
         )
         Row(
             modifier = Modifier
@@ -592,15 +848,17 @@ private fun AccountsRow(
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            accounts.forEachIndexed { index, row ->
-                val tone = ACCOUNT_GRADIENTS[index % ACCOUNT_GRADIENTS.size]
+            accounts.forEach { row ->
+                // Colour keyed off the stable id (not list position) so a chip keeps
+                // its colour when other accounts are added, reordered, or archived.
+                val tone = ACCOUNT_GRADIENTS[row.account.id.hashCode().mod(ACCOUNT_GRADIENTS.size)]
                 AccountChip(
                     row = row,
                     tone = tone,
                     onClick = { onOpenAccount(row.account.id) },
                 )
             }
-            AddChip(onClick = onAddAccount, label = "Add account")
+            AddChip(onClick = onAddAccount, label = stringResource(R.string.dashboard_add_account))
         }
     }
 }
@@ -618,7 +876,10 @@ private fun AccountChip(row: AccountWithBalance, tone: Color, onClick: () -> Uni
                 ),
             )
             .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            // Announce the chip as a single element (type + name + balance) instead
+            // of separate text nodes.
+            .semantics(mergeDescendants = true) {},
     ) {
         BandhaniOverlay(
             modifier = Modifier
@@ -693,13 +954,14 @@ private fun Color.darken(amount: Float): Color {
 private fun CardsRow(
     cards: List<CardWithBalance>,
     onOpenCard: (String) -> Unit,
+    onViewAll: () -> Unit,
     onAddCard: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         SectionHeader(
             title = stringResource(R.string.dashboard_section_cards),
             action = if (cards.isNotEmpty()) stringResource(R.string.dashboard_view_all) else null,
-            onAction = onAddCard,
+            onAction = onViewAll,
         )
         if (cards.isEmpty()) {
             Box(
@@ -707,7 +969,7 @@ private fun CardsRow(
                     .padding(horizontal = 16.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Surface2)
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                     .padding(20.dp),
             ) {
@@ -725,11 +987,11 @@ private fun CardsRow(
                     .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                cards.forEachIndexed { i, c ->
-                    val tone = listOf(AccIndigo, AccMagenta, AccSaffron, AccViolet)[i % 4]
+                cards.forEach { c ->
+                    val tone = CARD_GRADIENTS[c.card.id.hashCode().mod(CARD_GRADIENTS.size)]
                     CardChip(row = c, tone = tone, onClick = { onOpenCard(c.card.id) })
                 }
-                AddChip(onClick = onAddCard, label = "Add card")
+                AddChip(onClick = onAddCard, label = stringResource(R.string.dashboard_add_card))
             }
         }
     }
@@ -750,7 +1012,8 @@ private fun CardChip(row: CardWithBalance, tone: Color, onClick: () -> Unit) {
                 ),
             )
             .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) {},
     ) {
         BandhaniOverlay(modifier = Modifier.matchParentSize().clip(RoundedCornerShape(16.dp)), alpha = 0.14f)
         Column(
@@ -778,7 +1041,10 @@ private fun CardChip(row: CardWithBalance, tone: Color, onClick: () -> Unit) {
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Outstanding " + IndianNumberFormat.formatCompact(row.currentOutstanding),
+                    text = stringResource(
+                        R.string.dashboard_card_outstanding,
+                        IndianNumberFormat.formatCompact(row.currentOutstanding),
+                    ),
                     color = Color.White,
                     style = androidx.compose.ui.text.TextStyle(
                         fontSize = 12.sp,
@@ -824,12 +1090,13 @@ private fun AddChip(onClick: () -> Unit, label: String) {
 @Composable
 private fun RecentSection(
     transactions: List<Transaction>,
+    categoriesById: Map<String, com.subramanya.artha.domain.model.Category>,
     onViewAll: () -> Unit,
     onOpenTransaction: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         SectionHeader(
-            title = "Recent activity",
+            title = stringResource(R.string.dashboard_section_recent_activity),
             action = stringResource(R.string.dashboard_view_all),
             onAction = onViewAll,
         )
@@ -839,7 +1106,7 @@ private fun RecentSection(
                     .padding(horizontal = 16.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Surface2)
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                     .padding(24.dp),
                 contentAlignment = Alignment.Center,
@@ -869,10 +1136,14 @@ private fun RecentSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Surface2),
+                        .background(MaterialTheme.colorScheme.surfaceContainer),
                 ) {
                     list.forEachIndexed { i, txn ->
-                        TransactionRow(txn = txn, onClick = { onOpenTransaction(txn.id) })
+                        TransactionRow(
+                            txn = txn,
+                            category = txn.categoryId?.let { categoriesById[it] },
+                            onClick = { onOpenTransaction(txn.id) },
+                        )
                         if (i < list.size - 1) {
                             Box(
                                 modifier = Modifier
@@ -890,8 +1161,15 @@ private fun RecentSection(
 }
 
 @Composable
-private fun TransactionRow(txn: Transaction, onClick: () -> Unit) {
+private fun TransactionRow(
+    txn: Transaction,
+    category: com.subramanya.artha.domain.model.Category?,
+    onClick: () -> Unit,
+) {
     val isIncome = txn.type.isIncomeLike()
+    // Prefer the transaction's category for the avatar (its real icon + colour);
+    // fall back to a type-based icon for category-less rows (transfers, etc.).
+    val avatarColor = category?.let { Color(it.color) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -903,20 +1181,32 @@ private fun TransactionRow(txn: Transaction, onClick: () -> Unit) {
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(11.dp))
-                .background(if (isIncome) IncomeSoft else Surface4),
+                .background(avatarColor ?: if (isIncome) incomeSoftFill() else MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = iconForType(txn.type),
+                imageVector = category?.let {
+                    com.subramanya.artha.utils.MaterialIcons.resolve(it.icon)
+                } ?: iconForType(txn.type),
                 contentDescription = null,
-                tint = if (isIncome) Income else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = when {
+                    avatarColor != null -> Color.White
+                    isIncome -> Income
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 modifier = Modifier.size(17.dp),
             )
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = txn.description.ifBlank { txn.type.name.replace('_', ' ') },
+                // Fall back to a Title-Cased type label when there's no description
+                // ("Investment Buy"), rather than the raw SHOUTING enum name.
+                text = txn.description.ifBlank {
+                    txn.type.name.split('_').joinToString(" ") { word ->
+                        word.lowercase().replaceFirstChar { it.uppercase() }
+                    }
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -931,9 +1221,9 @@ private fun TransactionRow(txn: Transaction, onClick: () -> Unit) {
                 style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
             )
             Spacer(Modifier.height(2.dp))
-            txn.categoryId?.let { cid ->
+            category?.let {
                 Text(
-                    text = cid.removePrefix("cat_").replace('_', ' '),
+                    text = it.name,
                     color = Text3,
                     fontSize = 10.sp,
                 )
@@ -962,12 +1252,12 @@ private fun SectionHeader(title: String, action: String?, onAction: () -> Unit) 
             ) {
                 Text(
                     text = action,
-                    color = Teal300,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                 )
                 Spacer(Modifier.width(2.dp))
-                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Teal300, modifier = Modifier.size(14.dp))
+                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
             }
         }
     }
@@ -1022,12 +1312,19 @@ private fun signedAmount(txn: Transaction): String {
     }
 }
 
+// Fallback icon for rows whose category can't be resolved (transfers, investment
+// legs, adjustments). Exhaustive over TransactionType so a new type can't silently
+// regress to a generic "+" again. Money-in trends up, money-out trends down.
 private fun iconForType(type: TransactionType) = when (type) {
     TransactionType.CARD_PAYMENT -> Icons.Filled.CreditCard
+    TransactionType.TRANSFER -> Icons.Filled.SwapHoriz
+    TransactionType.INVESTMENT_BUY, TransactionType.INVESTMENT_SELL -> Icons.AutoMirrored.Filled.ShowChart
     TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
-    TransactionType.INTEREST -> Icons.AutoMirrored.Filled.TrendingDown
-    TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT -> Icons.AutoMirrored.Filled.TrendingUp
-    else -> Icons.Filled.Add
+    TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED ->
+        Icons.AutoMirrored.Filled.TrendingUp
+    TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT ->
+        Icons.AutoMirrored.Filled.TrendingDown
+    TransactionType.ADJUSTMENT -> Icons.AutoMirrored.Filled.ReceiptLong
 }
 
 private fun transactionMeta(txn: Transaction): String {

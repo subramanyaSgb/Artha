@@ -1,7 +1,8 @@
-﻿package com.subramanya.artha.ui.accounts
+package com.subramanya.artha.ui.accounts
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -13,8 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
@@ -94,6 +97,8 @@ fun AccountsScreen(
                 AccountsEditorialHeader(
                     view = state.view,
                     reorderMode = state.isReorderMode,
+                    sort = state.sort,
+                    onSortChanged = vm::setSort,
                     overflowOpen = overflowOpen,
                     onOverflowToggle = { overflowOpen = it },
                     onShowArchived = vm::showArchived,
@@ -104,11 +109,15 @@ fun AccountsScreen(
                 if (state.view == AccountsView.ACTIVE && state.activeAccounts.isNotEmpty()) {
                     com.subramanya.artha.ui.accounts.TotalLiquidCard(
                         accounts = state.activeAccounts,
+                        grouped = state.groupByType,
+                        onToggleGroup = vm::toggleGroupByType,
                     )
                 }
 
                 val rows = state.shownRows
-                if (rows.isEmpty()) {
+                if (state.isLoading) {
+                    AccountsSkeleton()
+                } else if (rows.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         EmptyState(
                             icon = Icons.Filled.AccountBalance,
@@ -124,29 +133,37 @@ fun AccountsScreen(
                         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 4.dp),
                     ) {
-                        items(rows, key = { it.account.id }) { row ->
-                            if (state.view == AccountsView.ACTIVE) {
-                                ActiveAccountRow(
-                                    row = row,
-                                    reorderMode = state.isReorderMode,
-                                    canMoveUp = rows.first() != row,
-                                    canMoveDown = rows.last() != row,
-                                    onTap = {
-                                        if (!state.isReorderMode) onOpenAccount(row.account.id)
-                                    },
-                                    onLongPress = vm::enterReorderMode,
-                                    onMoveUp = { vm.moveUp(row.account) },
-                                    onMoveDown = { vm.moveDown(row.account) },
-                                    onEdit = { formMode = FormMode.Edit(row.account) },
-                                    onArchive = { vm.archive(row.account) },
-                                    onDelete = { pendingDelete = row.account },
-                                )
-                            } else {
-                                ArchivedAccountRow(
-                                    row = row,
-                                    onRestore = { vm.restore(row.account) },
-                                    onDelete = { pendingDelete = row.account },
-                                )
+                        itemsIndexed(rows, key = { _, row -> row.account.id }) { i, row ->
+                            Column {
+                                // Type sub-header before the first row of each type when grouping.
+                                if (state.groupByType &&
+                                    (i == 0 || rows[i - 1].account.type != row.account.type)
+                                ) {
+                                    AccountTypeHeader(type = row.account.type)
+                                }
+                                if (state.view == AccountsView.ACTIVE) {
+                                    ActiveAccountRow(
+                                        row = row,
+                                        reorderMode = state.isReorderMode,
+                                        canMoveUp = rows.first() != row,
+                                        canMoveDown = rows.last() != row,
+                                        onTap = {
+                                            if (!state.isReorderMode) onOpenAccount(row.account.id)
+                                        },
+                                        onLongPress = vm::enterReorderMode,
+                                        onMoveUp = { vm.moveUp(row.account) },
+                                        onMoveDown = { vm.moveDown(row.account) },
+                                        onEdit = { formMode = FormMode.Edit(row.account) },
+                                        onArchive = { vm.archive(row.account) },
+                                        onDelete = { pendingDelete = row.account },
+                                    )
+                                } else {
+                                    ArchivedAccountRow(
+                                        row = row,
+                                        onRestore = { vm.restore(row.account) },
+                                        onDelete = { pendingDelete = row.account },
+                                    )
+                                }
                             }
                         }
                         item { androidx.compose.foundation.layout.Spacer(Modifier.height(100.dp)) }
@@ -164,7 +181,7 @@ fun AccountsScreen(
                     onClick = { formMode = FormMode.Add },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     icon = {
                         Icon(Icons.Filled.Add, contentDescription = null)
                     },
@@ -237,9 +254,9 @@ private fun ActiveAccountRow(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onTap, onLongClick = onLongPress),
-        color = com.subramanya.artha.ui.theme.Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, com.subramanya.artha.ui.theme.Line1),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
@@ -250,7 +267,7 @@ private fun ActiveAccountRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = row.account.name,
-                    color = com.subramanya.artha.ui.theme.Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                 )
@@ -284,14 +301,14 @@ private fun ActiveAccountRow(
             } else {
                 Text(
                     text = IndianNumberFormat.format(row.currentBalance),
-                    color = com.subramanya.artha.ui.theme.Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
                 )
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(
                             Icons.Filled.MoreVert,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.accounts_more_options),
                             tint = com.subramanya.artha.ui.theme.Text3,
                         )
                     }
@@ -337,9 +354,9 @@ private fun ArchivedAccountRow(
     var menuOpen by remember { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = com.subramanya.artha.ui.theme.Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, com.subramanya.artha.ui.theme.Line1),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -350,7 +367,7 @@ private fun ArchivedAccountRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = row.account.name,
-                    color = com.subramanya.artha.ui.theme.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                 )
@@ -365,18 +382,22 @@ private fun ArchivedAccountRow(
                     )
                 }
             }
-            TextButton(onClick = onRestore) {
-                Icon(Icons.Filled.Unarchive, contentDescription = null)
-                Text(
-                    text = stringResource(R.string.accounts_action_restore),
-                    modifier = Modifier.padding(start = 6.dp),
+            Text(
+                text = IndianNumberFormat.format(row.currentBalance),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = ArthaAmountStyles.body,
+            )
+            IconButton(onClick = onRestore) {
+                Icon(
+                    Icons.Filled.Unarchive,
+                    contentDescription = stringResource(R.string.accounts_action_restore),
                 )
             }
             Box {
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
                         Icons.Filled.MoreVert,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.accounts_more_options),
                         tint = com.subramanya.artha.ui.theme.Text3,
                     )
                 }
@@ -422,8 +443,8 @@ private fun AccountAvatar(color: Long) {
 
 private fun formatSubtitle(account: Account): String? {
     val pieces = buildList {
-        if (!account.institution.isNullOrBlank()) add(account.institution!!)
-        if (!account.accountNumberLast4.isNullOrBlank()) add("••${account.accountNumberLast4}")
+        account.institution?.takeIf { it.isNotBlank() }?.let { add(it) }
+        account.accountNumberLast4?.takeIf { it.isNotBlank() }?.let { add("••$it") }
     }
     return pieces.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
@@ -434,12 +455,15 @@ private fun formatSubtitle(account: Account): String? {
 private fun AccountsEditorialHeader(
     view: AccountsView,
     reorderMode: Boolean,
+    sort: AccountSort,
+    onSortChanged: (AccountSort) -> Unit,
     overflowOpen: Boolean,
     onOverflowToggle: (Boolean) -> Unit,
     onShowArchived: () -> Unit,
     onShowActive: () -> Unit,
     onExitReorder: () -> Unit,
 ) {
+    var sortOpen by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -448,7 +472,7 @@ private fun AccountsEditorialHeader(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "WHERE YOUR MONEY SITS",
+                text = stringResource(R.string.accounts_eyebrow).uppercase(),
                 style = com.subramanya.artha.ui.theme.EyebrowStyle,
                 color = com.subramanya.artha.ui.theme.Text3,
             )
@@ -475,21 +499,44 @@ private fun AccountsEditorialHeader(
                 )
             }
         } else {
-            Box {
-                IconButton(onClick = { onOverflowToggle(true) }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = null)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box {
+                    IconButton(onClick = { sortOpen = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Sort,
+                            contentDescription = stringResource(R.string.accounts_sort_label),
+                        )
+                    }
+                    DropdownMenu(expanded = sortOpen, onDismissRequest = { sortOpen = false }) {
+                        AccountSort.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.sortLabel()) },
+                                onClick = { onSortChanged(option); sortOpen = false },
+                                leadingIcon = if (sort == option) {
+                                    { Icon(Icons.Filled.Done, contentDescription = null) }
+                                } else {
+                                    null
+                                },
+                            )
+                        }
+                    }
                 }
-                DropdownMenu(expanded = overflowOpen, onDismissRequest = { onOverflowToggle(false) }) {
-                    if (view == AccountsView.ACTIVE) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.accounts_menu_show_archived)) },
-                            onClick = { onShowArchived(); onOverflowToggle(false) },
-                        )
-                    } else {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.accounts_menu_back_active)) },
-                            onClick = { onShowActive(); onOverflowToggle(false) },
-                        )
+                Box {
+                    IconButton(onClick = { onOverflowToggle(true) }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.accounts_more_options))
+                    }
+                    DropdownMenu(expanded = overflowOpen, onDismissRequest = { onOverflowToggle(false) }) {
+                        if (view == AccountsView.ACTIVE) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.accounts_menu_show_archived)) },
+                                onClick = { onShowArchived(); onOverflowToggle(false) },
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.accounts_menu_back_active)) },
+                                onClick = { onShowActive(); onOverflowToggle(false) },
+                            )
+                        }
                     }
                 }
             }
@@ -498,30 +545,36 @@ private fun AccountsEditorialHeader(
 }
 
 @Composable
-internal fun TotalLiquidCard(accounts: List<com.subramanya.artha.domain.model.AccountWithBalance>) {
+internal fun TotalLiquidCard(
+    accounts: List<com.subramanya.artha.domain.model.AccountWithBalance>,
+    grouped: Boolean = false,
+    onToggleGroup: () -> Unit = {},
+) {
     val total = accounts.sumOf { it.currentBalance }
     Box(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
-            .background(com.subramanya.artha.ui.theme.Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant,
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
-            ),
+            )
+            // Tap to group/ungroup the list by account type.
+            .clickable(onClick = onToggleGroup),
     ) {
         com.subramanya.artha.ui.common.BandhaniOverlay(
             modifier = Modifier
                 .matchParentSize()
                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp)),
-            tint = com.subramanya.artha.ui.theme.Teal300,
+            tint = MaterialTheme.colorScheme.primary,
             alpha = 0.04f,
         )
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                text = "TOTAL LIQUID",
+                text = stringResource(R.string.accounts_total_liquid).uppercase(),
                 style = com.subramanya.artha.ui.theme.EyebrowStyle,
                 color = com.subramanya.artha.ui.theme.Text3,
             )
@@ -536,7 +589,11 @@ internal fun TotalLiquidCard(accounts: List<com.subramanya.artha.domain.model.Ac
             )
             androidx.compose.foundation.layout.Spacer(Modifier.height(4.dp))
             Text(
-                text = "across ${accounts.size} account${if (accounts.size != 1) "s" else ""}",
+                text = androidx.compose.ui.res.pluralStringResource(
+                    R.plurals.accounts_across_count,
+                    accounts.size,
+                    accounts.size,
+                ),
                 color = com.subramanya.artha.ui.theme.Text3,
                 fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
                 style = MaterialTheme.typography.bodySmall.copy(
@@ -544,7 +601,53 @@ internal fun TotalLiquidCard(accounts: List<com.subramanya.artha.domain.model.Ac
                     fontFeatureSettings = "tnum",
                 ),
             )
+            if (grouped) {
+                androidx.compose.foundation.layout.Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.accounts_grouped_hint),
+                    style = com.subramanya.artha.ui.theme.EyebrowStyle,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
     androidx.compose.foundation.layout.Spacer(Modifier.height(14.dp))
+}
+
+@Composable
+private fun AccountSort.sortLabel(): String = when (this) {
+    AccountSort.CUSTOM -> stringResource(R.string.accounts_sort_custom)
+    AccountSort.BALANCE_DESC -> stringResource(R.string.accounts_sort_balance_desc)
+    AccountSort.BALANCE_ASC -> stringResource(R.string.accounts_sort_balance_asc)
+    AccountSort.NAME_ASC -> stringResource(R.string.accounts_sort_name)
+}
+
+/** Sub-header shown above the first row of each account type when grouping is on. */
+@Composable
+private fun AccountTypeHeader(type: String) {
+    Text(
+        text = type.replace('_', ' ').uppercase(),
+        style = com.subramanya.artha.ui.theme.EyebrowStyle,
+        color = com.subramanya.artha.ui.theme.Text3,
+        modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 6.dp),
+    )
+}
+
+/** Cold-open placeholder so the list doesn't flash an empty state before data arrives. */
+@Composable
+private fun AccountsSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+    ) {
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
+        }
+    }
 }

@@ -32,7 +32,11 @@ object BackupCrypto {
     private const val KEY_BITS = 256
     private const val PBKDF2_ITERATIONS = 120_000
 
-    fun encrypt(plaintext: String, password: CharArray): String {
+    fun encrypt(plaintext: String, password: CharArray): String =
+        encryptBytes(plaintext.toByteArray(Charsets.UTF_8), password)
+
+    /** Binary variant — schema-v2 backups encrypt the whole ZIP archive, not JSON text. */
+    fun encryptBytes(plain: ByteArray, password: CharArray): String {
         require(password.isNotEmpty()) { "password must not be empty" }
         val rng = SecureRandom()
         val salt = ByteArray(SALT_BYTES).also(rng::nextBytes)
@@ -41,7 +45,7 @@ object BackupCrypto {
 
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, iv))
-        val ct = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
+        val ct = cipher.doFinal(plain)
 
         return listOf(
             MAGIC,
@@ -53,7 +57,11 @@ object BackupCrypto {
 
     fun isEncrypted(raw: String): Boolean = raw.lineSequence().firstOrNull()?.trim() == MAGIC
 
-    fun decrypt(raw: String, password: CharArray): Result<String> = runCatching {
+    fun decrypt(raw: String, password: CharArray): Result<String> =
+        decryptBytes(raw, password).map { String(it, Charsets.UTF_8) }
+
+    /** Binary variant — the caller sniffs the payload type (ZIP vs JSON) after decrypt. */
+    fun decryptBytes(raw: String, password: CharArray): Result<ByteArray> = runCatching {
         val lines = raw.lineSequence().toList()
         require(lines.size >= 4 && lines[0].trim() == MAGIC) { "not an Artha encrypted backup" }
         val salt = Base64.decode(lines[1], Base64.NO_WRAP)
@@ -63,8 +71,7 @@ object BackupCrypto {
 
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, iv))
-        val pt = cipher.doFinal(ct)
-        String(pt, Charsets.UTF_8)
+        cipher.doFinal(ct)
     }
 
     private fun deriveKey(password: CharArray, salt: ByteArray): SecretKey {

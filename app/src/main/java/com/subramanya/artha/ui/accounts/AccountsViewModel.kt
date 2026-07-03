@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.R
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.domain.model.Account
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -21,6 +23,8 @@ class AccountsViewModel(
 
     private val view = MutableStateFlow(AccountsView.ACTIVE)
     private val reorderMode = MutableStateFlow(false)
+    private val sort = MutableStateFlow(AccountSort.CUSTOM)
+    private val groupByType = MutableStateFlow(false)
 
     /** One-shot string-res message for a toast (e.g. delete-blocked → archived instead). */
     private val message = MutableStateFlow<Int?>(null)
@@ -32,22 +36,62 @@ class AccountsViewModel(
      * treating "archived = frozen" matches the typical mental model and avoids fanning
      * out a per-account live-balance flow for rows the user has explicitly retired.
      */
+    private data class UiBag(
+        val view: AccountsView,
+        val reorder: Boolean,
+        val sort: AccountSort,
+        val group: Boolean,
+    )
+
     val state: StateFlow<AccountsUiState> = combine(
         accountRepository.observeActiveWithBalances(),
         accountRepository.observeArchived(),
-        view,
-        reorderMode,
-    ) { active, archived, currentView, isReorder ->
+        combine(view, reorderMode, sort, groupByType) { v, r, s, g -> UiBag(v, r, s, g) },
+    ) { active, archived, ui ->
         val archivedWithBalance = archived.map { account ->
             com.subramanya.artha.domain.model.AccountWithBalance(account, account.openingBalance)
         }
+        // Reorder only applies on the active list in CUSTOM, ungrouped order — any sort/group
+        // overrides displayOrder, so dragging there would be meaningless.
+        val canReorder = ui.view == AccountsView.ACTIVE && ui.sort == AccountSort.CUSTOM && !ui.group
         AccountsUiState(
-            view = currentView,
-            isReorderMode = isReorder && currentView == AccountsView.ACTIVE,
-            activeAccounts = active,
-            archivedAccounts = archivedWithBalance,
+            view = ui.view,
+            isReorderMode = ui.reorder && canReorder,
+            activeAccounts = order(active, ui.sort, ui.group),
+            archivedAccounts = order(archivedWithBalance, ui.sort, ui.group),
+            isLoading = false,
+            sort = ui.sort,
+            groupByType = ui.group,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountsUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountsUiState())
+
+    /** Apply the chosen sort, then (if grouping) a stable secondary sort by type so rows of the
+     *  same type sit together while preserving the primary order within each type. CUSTOM keeps
+     *  the DAO's displayOrder. */
+    private fun order(
+        list: List<com.subramanya.artha.domain.model.AccountWithBalance>,
+        sort: AccountSort,
+        group: Boolean,
+    ): List<com.subramanya.artha.domain.model.AccountWithBalance> {
+        val sorted = when (sort) {
+            AccountSort.CUSTOM -> list
+            AccountSort.BALANCE_DESC -> list.sortedByDescending { it.currentBalance }
+            AccountSort.BALANCE_ASC -> list.sortedBy { it.currentBalance }
+            AccountSort.NAME_ASC -> list.sortedBy { it.account.name.lowercase() }
+        }
+        return if (group) sorted.sortedBy { it.account.type.lowercase() } else sorted
+    }
+
+    fun setSort(value: AccountSort) {
+        sort.update { value }
+        if (value != AccountSort.CUSTOM) reorderMode.update { false }
+    }
+
+    fun toggleGroupByType() {
+        groupByType.update { !it }
+        reorderMode.update { false }
+    }
 
     // ---------- view toggles ----------
 
@@ -62,7 +106,10 @@ class AccountsViewModel(
     }
 
     fun enterReorderMode() {
-        if (view.value == AccountsView.ACTIVE) reorderMode.update { true }
+        // Only meaningful in the active list with custom (manual) order and no grouping.
+        if (view.value == AccountsView.ACTIVE && sort.value == AccountSort.CUSTOM && !groupByType.value) {
+            reorderMode.update { true }
+        }
     }
 
     fun exitReorderMode() {

@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.data.entity.enums.CategoryType
 import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.domain.model.Category
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -35,8 +37,8 @@ class CategoriesViewModel(
         val typed = all.filter { it.type == type }
         val parents = typed.filter { it.parentId == null }.sortedBy { it.displayOrder }
         val childrenByParent = typed
-            .filter { it.parentId != null }
-            .groupBy { it.parentId!! }
+            .mapNotNull { c -> c.parentId?.let { pid -> pid to c } }
+            .groupBy({ it.first }, { it.second })
             .mapValues { (_, list) -> list.sortedBy { it.displayOrder } }
         CategoriesUiState(
             type = type,
@@ -44,7 +46,8 @@ class CategoriesViewModel(
             childrenByParent = childrenByParent,
             expandedParentIds = expandedIds,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CategoriesUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CategoriesUiState())
 
     fun onTypeSelected(type: CategoryType) {
         selectedType.update { type }
@@ -58,6 +61,15 @@ class CategoriesViewModel(
     }
 
     suspend fun usageCount(id: String): Int = categoryRepository.usageCount(id)
+
+    /** Reorder by swapping two siblings' displayOrder (PRD §7.19). Caller passes the
+     *  adjacent sibling; both rows are persisted with their order values exchanged. */
+    fun swapOrder(a: Category, b: Category) {
+        viewModelScope.launch {
+            categoryRepository.upsert(a.copy(displayOrder = b.displayOrder))
+            categoryRepository.upsert(b.copy(displayOrder = a.displayOrder))
+        }
+    }
 
     fun upsert(category: Category) {
         viewModelScope.launch { categoryRepository.upsert(category) }

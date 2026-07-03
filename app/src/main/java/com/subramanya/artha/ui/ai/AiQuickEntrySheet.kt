@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -77,21 +78,16 @@ import com.subramanya.artha.ui.theme.Danger
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface3
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Teal900
 import com.subramanya.artha.ui.theme.Teal950
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * HANDOFF §3.10 AI Quick Entry sheet — long-press FAB destination.
@@ -117,11 +113,18 @@ fun AiQuickEntrySheet(
     val state by vm.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val scope = rememberCoroutineScope()
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        runCatching {
-            context.contentResolver.openInputStream(uri)?.use(BitmapFactory::decodeStream)
-        }.getOrNull()?.let(vm::onPhotoPicked)
+        // Decode off the main thread — receipt photos can take 100-300ms to decode.
+        scope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use(BitmapFactory::decodeStream)
+                }.getOrNull()
+            }
+            bitmap?.let(vm::onPhotoPicked)
+        }
     }
 
     val voiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -133,7 +136,7 @@ fun AiQuickEntrySheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {
@@ -237,7 +240,7 @@ private fun AiHero() {
             Icon(
                 imageVector = Icons.Filled.AutoAwesome,
                 contentDescription = null,
-                tint = Text1,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -246,13 +249,13 @@ private fun AiHero() {
             Text(
                 text = stringResource(R.string.ai_quick_entry_eyebrow).uppercase(),
                 style = EyebrowStyle,
-                color = Teal300,
+                color = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = stringResource(R.string.ai_quick_entry_title),
                 style = MaterialTheme.typography.titleLarge,
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
@@ -260,7 +263,7 @@ private fun AiHero() {
     Text(
         text = stringResource(R.string.ai_quick_entry_subtitle),
         style = MaterialTheme.typography.bodySmall,
-        color = Text2,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
@@ -281,21 +284,21 @@ private fun AiComposer(
     sendEnabled: Boolean,
     isParsing: Boolean,
 ) {
-    val borderColor = if (text.isNotBlank() || photoAttached) LineTeal else Line1
+    val borderColor = if (text.isNotBlank() || photoAttached) LineTeal else MaterialTheme.colorScheme.outlineVariant
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         BasicTextField(
             value = text,
             onValueChange = onTextChanged,
-            cursorBrush = SolidColor(Teal300),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             textStyle = TextStyle(
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 15.sp,
                 lineHeight = 22.sp,
             ),
@@ -321,7 +324,7 @@ private fun AiComposer(
                 Icon(
                     imageVector = Icons.Filled.Mic,
                     contentDescription = stringResource(R.string.ai_quick_entry_voice),
-                    tint = Text2,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -330,7 +333,7 @@ private fun AiComposer(
                 Icon(
                     imageVector = Icons.Filled.Image,
                     contentDescription = stringResource(R.string.ai_quick_entry_photo),
-                    tint = Text2,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -348,13 +351,13 @@ private fun AiComposer(
                         Text(
                             text = stringResource(R.string.ai_quick_entry_photo_attached),
                             style = MaterialTheme.typography.labelSmall,
-                            color = Teal300,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(Modifier.size(4.dp))
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = null,
-                            tint = Teal300,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(12.dp),
                         )
                     }
@@ -362,8 +365,8 @@ private fun AiComposer(
             }
             Spacer(Modifier.weight(1f))
             // Send button — solid teal when armed, muted Surface4 otherwise.
-            val container = if (sendEnabled) Teal700 else Surface4
-            val tint = if (sendEnabled) Text1 else Text3
+            val container = if (sendEnabled) Teal700 else MaterialTheme.colorScheme.surfaceContainerHighest
+            val tint = if (sendEnabled) MaterialTheme.colorScheme.onSurface else Text3
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -392,8 +395,8 @@ private fun ComposerIconButton(
         modifier = Modifier
             .size(36.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(Surface3)
-            .border(1.dp, Line1, RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
         content = { content() },
@@ -421,18 +424,18 @@ private fun ExampleChips(onPick: (String) -> Unit) {
         ) {
             examples.forEach { example ->
                 Surface(
-                    color = Surface2,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
                     shape = RoundedCornerShape(999.dp),
                     modifier = Modifier
                         .clickable { onPick(example) }
-                        .border(1.dp, Line1, RoundedCornerShape(999.dp)),
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp)),
                 ) {
                     Text(
                         text = example,
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontFeatureSettings = "tnum, lnum",
                         ),
-                        color = Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     )
                 }
@@ -470,7 +473,7 @@ private fun ParsingIndicator() {
         Text(
             text = stringResource(R.string.ai_quick_entry_parsing_label),
             style = MaterialTheme.typography.bodySmall,
-            color = Text2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -492,14 +495,14 @@ private fun ParsedCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(1.dp, LineTeal, RoundedCornerShape(16.dp))
             .padding(16.dp),
     ) {
         Text(
             text = stringResource(R.string.ai_quick_entry_preview_title),
             style = EyebrowStyle,
-            color = Teal300,
+            color = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.height(12.dp))
         FlowRow(
@@ -554,7 +557,7 @@ private fun ParsedCard(
                 modifier = Modifier.weight(1f).height(44.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Text2,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
             ) {
                 Text(stringResource(R.string.ai_quick_entry_cancel))
@@ -589,12 +592,12 @@ private fun <T> chipFor(
 ) {
     val (border, valueColor) = when (field.confidence) {
         Confidence.LOW -> Danger to Danger
-        Confidence.MEDIUM -> Line1 to Text2
-        Confidence.HIGH -> LineTeal to Text1
+        Confidence.MEDIUM -> MaterialTheme.colorScheme.outlineVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        Confidence.HIGH -> LineTeal to MaterialTheme.colorScheme.onSurface
     }
     val rendered = render(field.value)
     Surface(
-        color = Surface3,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.border(1.dp, border, RoundedCornerShape(12.dp)),
     ) {
@@ -625,7 +628,7 @@ private fun <T> chipFor(
 @Composable
 private fun AiAlert(title: String, body: String) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -638,10 +641,7 @@ private fun AiAlert(title: String, body: String) {
                 color = Danger,
             )
             Spacer(Modifier.height(2.dp))
-            Text(text = body, style = MaterialTheme.typography.bodySmall, color = Text2)
+            Text(text = body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
-
-@Suppress("unused")
-private val keepTeal900Reference = Teal900

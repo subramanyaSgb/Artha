@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,17 +56,9 @@ import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
-import com.subramanya.artha.ui.theme.IncomeSoft
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
-import com.subramanya.artha.ui.theme.Teal900
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
+import com.subramanya.artha.ui.theme.incomeSoftFill
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.datetime.Instant
@@ -110,7 +103,7 @@ fun PersonDetailScreen(
         else if (seenPerson) onBack()
     }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             val person = state.person
             com.subramanya.artha.ui.common.InlineTopBar(
@@ -122,7 +115,7 @@ fun PersonDetailScreen(
                             Icon(
                                 Icons.Filled.Edit,
                                 contentDescription = stringResource(R.string.people_action_edit),
-                                tint = Text2,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         IconButton(onClick = vm::requestDelete) {
@@ -174,8 +167,9 @@ private fun Body(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item("hero") { Hero(state) }
         item("txnsHeader") {
+            val title = stringResource(R.string.person_detail_txns_title).uppercase()
             Text(
-                text = stringResource(R.string.person_detail_txns_title).uppercase(),
+                text = if (state.transactions.isNotEmpty()) "$title · ${state.transactions.size}" else title,
                 style = EyebrowStyle,
                 color = Text3,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 6.dp),
@@ -201,7 +195,7 @@ private fun Body(
 private fun Hero(state: PersonDetailUiState) {
     val net = state.netBalance
     val netColor = when {
-        kotlin.math.abs(net) < 0.005 -> Text2
+        kotlin.math.abs(net) < 0.005 -> MaterialTheme.colorScheme.onSurfaceVariant
         net > 0 -> Income
         else -> Expense
     }
@@ -215,8 +209,8 @@ private fun Hero(state: PersonDetailUiState) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(Surface2)
-            .border(1.dp, Line1, RoundedCornerShape(20.dp)),
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp)),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
@@ -275,7 +269,7 @@ private fun HeroFigure(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Surface4)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
@@ -306,6 +300,7 @@ private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) {}
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -313,21 +308,23 @@ private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
             modifier = Modifier
                 .size(34.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(if (isIncome) IncomeSoft else Teal900),
+                .background(if (isIncome) incomeSoftFill() else MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = txn.description.firstOrNull()?.uppercaseChar()?.toString() ?: "•",
-                color = if (isIncome) Income else Teal300,
+                color = if (isIncome) Income else MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
             )
         }
         Spacer(Modifier.size(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = txn.description.ifBlank { txn.type.name.lowercase().replace('_', ' ') },
+                text = txn.description.ifBlank {
+                    txn.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }
+                },
                 style = MaterialTheme.typography.bodyMedium,
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
             )
             Spacer(Modifier.height(2.dp))
@@ -355,7 +352,7 @@ private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
         val amountColor = when {
             isIncome -> Income
             isOutflow -> Expense
-            else -> Text1
+            else -> MaterialTheme.colorScheme.onSurface
         }
         Text(
             text = signed,

@@ -56,18 +56,20 @@ class PeopleViewModel(
     }
 
     /**
-     * Net balance per person id in one pass. Mirrors PRD §7.17: LOAN_GIVEN/GIFT_SENT/EXPENSE
-     * tagged with a person means they owe the user (+); LOAN_RECEIVED/GIFT_RECEIVED/INCOME means
-     * the user owes them (−). A transaction tagged with several people contributes to each.
+     * Net balance per person id in one pass. Mirrors PRD §7.17 (People = 1-to-1 lending):
+     * LOAN_GIVEN/EXPENSE tagged with a person means they owe the user (+); LOAN_RECEIVED/INCOME
+     * means the user owes them (−). GIFTs are intentionally EXCLUDED — a gift carries no repayment
+     * expectation, so it never moves the owe/owed ledger (it still shows in the person's history).
+     * A transaction tagged with several people contributes to each.
      */
     private fun netBalancesByPerson(transactions: List<Transaction>): Map<String, Double> {
         val net = HashMap<String, Double>()
         for (txn in transactions) {
             if (txn.peopleIds.isEmpty()) continue
             val delta = when (txn.type) {
-                TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT, TransactionType.EXPENSE -> txn.amount
-                TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED, TransactionType.INCOME -> -txn.amount
-                else -> 0.0
+                TransactionType.LOAN_GIVEN, TransactionType.EXPENSE -> txn.amount
+                TransactionType.LOAN_RECEIVED, TransactionType.INCOME -> -txn.amount
+                else -> 0.0 // GIFT_SENT / GIFT_RECEIVED / TRANSFER / INVESTMENT_* — not debt
             }
             if (delta == 0.0) continue
             for (personId in txn.peopleIds) {

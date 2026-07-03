@@ -22,9 +22,11 @@ import kotlinx.coroutines.launch
  * Snapshot for the Person Detail screen. The three figures mirror the per-person
  * ledger model the list-row chip already implies:
  *   - [netBalance]   positive = they owe you, negative = you owe them
- *   - [theyOweYou]   sum of EXPENSE / LOAN_GIVEN / GIFT_SENT tagged with them
- *   - [youOweThem]   sum of INCOME / LOAN_RECEIVED / GIFT_RECEIVED tagged with them
+ *   - [theyOweYou]   sum of EXPENSE / LOAN_GIVEN tagged with them
+ *   - [youOweThem]   sum of INCOME / LOAN_RECEIVED tagged with them
  *
+ * GIFTs are intentionally EXCLUDED from all three figures (a gift carries no repayment
+ * expectation — see PeopleViewModel); they still appear in [transactions] as history.
  * [transactions] is the filtered list (newest first) — same source the row's
  * balance was computed from, so the user can trace any number on the hero.
  */
@@ -57,11 +59,10 @@ class PersonDetailViewModel(
         for (t in mine) {
             when (t.type) {
                 TransactionType.EXPENSE,
-                TransactionType.LOAN_GIVEN,
-                TransactionType.GIFT_SENT -> owesYou += t.amount
+                TransactionType.LOAN_GIVEN -> owesYou += t.amount
                 TransactionType.INCOME,
-                TransactionType.LOAN_RECEIVED,
-                TransactionType.GIFT_RECEIVED -> youOwe += t.amount
+                TransactionType.LOAN_RECEIVED -> youOwe += t.amount
+                // GIFT_SENT / GIFT_RECEIVED excluded — not debt (history only)
                 else -> Unit
             }
         }

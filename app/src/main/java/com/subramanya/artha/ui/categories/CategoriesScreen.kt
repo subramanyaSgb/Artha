@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.categories
+package com.subramanya.artha.ui.categories
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -47,11 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.height
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -99,15 +96,15 @@ fun CategoriesScreen(
         }
     }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = Text1,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.categories_fab_add)) },
@@ -133,7 +130,7 @@ fun CategoriesScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 4.dp, bottom = 100.dp),
                     ) {
-                        state.parents.forEach { parent ->
+                        state.parents.forEachIndexed { pIndex, parent ->
                             val children = state.childrenByParent[parent.id].orEmpty()
                             val expanded = parent.id in state.expandedParentIds
                             item(key = "p-${parent.id}") {
@@ -142,6 +139,10 @@ fun CategoriesScreen(
                                     hasChildren = children.isNotEmpty(),
                                     childCount = children.size,
                                     expanded = expanded,
+                                    canMoveUp = pIndex > 0,
+                                    canMoveDown = pIndex < state.parents.lastIndex,
+                                    onMoveUp = { vm.swapOrder(parent, state.parents[pIndex - 1]) },
+                                    onMoveDown = { vm.swapOrder(parent, state.parents[pIndex + 1]) },
                                     onToggle = { vm.toggleExpanded(parent.id) },
                                     onEdit = { formMode = FormMode.Edit(parent) },
                                     onDelete = {
@@ -158,9 +159,13 @@ fun CategoriesScreen(
                                 )
                             }
                             if (expanded) {
-                                items(children, key = { "c-${it.id}" }) { child ->
+                                itemsIndexed(children, key = { _, it -> "c-${it.id}" }) { cIndex, child ->
                                     ChildRow(
                                         child = child,
+                                        canMoveUp = cIndex > 0,
+                                        canMoveDown = cIndex < children.lastIndex,
+                                        onMoveUp = { vm.swapOrder(child, children[cIndex - 1]) },
+                                        onMoveDown = { vm.swapOrder(child, children[cIndex + 1]) },
                                         onEdit = { formMode = FormMode.Edit(child) },
                                         onDelete = {
                                             scope.launch {
@@ -257,6 +262,10 @@ private fun ParentRow(
     hasChildren: Boolean,
     childCount: Int,
     expanded: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
     onToggle: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -266,9 +275,9 @@ private fun ParentRow(
         modifier = Modifier
             .fillMaxWidth()
             .let { if (hasChildren) it.clickable(onClick = onToggle) else it },
-        color = com.subramanya.artha.ui.theme.Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, com.subramanya.artha.ui.theme.Line1),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -279,7 +288,7 @@ private fun ParentRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = parent.name,
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                 )
@@ -310,7 +319,7 @@ private fun ParentRow(
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
                         Icons.Filled.Edit,
-                        contentDescription = stringResource(R.string.categories_action_edit),
+                        contentDescription = stringResource(R.string.categories_action_more),
                         tint = com.subramanya.artha.ui.theme.Text3,
                     )
                 }
@@ -319,6 +328,18 @@ private fun ParentRow(
                         text = { Text(stringResource(R.string.categories_action_edit)) },
                         onClick = { menuOpen = false; onEdit() },
                     )
+                    if (canMoveUp) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.categories_action_move_up)) },
+                            onClick = { menuOpen = false; onMoveUp() },
+                        )
+                    }
+                    if (canMoveDown) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.categories_action_move_down)) },
+                            onClick = { menuOpen = false; onMoveDown() },
+                        )
+                    }
                     DropdownMenuItem(
                         text = {
                             Text(
@@ -338,14 +359,22 @@ private fun ParentRow(
 }
 
 @Composable
-private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun ChildRow(
+    child: Category,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     var menuOpen by remember { mutableStateOf(false) }
     // Children are indented 24dp and use Surface3 to step down a layer from the parent
     // tile — same hierarchy idea as the Reports / Cards detail screens.
     Row(modifier = Modifier.fillMaxWidth().padding(start = 24.dp)) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = com.subramanya.artha.ui.theme.Surface3,
+            color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(14.dp),
         ) {
             Row(
@@ -356,7 +385,7 @@ private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) 
                 Spacer(Modifier.size(12.dp))
                 Text(
                     text = child.name,
-                    color = Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
@@ -365,7 +394,7 @@ private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) 
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(
                             Icons.Filled.Edit,
-                            contentDescription = stringResource(R.string.categories_action_edit),
+                            contentDescription = stringResource(R.string.categories_action_more),
                             tint = com.subramanya.artha.ui.theme.Text3,
                         )
                     }
@@ -374,6 +403,18 @@ private fun ChildRow(child: Category, onEdit: () -> Unit, onDelete: () -> Unit) 
                             text = { Text(stringResource(R.string.categories_action_edit)) },
                             onClick = { menuOpen = false; onEdit() },
                         )
+                        if (canMoveUp) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.categories_action_move_up)) },
+                                onClick = { menuOpen = false; onMoveUp() },
+                            )
+                        }
+                        if (canMoveDown) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.categories_action_move_down)) },
+                                onClick = { menuOpen = false; onMoveDown() },
+                            )
+                        }
                         DropdownMenuItem(
                             text = {
                                 Text(

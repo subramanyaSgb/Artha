@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 
 data class RulesUiState(
     val rules: List<TransactionRule> = emptyList(),
+    val isLoading: Boolean = true,
 )
 
 class RulesViewModel(
@@ -21,7 +22,7 @@ class RulesViewModel(
 
     val state: StateFlow<RulesUiState> =
         ruleRepository.observeAll()
-            .map { rules -> RulesUiState(rules = rules) }
+            .map { rules -> RulesUiState(rules = rules, isLoading = false) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RulesUiState())
 
     fun toggleActive(rule: TransactionRule, active: Boolean) {

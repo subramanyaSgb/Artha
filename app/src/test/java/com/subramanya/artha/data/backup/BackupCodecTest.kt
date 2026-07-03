@@ -61,10 +61,36 @@ class BackupCodecTest {
     @Test
     fun `decode tolerates missing arrays as empty lists`() {
         // An older/newer backup that only has accounts must not crash; absent tables
-        // come back empty rather than throwing.
+        // come back empty rather than throwing. v1 backups have no settings block —
+        // it must decode to null (restore then leaves device settings alone).
         val minimal = """{ "schema_version": 1, "exported_at": 0, "accounts": [] }"""
         val decoded = BackupCodec.decode(minimal)
         assertEquals(BackupData(), decoded)
+        assertEquals(null, decoded.settings)
+    }
+
+    @Test
+    fun `settings block round trips`() {
+        val settings = BackupSettings(
+            userName = "Subramanya",
+            themeMode = "DARK",
+            useDynamicColor = false,
+            spouseTransactionDefault = "TRANSFER",
+            dashboardShowMonthly = false,
+            dashboardShowAccounts = true,
+            dashboardShowCards = false,
+            dashboardShowRecent = true,
+            dashboardShowSpending = false,
+            dashboardSectionOrder = "spending,recent,accounts",
+            biometricLockEnabled = true,
+            smsAutoImportEnabled = true,
+            aiQuickEntryEnabled = true,
+            customColours = "4294901760,4278255360",
+            customIcons = "rocket,coffee",
+        )
+        val data = BackupData(settings = settings)
+        val decoded = BackupCodec.decode(BackupCodec.encode(data, exportedAt = 1L))
+        assertEquals(settings, decoded.settings)
     }
 
     @Test

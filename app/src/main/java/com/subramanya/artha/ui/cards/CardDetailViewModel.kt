@@ -6,14 +6,18 @@ import androidx.lifecycle.viewModelScope
 import com.subramanya.artha.data.balance.BalanceCalculator
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.data.repository.CardRepository
+import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Card
+import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Transaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -32,6 +36,8 @@ data class CardDetailUiState(
     val availableLimit: Double? = null,
     val utilizationFraction: Float? = null,
     val transactions: List<Transaction> = emptyList(),
+    /** For resolving each row's category icon/colour (same pattern as Dashboard). */
+    val categoriesById: Map<String, Category> = emptyMap(),
     val chartPoints: List<Double> = emptyList(),
     val showArchiveConfirm: Boolean = false,
     val showDeleteConfirm: Boolean = false,
@@ -41,6 +47,7 @@ class CardDetailViewModel(
     private val cardId: String,
     private val cardRepository: CardRepository,
     private val transactionRepository: TransactionRepository,
+    categoryRepository: CategoryRepository,
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
@@ -51,9 +58,10 @@ class CardDetailViewModel(
     val state: StateFlow<CardDetailUiState> = combine(
         cardRepository.observeById(cardId),
         transactionRepository.observeForAccountOrCard(cardId),
+        categoryRepository.observeAll(),
         showArchiveConfirm.asStateFlow(),
         showDeleteConfirm.asStateFlow(),
-    ) { card, transactions, archiveConfirm, deleteConfirm ->
+    ) { card, transactions, categories, archiveConfirm, deleteConfirm ->
         if (card == null) {
             return@combine CardDetailUiState(
                 showArchiveConfirm = archiveConfirm,
@@ -74,11 +82,13 @@ class CardDetailViewModel(
             availableLimit = available,
             utilizationFraction = utilization,
             transactions = transactions,
+            categoriesById = categories.associateBy { it.id },
             chartPoints = chart,
             showArchiveConfirm = archiveConfirm,
             showDeleteConfirm = deleteConfirm,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CardDetailUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CardDetailUiState())
 
     fun requestArchive() { if (state.value.card != null) showArchiveConfirm.update { true } }
     fun dismissArchiveConfirm() = showArchiveConfirm.update { false }
@@ -147,12 +157,13 @@ class CardDetailViewModelFactory(
     private val cardId: String,
     private val cardRepository: CardRepository,
     private val transactionRepository: TransactionRepository,
+    private val categoryRepository: CategoryRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         require(modelClass.isAssignableFrom(CardDetailViewModel::class.java)) {
             "Unknown ViewModel class: $modelClass"
         }
-        return CardDetailViewModel(cardId, cardRepository, transactionRepository) as T
+        return CardDetailViewModel(cardId, cardRepository, transactionRepository, categoryRepository) as T
     }
 }

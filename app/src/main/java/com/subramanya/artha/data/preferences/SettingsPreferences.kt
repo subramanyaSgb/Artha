@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.subramanya.artha.data.backup.BackupSettings
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /** User-visible theme mode toggle. SYSTEM follows the device's day/night setting. */
@@ -51,9 +53,25 @@ class SettingsPreferences(context: Context) {
     val dashboardShowAccounts: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_ACCOUNTS] ?: true }
     val dashboardShowCards: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_CARDS] ?: true }
     val dashboardShowRecent: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_RECENT] ?: true }
+    val dashboardShowSpending: Flow<Boolean> = dataStore.data.map { it[Keys.DASH_SHOW_SPENDING] ?: true }
+
+    /** Order (top→bottom) of the reorderable dashboard sections, as section keys. Empty when
+     *  the user hasn't customised it — callers merge with their canonical default so adding a
+     *  new section later can't be lost behind a stale saved list. */
+    val dashboardSectionOrder: Flow<List<String>> = dataStore.data.map { prefs ->
+        prefs[Keys.DASH_SECTION_ORDER]?.split(',')?.filter { it.isNotBlank() }.orEmpty()
+    }
 
     suspend fun setDashboardShowMonthly(value: Boolean) {
         dataStore.edit { it[Keys.DASH_SHOW_MONTHLY] = value }
+    }
+
+    suspend fun setDashboardShowSpending(value: Boolean) {
+        dataStore.edit { it[Keys.DASH_SHOW_SPENDING] = value }
+    }
+
+    suspend fun setDashboardSectionOrder(order: List<String>) {
+        dataStore.edit { it[Keys.DASH_SECTION_ORDER] = order.joinToString(",") }
     }
 
     suspend fun setDashboardShowAccounts(value: Boolean) {
@@ -155,6 +173,56 @@ class SettingsPreferences(context: Context) {
         }
     }
 
+    // ----- backup v2: settings travel with the data export -----
+
+    /** One-shot snapshot of every backed-up key (NOT the Gemini key / import version). */
+    suspend fun snapshotForBackup(): BackupSettings {
+        val prefs = dataStore.data.first()
+        return BackupSettings(
+            userName = prefs[Keys.USER_NAME].orEmpty(),
+            themeMode = prefs[Keys.THEME_MODE] ?: ThemeMode.SYSTEM.name,
+            useDynamicColor = prefs[Keys.USE_DYNAMIC_COLOR] ?: true,
+            spouseTransactionDefault = prefs[Keys.SPOUSE_DEFAULT] ?: SpouseTransactionDefault.ASK.name,
+            dashboardShowMonthly = prefs[Keys.DASH_SHOW_MONTHLY] ?: true,
+            dashboardShowAccounts = prefs[Keys.DASH_SHOW_ACCOUNTS] ?: true,
+            dashboardShowCards = prefs[Keys.DASH_SHOW_CARDS] ?: true,
+            dashboardShowRecent = prefs[Keys.DASH_SHOW_RECENT] ?: true,
+            dashboardShowSpending = prefs[Keys.DASH_SHOW_SPENDING] ?: true,
+            dashboardSectionOrder = prefs[Keys.DASH_SECTION_ORDER].orEmpty(),
+            biometricLockEnabled = prefs[Keys.BIOMETRIC_LOCK] ?: false,
+            smsAutoImportEnabled = prefs[Keys.SMS_AUTO_IMPORT] ?: false,
+            aiQuickEntryEnabled = prefs[Keys.AI_QUICK_ENTRY_ENABLED] ?: false,
+            customColours = prefs[Keys.CUSTOM_COLOURS].orEmpty(),
+            customIcons = prefs[Keys.CUSTOM_ICONS].orEmpty(),
+        )
+    }
+
+    /** Applies a restored settings block in one atomic edit. Enum-typed values are
+     *  validated; an unrecognised value falls back to its default rather than crash. */
+    suspend fun applyFromBackup(s: BackupSettings) {
+        dataStore.edit { prefs ->
+            prefs[Keys.USER_NAME] = s.userName.trim()
+            prefs[Keys.THEME_MODE] =
+                (runCatching { ThemeMode.valueOf(s.themeMode) }.getOrNull() ?: ThemeMode.SYSTEM).name
+            prefs[Keys.USE_DYNAMIC_COLOR] = s.useDynamicColor
+            prefs[Keys.SPOUSE_DEFAULT] = (
+                runCatching { SpouseTransactionDefault.valueOf(s.spouseTransactionDefault) }.getOrNull()
+                    ?: SpouseTransactionDefault.ASK
+                ).name
+            prefs[Keys.DASH_SHOW_MONTHLY] = s.dashboardShowMonthly
+            prefs[Keys.DASH_SHOW_ACCOUNTS] = s.dashboardShowAccounts
+            prefs[Keys.DASH_SHOW_CARDS] = s.dashboardShowCards
+            prefs[Keys.DASH_SHOW_RECENT] = s.dashboardShowRecent
+            prefs[Keys.DASH_SHOW_SPENDING] = s.dashboardShowSpending
+            prefs[Keys.DASH_SECTION_ORDER] = s.dashboardSectionOrder
+            prefs[Keys.BIOMETRIC_LOCK] = s.biometricLockEnabled
+            prefs[Keys.SMS_AUTO_IMPORT] = s.smsAutoImportEnabled
+            prefs[Keys.AI_QUICK_ENTRY_ENABLED] = s.aiQuickEntryEnabled
+            prefs[Keys.CUSTOM_COLOURS] = s.customColours
+            prefs[Keys.CUSTOM_ICONS] = s.customIcons
+        }
+    }
+
     suspend fun setUserName(name: String) {
         dataStore.edit { it[Keys.USER_NAME] = name.trim() }
     }
@@ -185,6 +253,8 @@ class SettingsPreferences(context: Context) {
         val DASH_SHOW_ACCOUNTS = booleanPreferencesKey("dashboard_show_accounts")
         val DASH_SHOW_CARDS = booleanPreferencesKey("dashboard_show_cards")
         val DASH_SHOW_RECENT = booleanPreferencesKey("dashboard_show_recent")
+        val DASH_SHOW_SPENDING = booleanPreferencesKey("dashboard_show_spending")
+        val DASH_SECTION_ORDER = stringPreferencesKey("dashboard_section_order")
         val BUNDLED_IMPORT_VERSION = intPreferencesKey("bundled_import_version")
         val BIOMETRIC_LOCK = booleanPreferencesKey("biometric_lock_enabled")
         val SMS_AUTO_IMPORT = booleanPreferencesKey("sms_auto_import_enabled")

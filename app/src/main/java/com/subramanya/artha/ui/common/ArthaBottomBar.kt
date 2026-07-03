@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -29,12 +30,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.ui.navigation.ArthaDestination
-import com.subramanya.artha.ui.theme.Line1
+import com.subramanya.artha.ui.theme.LocalArthaIsDark
 import com.subramanya.artha.ui.theme.PlusJakartaSans
 import com.subramanya.artha.ui.theme.Surface0
-import com.subramanya.artha.ui.theme.Teal300
-import com.subramanya.artha.ui.theme.Teal900
-import com.subramanya.artha.ui.theme.Text2
 
 /**
  * HANDOFF chrome.jsx · BottomTabs — Surface0 @ 92% deep-ink fill with a single
@@ -49,13 +47,20 @@ fun ArthaBottomBar(
     onItemSelected: (ArthaDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Deep-ink bar in dark (unchanged); a distinct light container surface in light mode —
+    // Surface0 is a fixed dark token, so binding the bar to it left it black in light theme.
+    val barBackground = if (LocalArthaIsDark.current) {
+        Surface0.copy(alpha = 0.92f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Surface0.copy(alpha = 0.92f))
+            .background(barBackground)
             .navigationBarsPadding(),
     ) {
-        HorizontalDivider(color = Line1, thickness = Dp.Hairline)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = Dp.Hairline)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -63,11 +68,15 @@ fun ArthaBottomBar(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val hapticTick = rememberHapticTick()
             ArthaDestination.bottomNav.forEach { dest ->
                 BottomTabItem(
                     destination = dest,
                     selected = dest == currentDestination,
-                    onClick = { onItemSelected(dest) },
+                    onClick = {
+                        if (dest != currentDestination) hapticTick()
+                        onItemSelected(dest)
+                    },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -83,8 +92,8 @@ private fun BottomTabItem(
     modifier: Modifier = Modifier,
 ) {
     val interaction = remember { MutableInteractionSource() }
-    val pillBg = if (selected) Teal900 else Color.Transparent
-    val tint = if (selected) Teal300 else Text2
+    val pillBg = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+    val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = modifier

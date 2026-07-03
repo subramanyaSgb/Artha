@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.subramanya.artha.R
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.utils.DateFormatter
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Greeting top bar per the design's [DashHeader] component:
@@ -45,10 +47,17 @@ fun ArthaTopBar(
     onSearchClick: () -> Unit = {},
 ) {
     val today = remember { DateFormatter.todayShort() }
-    val greeting = if (userName.isNullOrBlank()) {
-        stringResource(R.string.greeting_guest)
-    } else {
-        stringResource(R.string.greeting_named, userName)
+    // Greeting flexes by time of day: morning < 12:00, afternoon < 17:00, else evening.
+    val hour = remember {
+        kotlinx.datetime.Clock.System.now()
+            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+            .hour
+    }
+    val name = userName?.takeIf { it.isNotBlank() }
+    val greeting = when {
+        hour < 12 -> if (name != null) stringResource(R.string.greeting_morning_named, name) else stringResource(R.string.greeting_morning)
+        hour < 17 -> if (name != null) stringResource(R.string.greeting_afternoon_named, name) else stringResource(R.string.greeting_afternoon)
+        else -> if (name != null) stringResource(R.string.greeting_evening_named, name) else stringResource(R.string.greeting_evening)
     }
 
     Row(
@@ -75,7 +84,10 @@ fun ArthaTopBar(
             )
         }
         Box(
+            // 40dp visual, but minimumInteractiveComponentSize guarantees a ≥48dp
+            // touch target (Material accessibility minimum) without enlarging the chip.
             modifier = Modifier
+                .minimumInteractiveComponentSize()
                 .size(40.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainer)

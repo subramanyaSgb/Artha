@@ -58,9 +58,6 @@ import com.subramanya.artha.ui.common.SavePrimaryButton
 import com.subramanya.artha.ui.common.SheetChip
 import com.subramanya.artha.ui.common.SheetTitle
 import com.subramanya.artha.ui.common.SheetWindowInsets
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface3
-import com.subramanya.artha.ui.theme.Text1
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import kotlinx.coroutines.launch
@@ -134,7 +131,7 @@ fun InsuranceFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = SheetWindowInsets,
         dragHandle = { ArthaSheetHandle() },
     ) {
@@ -175,7 +172,7 @@ fun InsuranceFormSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Surface2, RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -183,7 +180,7 @@ fun InsuranceFormSheet(
                         Text(
                             text = stringResource(R.string.insurance_form_link_investment_title),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Text1,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             text = stringResource(R.string.insurance_form_link_investment_body),

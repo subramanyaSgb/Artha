@@ -46,18 +46,11 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.PlusJakartaSans
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface3
 import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Teal900
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.Text4
 
@@ -94,7 +87,7 @@ fun SheetTitle(
                 fontFamily = PlusJakartaSans,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = (-0.01).em,
             ),
         )
@@ -135,7 +128,7 @@ fun FieldRow(
                 Text(
                     text = label.uppercase(),
                     style = EyebrowStyle,
-                    color = Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (optional) {
                     Text(
@@ -223,9 +216,9 @@ private fun ChipPill(
     icon: ImageVector?,
     onClick: () -> Unit,
 ) {
-    val container = if (active) Teal900 else Color.Transparent
-    val border = if (active) Teal500 else Line1
-    val content = if (active) Teal300 else Text1
+    val container = if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+    val border = if (active) Teal500 else MaterialTheme.colorScheme.outlineVariant
+    val content = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
     Row(
         modifier = Modifier
             .heightIn(min = 32.dp)
@@ -280,14 +273,14 @@ fun ArthaTextField(
     large: Boolean = false,
 ) {
     val height = if (large) 56.dp else 48.dp
-    val border = if (isError) com.subramanya.artha.ui.theme.Danger else Line1
+    val border = if (isError) com.subramanya.artha.ui.theme.Danger else MaterialTheme.colorScheme.outlineVariant
     Column(modifier = modifier.fillMaxWidth()) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(height)
             .clip(RoundedCornerShape(10.dp))
-            .background(Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(1.dp, border, RoundedCornerShape(10.dp))
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -297,11 +290,11 @@ fun ArthaTextField(
             onValueChange = onValueChange,
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
-            cursorBrush = SolidColor(Teal300),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             textStyle = TextStyle(
                 fontFamily = PlusJakartaSans,
                 fontSize = if (large) 16.sp else 14.sp,
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
             ),
             // fillMaxWidth + weight(1f) ensures the tappable + focusable region
             // covers the whole input — without it, an empty BasicTextField is
@@ -380,7 +373,7 @@ fun ColorSwatchRow(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .border(2.dp, Text1, CircleShape),
+                            .border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape),
                     )
                 }
                 Box(
@@ -398,14 +391,14 @@ fun ColorSwatchRow(
                     modifier = Modifier
                         .size(30.dp)
                         .clip(CircleShape)
-                        .border(1.dp, Line1, CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                         .clickable { add() },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Filled.Add,
                         contentDescription = null,
-                        tint = Text2,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -442,10 +435,10 @@ fun IconChipRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(11.dp))
-                    .background(if (isSelected) Teal900 else Surface2)
+                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer)
                     .border(
                         1.dp,
-                        if (isSelected) Teal500 else Line1,
+                        if (isSelected) Teal500 else MaterialTheme.colorScheme.outlineVariant,
                         RoundedCornerShape(11.dp),
                     )
                     .clickable { onChange(choice.key) },
@@ -454,7 +447,7 @@ fun IconChipRow(
                 Icon(
                     imageVector = choice.icon,
                     contentDescription = null,
-                    tint = if (isSelected) Teal300 else Text2,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -464,15 +457,15 @@ fun IconChipRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(11.dp))
-                    .background(Surface2)
-                    .border(1.dp, Line1, RoundedCornerShape(11.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(11.dp))
                     .clickable { add() },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Filled.Add,
                     contentDescription = null,
-                    tint = Text2,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -492,8 +485,8 @@ fun SavePrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val container = if (enabled) Teal700 else Surface3
-    val content = if (enabled) Text1 else Text3
+    val container = if (enabled) Teal700 else MaterialTheme.colorScheme.surfaceVariant
+    val content = if (enabled) MaterialTheme.colorScheme.onSurface else Text3
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -529,13 +522,13 @@ fun GhostButton(
             .height(44.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(Color.Transparent)
-            .border(1.dp, Line1, RoundedCornerShape(999.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            color = Text1,
+            color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge,
         )
     }
@@ -557,8 +550,8 @@ fun SheetChip(
         modifier = modifier
             .heightIn(min = 44.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(Surface2)
-            .border(1.dp, Line1, RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -568,13 +561,13 @@ fun SheetChip(
             Icon(
                 imageVector = leading,
                 contentDescription = null,
-                tint = Text2,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(14.dp),
             )
         }
         Text(
             text = label,
-            color = Text1,
+            color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.bodyMedium,
         )
     }

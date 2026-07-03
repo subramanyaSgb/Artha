@@ -65,19 +65,9 @@ import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.Danger
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
-import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface3
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Teal900
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.IndianNumberFormat
 
@@ -102,15 +92,15 @@ fun RulesScreen(
     var formMode: RuleFormMode? by remember { mutableStateOf(null) }
     var pendingDelete: TransactionRule? by remember { mutableStateOf(null) }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = RuleFormMode.Add },
                     containerColor = Teal700,
-                    contentColor = Text1,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.rules_fab_add)) },
@@ -124,7 +114,9 @@ fun RulesScreen(
                     title = stringResource(R.string.rules_title),
                     onBack = onBack,
                 )
-                if (state.rules.isEmpty()) {
+                if (state.isLoading) {
+                    RulesSkeleton()
+                } else if (state.rules.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
@@ -190,25 +182,20 @@ internal sealed interface RuleFormMode {
 }
 
 @Composable
-private fun RulesEditorialHeader() {
-    Column {
-        Text(
-            text = stringResource(R.string.rules_eyebrow).uppercase(),
-            style = EyebrowStyle,
-            color = Teal300,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.rules_title),
-            style = TextStyle(
-                fontFamily = InstrumentSerif,
-                fontSize = 26.sp,
-                lineHeight = 30.sp,
-                fontWeight = FontWeight.Normal,
-                color = Text1,
-            ),
-        )
-        Spacer(Modifier.height(4.dp))
+private fun RulesSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        repeat(4) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
+        }
     }
 }
 
@@ -221,11 +208,11 @@ private fun RuleRowCard(
     onDelete: () -> Unit,
 ) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, if (rule.isActive) LineTeal else Line1, RoundedCornerShape(16.dp))
+            .border(1.dp, if (rule.isActive) LineTeal else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
             .clickable(onClick = onTap),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -235,14 +222,14 @@ private fun RuleRowCard(
                     Text(
                         text = rule.name,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     if (rule.isSystem) {
                         Spacer(Modifier.height(2.dp))
                         Text(
                             text = stringResource(R.string.rules_row_system_tag).uppercase(),
                             style = EyebrowStyle,
-                            color = Teal300,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
@@ -250,11 +237,11 @@ private fun RuleRowCard(
                     checked = rule.isActive,
                     onCheckedChange = onToggle,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Text1,
+                        checkedThumbColor = MaterialTheme.colorScheme.onSurface,
                         checkedTrackColor = Teal700,
-                        uncheckedThumbColor = Text2,
-                        uncheckedTrackColor = Surface3,
-                        uncheckedBorderColor = Line1,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                     ),
                 )
                 IconButton(onClick = onDelete) {
@@ -296,7 +283,7 @@ private fun RuleRowCard(
             // ── THEN clause ─────────────────────────────────────────────────
             ClauseHeader(
                 label = stringResource(R.string.rules_then),
-                color = Teal300,
+                color = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.height(6.dp))
             FlowRow(
@@ -334,9 +321,9 @@ private fun ClauseHeader(label: String, color: androidx.compose.ui.graphics.Colo
 @Composable
 private fun WhenBadge(text: String) {
     Surface(
-        color = Surface3,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(6.dp),
-        modifier = Modifier.border(1.dp, Line1, RoundedCornerShape(6.dp)),
+        modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp)),
     ) {
         Text(
             text = text.uppercase(),
@@ -344,7 +331,7 @@ private fun WhenBadge(text: String) {
                 fontFamily = IbmPlexMono,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.06.em,
                 fontFeatureSettings = "tnum, lnum",
             ),
@@ -357,7 +344,7 @@ private fun WhenBadge(text: String) {
 @Composable
 private fun ThenBadge(text: String) {
     Surface(
-        color = Teal900,
+        color = MaterialTheme.colorScheme.primaryContainer,
         shape = RoundedCornerShape(6.dp),
         modifier = Modifier.border(1.dp, Teal500, RoundedCornerShape(6.dp)),
     ) {
@@ -367,7 +354,7 @@ private fun ThenBadge(text: String) {
                 fontFamily = IbmPlexMono,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Teal300,
+                color = MaterialTheme.colorScheme.primary,
                 letterSpacing = 0.06.em,
                 fontFeatureSettings = "tnum, lnum",
             ),
@@ -380,9 +367,9 @@ private fun ThenBadge(text: String) {
 @Composable
 private fun LogicBadge(text: String) {
     Surface(
-        color = Surface4,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
         shape = RoundedCornerShape(6.dp),
-        modifier = Modifier.border(1.dp, Line1, RoundedCornerShape(6.dp)),
+        modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp)),
     ) {
         Text(
             text = text.uppercase(),

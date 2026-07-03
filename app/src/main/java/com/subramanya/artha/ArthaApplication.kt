@@ -3,7 +3,7 @@ package com.subramanya.artha
 import android.app.Application
 import com.subramanya.artha.ai.AiQuickEntryParser
 import com.subramanya.artha.worker.RecurringFireWorker
-import com.subramanya.artha.ai.GeminiQuickEntryParser
+import com.subramanya.artha.ai.NvidiaNimQuickEntryParser
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.DatabaseProvider
 import com.subramanya.artha.data.preferences.SettingsPreferences
@@ -106,10 +106,10 @@ class ArthaApplication : Application() {
         RecurringRuleRepository(database.recurringRuleDao())
     }
 
-    /** Backed by [GeminiQuickEntryParser] reading the user's stored key from
+    /** Backed by [NvidiaNimQuickEntryParser] (z-ai/glm-5.2) reading the user's stored key from
      *  [SettingsPreferences]. The lambda runs per-call so a key paste in Settings
      *  takes effect immediately — no process restart, no hardcoded BuildConfig key. */
     val aiQuickEntryParser: AiQuickEntryParser by lazy {
-        GeminiQuickEntryParser(keyProvider = { settingsPreferences.geminiApiKey.first() })
+        NvidiaNimQuickEntryParser(keyProvider = { settingsPreferences.geminiApiKey.first() })
     }
 }

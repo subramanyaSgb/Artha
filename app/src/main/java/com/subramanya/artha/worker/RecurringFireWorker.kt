@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.room.withTransaction
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.subramanya.artha.ArthaApplication
@@ -44,13 +45,17 @@ class RecurringFireWorker(
         val dueRules = recurringRepo.dueBy(now)
         for (rule in dueRules) {
             val fireResult = RecurringFireEngine.fire(rule, now) ?: continue
-            txnRepo.insertTransaction(fireResult.transaction)
-            recurringRepo.upsert(
-                rule.copy(
-                    nextRunDate = fireResult.nextRunDate,
-                    lastRunDate = now,
-                ),
-            )
+            // Atomic: a process kill between the insert and the rule advance would
+            // re-fire the rule on the next run and silently duplicate the transaction.
+            app.database.withTransaction {
+                txnRepo.insertTransaction(fireResult.transaction)
+                recurringRepo.upsert(
+                    rule.copy(
+                        nextRunDate = fireResult.nextRunDate,
+                        lastRunDate = now,
+                    ),
+                )
+            }
         }
         return Result.success()
     }

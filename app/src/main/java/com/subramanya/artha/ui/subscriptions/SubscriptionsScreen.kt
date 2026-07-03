@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.subscriptions
+package com.subramanya.artha.ui.subscriptions
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -73,22 +73,21 @@ import com.subramanya.artha.domain.model.Subscription
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.ui.theme.EyebrowStyle
+import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
+import com.subramanya.artha.ui.theme.Ochre
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Teal700
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.toLocalDateTime
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,8 +98,10 @@ fun SubscriptionsScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
-    val all by app.subscriptionRepository.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
-    val active by app.subscriptionRepository.observeActive().collectAsStateWithLifecycle(initialValue = emptyList())
+    // Nullable so we can tell "still loading" (null → skeleton) from "no subs" (empty → CTA).
+    val all: List<Subscription>? by app.subscriptionRepository.observeAll().collectAsStateWithLifecycle(initialValue = null)
+    // Derive the active set from the single observeAll subscription rather than a second DB query.
+    val active = remember(all) { all?.filter { it.status == SubscriptionStatus.ACTIVE } ?: emptyList() }
     val scope = rememberCoroutineScope()
 
     var formMode: FormMode? by remember { mutableStateOf(null) }
@@ -109,15 +110,15 @@ fun SubscriptionsScreen(
     val monthlyAverage = app.subscriptionRepository.annualisedMonthlyAverage(active)
     val yearly = monthlyAverage * 12.0
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = Text1,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.subscriptions_fab_add)) },
@@ -140,22 +141,47 @@ fun SubscriptionsScreen(
                         SubscriptionsHero(monthly = monthlyAverage, yearly = yearly)
                     }
                 }
-                if (all.isEmpty()) {
-                    item {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            EmptyState(
-                                icon = Icons.Filled.Subscriptions,
-                                title = stringResource(R.string.subscriptions_empty),
-                            )
+                val rows = all
+                when {
+                    rows == null -> item { SubscriptionsSkeleton() }
+                    rows.isEmpty() -> {
+                        item {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                EmptyState(
+                                    icon = Icons.Filled.Subscriptions,
+                                    title = stringResource(R.string.subscriptions_empty),
+                                )
+                            }
                         }
                     }
-                } else {
-                    items(all, key = { it.id }) { sub ->
-                        SubscriptionRow(
-                            sub = sub,
-                            onTap = { formMode = FormMode.Edit(sub) },
-                            onDelete = { pendingDelete = sub },
-                        )
+                    else -> {
+                        // Active first; paused/cancelled grouped below a quiet header.
+                        val activeRows = rows.filter { it.status == SubscriptionStatus.ACTIVE }
+                        val inactiveRows = rows.filter { it.status != SubscriptionStatus.ACTIVE }
+                        items(activeRows, key = { it.id }) { sub ->
+                            SubscriptionRow(
+                                sub = sub,
+                                onTap = { formMode = FormMode.Edit(sub) },
+                                onDelete = { pendingDelete = sub },
+                            )
+                        }
+                        if (inactiveRows.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = stringResource(R.string.subscriptions_inactive_header).uppercase(),
+                                    style = EyebrowStyle,
+                                    color = Text3,
+                                    modifier = Modifier.padding(top = 6.dp, start = 4.dp),
+                                )
+                            }
+                            items(inactiveRows, key = { it.id }) { sub ->
+                                SubscriptionRow(
+                                    sub = sub,
+                                    onTap = { formMode = FormMode.Edit(sub) },
+                                    onDelete = { pendingDelete = sub },
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -195,7 +221,7 @@ private sealed interface FormMode {
 @Composable
 private fun SubscriptionsHero(monthly: Double, yearly: Double) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -214,7 +240,7 @@ private fun SubscriptionsHero(monthly: Double, yearly: Double) {
                     fontFamily = InstrumentSerif,
                     fontSize = 40.sp,
                     lineHeight = 46.sp,
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFeatureSettings = "tnum, lnum",
                 ),
             )
@@ -235,14 +261,23 @@ private fun SubscriptionsHero(monthly: Double, yearly: Double) {
 @Composable
 private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -> Unit) {
     val isPaused = sub.status != SubscriptionStatus.ACTIVE
+    // Days until the next charge — only meaningful for an active sub. Negative = overdue.
+    val dueDays: Int? = if (isPaused) {
+        null
+    } else {
+        val tz = TimeZone.currentSystemDefault()
+        val today = Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(tz).date
+        val due = Instant.fromEpochMilliseconds(sub.nextDueDate).toLocalDateTime(tz).date
+        today.daysUntil(due)
+    }
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
                 1.dp,
-                if (isPaused) Line1 else LineTeal.copy(alpha = 0.4f),
+                if (isPaused) MaterialTheme.colorScheme.outlineVariant else LineTeal.copy(alpha = 0.4f),
                 RoundedCornerShape(16.dp),
             )
             .clickable(onClick = onTap),
@@ -253,13 +288,13 @@ private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Surface4),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Subscriptions,
                         contentDescription = null,
-                        tint = if (isPaused) Text3 else Teal300,
+                        tint = if (isPaused) Text3 else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -268,13 +303,21 @@ private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -
                     Text(
                         text = sub.name,
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = if (isPaused) Text2 else Text1,
+                        color = if (isPaused) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(Modifier.height(2.dp))
+                    val dueText = when {
+                        dueDays == null -> stringResource(R.string.subscriptions_row_due, DateFormatter.longDate(sub.nextDueDate))
+                        dueDays < 0 -> stringResource(R.string.subscriptions_due_overdue)
+                        dueDays == 0 -> stringResource(R.string.subscriptions_due_today)
+                        dueDays == 1 -> stringResource(R.string.subscriptions_due_tomorrow)
+                        dueDays <= 7 -> stringResource(R.string.subscriptions_due_in_days, dueDays)
+                        else -> stringResource(R.string.subscriptions_row_due, DateFormatter.longDate(sub.nextDueDate))
+                    }
                     val pieces = buildList {
                         sub.provider?.takeIf { it.isNotBlank() }?.let { add(it) }
                         add(sub.frequency.label())
-                        add(stringResource(R.string.subscriptions_row_due, DateFormatter.longDate(sub.nextDueDate)))
+                        add(dueText)
                     }
                     Text(
                         text = pieces.joinToString(" · "),
@@ -292,7 +335,7 @@ private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -
                         style = TextStyle(
                             fontFamily = InstrumentSerif,
                             fontSize = 18.sp,
-                            color = if (isPaused) Text3 else Text1,
+                            color = if (isPaused) Text3 else MaterialTheme.colorScheme.onSurface,
                             fontFeatureSettings = "tnum, lnum",
                         ),
                     )
@@ -303,12 +346,22 @@ private fun SubscriptionRow(sub: Subscription, onTap: () -> Unit, onDelete: () -
                             style = EyebrowStyle,
                             color = Text3,
                         )
+                    } else if (dueDays != null && dueDays <= 3) {
+                        // Active + imminent: red OVERDUE / ochre DUE SOON eyebrow.
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = stringResource(
+                                if (dueDays < 0) R.string.subscriptions_due_overdue else R.string.subscriptions_due_soon,
+                            ).uppercase(),
+                            style = EyebrowStyle,
+                            color = if (dueDays < 0) Expense else Ochre,
+                        )
                     }
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Filled.Delete,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.subscriptions_delete_sub, sub.name),
                         tint = Text3,
                         modifier = Modifier.size(18.dp),
                     )
@@ -346,14 +399,16 @@ private fun SubscriptionFormSheet(
         com.subramanya.artha.ui.common.PillOption(SubscriptionFrequency.QUARTERLY, stringResource(R.string.subscription_freq_quarterly)),
         com.subramanya.artha.ui.common.PillOption(SubscriptionFrequency.YEARLY, stringResource(R.string.subscription_freq_yearly)),
     )
-    val statusOptions = SubscriptionStatus.entries.map {
-        com.subramanya.artha.ui.common.PillOption(it, it.name)
-    }
+    val statusOptions = listOf(
+        com.subramanya.artha.ui.common.PillOption(SubscriptionStatus.ACTIVE, stringResource(R.string.subscription_status_active)),
+        com.subramanya.artha.ui.common.PillOption(SubscriptionStatus.PAUSED, stringResource(R.string.subscription_status_paused)),
+        com.subramanya.artha.ui.common.PillOption(SubscriptionStatus.CANCELLED, stringResource(R.string.subscription_status_cancelled)),
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {
@@ -475,6 +530,21 @@ private fun SubscriptionFormSheet(
                 }
             },
         ) { androidx.compose.material3.DatePicker(state = pickerState) }
+    }
+}
+
+@Composable
+private fun SubscriptionsSkeleton() {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
+        }
     }
 }
 

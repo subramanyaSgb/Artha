@@ -1,4 +1,4 @@
-﻿package com.subramanya.artha.ui.budgets
+package com.subramanya.artha.ui.budgets
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -76,13 +76,7 @@ import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
-import com.subramanya.artha.ui.theme.Line1
-import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Ochre
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
-import com.subramanya.artha.ui.theme.Text1
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.IndianNumberFormat
 import kotlinx.coroutines.launch
@@ -96,22 +90,28 @@ fun BudgetsScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
-    val items by app.budgetRepository.observeActiveWithProgress()
+    // Nullable so we can tell "still loading" (null → skeleton) from "no budgets" (empty → CTA).
+    val items: List<BudgetWithProgress>? by app.budgetRepository.observeActiveWithProgress()
+        .collectAsStateWithLifecycle(initialValue = null)
+    // Categories resolved here (a UI concern) so CATEGORY-scoped budget rows can show the
+    // real category icon + colour instead of a generic wallet for every row.
+    val categories by app.categoryRepository.observeAll()
         .collectAsStateWithLifecycle(initialValue = emptyList())
+    val categoriesById = remember(categories) { categories.associateBy { it.id } }
     val scope = rememberCoroutineScope()
 
     var formMode: FormMode? by remember { mutableStateOf(null) }
     var pendingDelete: Budget? by remember { mutableStateOf(null) }
 
-    Surface(color = com.subramanya.artha.ui.theme.Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = com.subramanya.artha.ui.theme.Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 androidx.compose.material3.ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = com.subramanya.artha.ui.theme.Teal700,
-                    contentColor = com.subramanya.artha.ui.theme.Text1,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.budgets_fab_add)) },
@@ -125,21 +125,28 @@ fun BudgetsScreen(
                     title = stringResource(R.string.budgets_title),
                     onBack = onBack,
                 )
-                if (items.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        EmptyState(
-                            icon = Icons.Filled.AccountBalanceWallet,
-                            title = stringResource(R.string.budgets_empty),
-                        )
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(items, key = { it.budget.id }) { row ->
-                            BudgetRow(
-                                row = row,
-                                onTap = { formMode = FormMode.Edit(row.budget) },
-                                onDelete = { pendingDelete = row.budget },
+                val rows = items
+                when {
+                    rows == null -> BudgetsSkeleton()
+                    rows.isEmpty() -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            EmptyState(
+                                icon = Icons.Filled.AccountBalanceWallet,
+                                title = stringResource(R.string.budgets_empty),
                             )
+                        }
+                    }
+                    else -> {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            item { BudgetsSummaryCard(rows = rows) }
+                            items(rows, key = { it.budget.id }) { row ->
+                                BudgetRow(
+                                    row = row,
+                                    category = row.budget.categoryId?.let { categoriesById[it] },
+                                    onTap = { formMode = FormMode.Edit(row.budget) },
+                                    onDelete = { pendingDelete = row.budget },
+                                )
+                            }
                         }
                     }
                 }
@@ -189,6 +196,7 @@ private sealed interface FormMode {
 @Composable
 private fun BudgetRow(
     row: BudgetWithProgress,
+    category: com.subramanya.artha.domain.model.Category? = null,
     onTap: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -203,31 +211,36 @@ private fun BudgetRow(
         else -> com.subramanya.artha.ui.theme.Income
     }
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 6.dp)
             .border(
                 width = 1.dp,
-                color = if (overspent) LineTeal else Line1,
+                color = if (overspent) Expense.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(16.dp),
             )
             .clickable(onClick = onTap),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // CATEGORY budgets show their category's real icon on its colour chip;
+                // OVERALL budgets keep the neutral wallet tile.
+                val catColor = category?.let { Color(it.color) }
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Surface4),
+                        .background(catColor ?: MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.AccountBalanceWallet,
+                        imageVector = category?.let {
+                            com.subramanya.artha.utils.MaterialIcons.resolve(it.icon)
+                        } ?: Icons.Filled.AccountBalanceWallet,
                         contentDescription = null,
-                        tint = Teal300,
+                        tint = if (catColor != null) Color.White else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -238,7 +251,7 @@ private fun BudgetRow(
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
                         ),
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
@@ -253,7 +266,7 @@ private fun BudgetRow(
                 IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.budgets_delete_budget, row.budget.name),
                         tint = Text3,
                         modifier = Modifier.size(18.dp),
                     )
@@ -272,7 +285,7 @@ private fun BudgetRow(
                     style = TextStyle(
                         fontFamily = IbmPlexMono,
                         fontSize = 12.sp,
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFeatureSettings = "tnum, lnum",
                     ),
                 )
@@ -316,7 +329,7 @@ private fun StripeOverflowBar(
             .fillMaxWidth()
             .height(barHeightDp)
             .clip(RoundedCornerShape(cornerDp))
-            .background(Surface4),
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {
         // Filled base segment.
         if (baseFraction > 0f) {
@@ -352,6 +365,83 @@ private fun StripeOverflowBar(
                     x += stripeSpacing
                 }
             }
+        }
+    }
+}
+
+/**
+ * Aggregate strip across all active budgets — total spent vs total budgeted this period,
+ * with the same overspend stripe as the rows. Pinned above the list.
+ */
+@Composable
+private fun BudgetsSummaryCard(rows: List<BudgetWithProgress>) {
+    val totalBudgeted = rows.sumOf { it.budget.amount }
+    val totalSpent = rows.sumOf { it.spent }
+    val ratio = if (totalBudgeted <= 0.0) 0f else (totalSpent / totalBudgeted).toFloat()
+    val accent = when {
+        ratio > 1f -> Expense
+        ratio >= 0.8f -> Ochre
+        else -> Income
+    }
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.budgets_summary_eyebrow).uppercase(),
+                style = com.subramanya.artha.ui.theme.EyebrowStyle,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text(
+                    text = IndianNumberFormat.format(totalSpent) + " / " + IndianNumberFormat.format(totalBudgeted),
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
+                Text(
+                    text = (ratio * 100).toInt().toString() + "%",
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 15.sp,
+                        color = accent,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            StripeOverflowBar(fraction = ratio, baseColor = accent, overflowColor = Expense)
+        }
+    }
+}
+
+@Composable
+private fun BudgetsSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(96.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
         }
     }
 }
@@ -406,7 +496,7 @@ private fun BudgetFormSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = com.subramanya.artha.ui.theme.Surface3,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
         dragHandle = { com.subramanya.artha.ui.common.ArthaSheetHandle() },
     ) {

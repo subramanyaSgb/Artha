@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,10 +18,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +35,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,20 +61,12 @@ import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
-import com.subramanya.artha.ui.theme.IncomeSoft
 import com.subramanya.artha.ui.theme.InstrumentSerif
-import com.subramanya.artha.ui.theme.Line1
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Ochre
 import com.subramanya.artha.ui.theme.OchreSoft
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface2
-import com.subramanya.artha.ui.theme.Surface3
-import com.subramanya.artha.ui.theme.Surface4
-import com.subramanya.artha.ui.theme.Teal300
-import com.subramanya.artha.ui.theme.Text1
-import com.subramanya.artha.ui.theme.Text2
 import com.subramanya.artha.ui.theme.Text3
+import com.subramanya.artha.ui.theme.incomeSoftFill
 import com.subramanya.artha.utils.IndianNumberFormat
 
 /**
@@ -82,6 +78,7 @@ import com.subramanya.artha.utils.IndianNumberFormat
 @Composable
 fun ReportsScreen(
     onBack: () -> Unit,
+    onOpenTransaction: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -98,9 +95,9 @@ fun ReportsScreen(
     )
     val state by vm.state.collectAsStateWithLifecycle()
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = Surface1,
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         ) { padding ->
             Column(
@@ -113,6 +110,9 @@ fun ReportsScreen(
                     title = stringResource(R.string.reports_title),
                     onBack = onBack,
                 )
+                if (state.isLoading) {
+                    ReportsSkeleton()
+                } else {
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Spacer(Modifier.height(8.dp))
                 RangePicker(state.range, vm::onRangeChanged)
@@ -121,8 +121,16 @@ fun ReportsScreen(
                 Spacer(Modifier.height(16.dp))
                 InOutNetStrip(income = state.totalIncome, expense = state.totalExpense)
 
+                if (state.netWorthTrend.size >= 2) {
+                    Spacer(Modifier.height(24.dp))
+                    NetWorthTrendSection(values = state.netWorthTrend)
+                }
+
                 Spacer(Modifier.height(24.dp))
-                CategoryBarsSection(slices = state.spendingByCategory)
+                IncomeExpenseBarsSection(months = state.incomeExpenseMonths)
+
+                Spacer(Modifier.height(24.dp))
+                CategoryReportSection(rows = state.categoryReport, onOpenTransaction = onOpenTransaction)
 
                 Spacer(Modifier.height(24.dp))
                 AppBarsSection(slices = state.spendingByPaymentApp)
@@ -134,6 +142,7 @@ fun ReportsScreen(
                 TaxSectionsBlock(rows = state.taxSections)
 
                 Spacer(Modifier.height(32.dp))
+                }
                 }
             }
         }
@@ -152,13 +161,17 @@ private fun RangePicker(current: ReportRange, onChange: (ReportRange) -> Unit) {
         items.forEach { (range, labelRes) ->
             val active = current == range
             Surface(
-                color = if (active) com.subramanya.artha.ui.theme.Teal900 else Surface2,
+                color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(999.dp),
                 modifier = Modifier
-                    .clickable { onChange(range) }
+                    .selectable(
+                        selected = active,
+                        role = androidx.compose.ui.semantics.Role.RadioButton,
+                        onClick = { onChange(range) },
+                    )
                     .border(
                         1.dp,
-                        if (active) com.subramanya.artha.ui.theme.Teal500 else Line1,
+                        if (active) com.subramanya.artha.ui.theme.Teal500 else MaterialTheme.colorScheme.outlineVariant,
                         RoundedCornerShape(999.dp),
                     ),
             ) {
@@ -167,7 +180,7 @@ private fun RangePicker(current: ReportRange, onChange: (ReportRange) -> Unit) {
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                     ),
-                    color = if (active) Teal300 else Text2,
+                    color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                 )
             }
@@ -182,7 +195,7 @@ private fun NetWorthHero(value: Double) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(1.dp, LineTeal, RoundedCornerShape(20.dp)),
     ) {
         BlockPrintOverlay(
@@ -198,14 +211,14 @@ private fun NetWorthHero(value: Double) {
             Spacer(Modifier.height(8.dp))
             com.subramanya.artha.ui.common.AutoShrinkAmountText(
                 text = IndianNumberFormat.format(value),
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = TextStyle(
                     fontFamily = InstrumentSerif,
                     fontSize = 40.sp,
                     lineHeight = 46.sp,
                     fontWeight = FontWeight.Normal,
                     letterSpacing = (-0.02).sp,
-                    color = Text1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFeatureSettings = "tnum, lnum",
                 ),
             )
@@ -218,11 +231,11 @@ private fun NetWorthHero(value: Double) {
 private fun InOutNetStrip(income: Double, expense: Double) {
     val net = income - expense
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(16.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
     ) {
         Row(modifier = Modifier.padding(vertical = 14.dp)) {
             StripCol(stringResource(R.string.reports_in), income, Income, weight = 1f)
@@ -265,7 +278,7 @@ private fun androidx.compose.foundation.layout.RowScope.StripCol(
         // a second row. Drop the size and force single-line with auto-shrink.
         androidx.compose.material3.Text(
             text = IndianNumberFormat.format(value),
-            color = Text1,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             softWrap = false,
             overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
@@ -273,7 +286,7 @@ private fun androidx.compose.foundation.layout.RowScope.StripCol(
                 fontFamily = InstrumentSerif,
                 fontSize = 17.sp,
                 lineHeight = 20.sp,
-                color = Text1,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontFeatureSettings = "tnum, lnum",
             ),
         )
@@ -286,8 +299,118 @@ private fun StripDivider() {
         modifier = Modifier
             .width(1.dp)
             .height(44.dp)
-            .background(Line1),
+            .background(MaterialTheme.colorScheme.outlineVariant),
     )
+}
+
+@Composable
+private fun ReportsSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        listOf(120.dp, 80.dp, 180.dp, 160.dp).forEach { h ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(h)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            )
+        }
+    }
+}
+
+/** Net-worth trend line (Vico) over the selected window — reuses the shared chart. */
+@Composable
+private fun NetWorthTrendSection(values: List<Double>) {
+    SectionHeading(stringResource(R.string.reports_section_networth_trend))
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+    ) {
+        com.subramanya.artha.ui.accounts.BalanceLineChart(
+            values = values,
+            modifier = Modifier.padding(10.dp),
+        )
+    }
+}
+
+/** Trailing-6-months income vs expense — grouped vertical bars (matches the screen's
+ *  hand-rolled bar aesthetic rather than introducing a second chart library here). */
+@Composable
+private fun IncomeExpenseBarsSection(months: List<MonthlyInOut>) {
+    SectionHeading(stringResource(R.string.reports_section_in_out_bars))
+    if (months.all { it.income == 0.0 && it.expense == 0.0 }) {
+        EmptyHint(stringResource(R.string.reports_empty_period))
+        return
+    }
+    val max = months.maxOf { maxOf(it.income, it.expense) }.takeIf { it > 0.0 } ?: 1.0
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(110.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                months.forEach { m ->
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Row(
+                            modifier = Modifier.height(86.dp),
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        ) {
+                            VBar(fraction = (m.income / max).toFloat(), color = Income)
+                            VBar(fraction = (m.expense / max).toFloat(), color = Expense)
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(text = m.label.uppercase(), style = EyebrowStyle, color = Text3)
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                InOutLegend(Income, stringResource(R.string.reports_in))
+                InOutLegend(Expense, stringResource(R.string.reports_out))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VBar(fraction: Float, color: Color) {
+    Box(
+        modifier = Modifier
+            .width(10.dp)
+            .fillMaxHeight(fraction.coerceIn(0f, 1f))
+            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+            .background(color),
+    )
+}
+
+@Composable
+private fun InOutLegend(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(color),
+        )
+        Spacer(Modifier.size(6.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
 // ─────────────────────────── Sub-sections ─────────────────────────────────────
@@ -318,11 +441,11 @@ private fun SectionHeading(title: String) {
 @Composable
 private fun EmptyHint(text: String) {
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(12.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
     ) {
         Text(
             text = text,
@@ -333,30 +456,40 @@ private fun EmptyHint(text: String) {
     }
 }
 
-/** Horizontal bars per category, accent-coloured by index. */
+/**
+ * Category-wise report: every MAIN category's rolled-up spend with count, share
+ * and a progress bar in the category's own colour. Tapping a row expands the
+ * window's transactions inline; tapping a transaction opens its detail page.
+ */
 @Composable
-private fun CategoryBarsSection(slices: List<CategorySlice>) {
+private fun CategoryReportSection(
+    rows: List<CategoryReportRow>,
+    onOpenTransaction: (String) -> Unit,
+) {
     SectionHeading(stringResource(R.string.reports_section_categorybars))
-    if (slices.isEmpty()) {
+    if (rows.isEmpty()) {
         EmptyHint(stringResource(R.string.reports_empty_period))
         return
     }
-    val max = slices.first().total.takeIf { it > 0.0 } ?: 1.0
+    var expandedKey by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val max = rows.first().total.takeIf { it > 0.0 } ?: 1.0
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(16.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            slices.forEachIndexed { i, slice ->
-                if (i > 0) Spacer(Modifier.height(10.dp))
-                CategoryBarRow(
-                    label = slice.displayName,
-                    value = slice.total,
-                    fraction = (slice.total / max).coerceIn(0.0, 1.0).toFloat(),
-                    color = accentPalette[i % accentPalette.size],
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            rows.forEachIndexed { i, row ->
+                val key = row.category?.id ?: "uncategorised"
+                CategoryReportRowItem(
+                    row = row,
+                    fallbackColor = accentPalette[i % accentPalette.size],
+                    fraction = (row.total / max).coerceIn(0.0, 1.0).toFloat(),
+                    expanded = expandedKey == key,
+                    onToggle = { expandedKey = if (expandedKey == key) null else key },
+                    onOpenTransaction = onOpenTransaction,
                 )
             }
         }
@@ -364,35 +497,119 @@ private fun CategoryBarsSection(slices: List<CategorySlice>) {
 }
 
 @Composable
-private fun CategoryBarRow(label: String, value: Double, fraction: Float, color: Color) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = Text1)
-            Text(
-                text = IndianNumberFormat.format(value),
-                style = TextStyle(
-                    fontFamily = IbmPlexMono,
-                    fontSize = 13.sp,
-                    color = Text1,
-                    fontFeatureSettings = "tnum, lnum",
+private fun CategoryReportRowItem(
+    row: CategoryReportRow,
+    fallbackColor: Color,
+    fraction: Float,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onOpenTransaction: (String) -> Unit,
+) {
+    val barColor = row.category?.let { Color(it.color) } ?: fallbackColor
+    val label = row.category?.name ?: stringResource(R.string.reports_uncategorised)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                onClickLabel = stringResource(
+                    if (expanded) R.string.reports_category_collapse else R.string.reports_category_expand,
                 ),
+                onClick = onToggle,
             )
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(barColor),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = row.category?.let { com.subramanya.artha.utils.MaterialIcons.resolve(it.icon) }
+                        ?: Icons.AutoMirrored.Filled.TrendingDown,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+            Spacer(Modifier.size(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = stringResource(R.string.reports_category_count_fmt, row.count),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Text3,
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = IndianNumberFormat.format(row.total),
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFeatureSettings = "tnum, lnum",
+                    ),
+                )
+                Text(
+                    text = stringResource(R.string.reports_category_share_fmt, (row.share * 100).toInt()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Text3,
+                )
+            }
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(999.dp))
-                .background(Surface4),
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(fraction)
                     .height(8.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(color),
+                    .background(barColor),
             )
+        }
+        if (expanded) {
+            Spacer(Modifier.height(6.dp))
+            row.transactions.forEach { txn ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onOpenTransaction(txn.id) }
+                        .padding(vertical = 8.dp, horizontal = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = txn.description.ifBlank { label },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = com.subramanya.artha.utils.DateFormatter.shortDate(txn.date),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Text3,
+                        )
+                    }
+                    Text(
+                        text = IndianNumberFormat.format(txn.amount),
+                        style = TextStyle(
+                            fontFamily = IbmPlexMono,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFeatureSettings = "tnum, lnum",
+                        ),
+                    )
+                }
+            }
         }
     }
 }
@@ -408,11 +625,11 @@ private fun AppBarsSection(slices: List<CategorySlice>) {
     }
     val total = slices.sumOf { it.total }.takeIf { it > 0.0 } ?: 1.0
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(16.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             // Stacked bar.
@@ -421,7 +638,7 @@ private fun AppBarsSection(slices: List<CategorySlice>) {
                     .fillMaxWidth()
                     .height(10.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Surface4),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             ) {
                 slices.forEachIndexed { i, slice ->
                     val frac = (slice.total / total).toFloat()
@@ -462,7 +679,7 @@ private fun LegendChip(color: Color, label: String, value: String) {
                 .background(color),
         )
         Spacer(Modifier.size(6.dp))
-        Text(label, style = MaterialTheme.typography.bodySmall, color = Text2)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.size(6.dp))
         Text(
             text = value,
@@ -485,11 +702,11 @@ private fun TopMerchantsSection(merchants: List<MerchantRow>) {
         return
     }
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(16.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
     ) {
         Column {
             merchants.forEachIndexed { i, m ->
@@ -499,7 +716,7 @@ private fun TopMerchantsSection(merchants: List<MerchantRow>) {
                             .fillMaxWidth()
                             .padding(start = 14.dp)
                             .height(1.dp)
-                            .background(Line1),
+                            .background(MaterialTheme.colorScheme.outlineVariant),
                     )
                 }
                 Row(
@@ -521,7 +738,7 @@ private fun TopMerchantsSection(merchants: List<MerchantRow>) {
                     Text(
                         text = m.name,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.size(8.dp))
@@ -540,7 +757,7 @@ private fun TopMerchantsSection(merchants: List<MerchantRow>) {
                         style = TextStyle(
                             fontFamily = InstrumentSerif,
                             fontSize = 15.sp,
-                            color = Text1,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontFeatureSettings = "tnum, lnum",
                         ),
                     )
@@ -568,20 +785,20 @@ private fun TaxSectionCard(row: TaxSectionRow) {
     val limit = row.limit
     val fraction = if (limit == null || limit == 0.0) 0f else (row.used / limit).toFloat().coerceIn(0f, 1f)
     val isOver = limit != null && row.used >= limit
-    val barColor = if (isOver) IncomeSoft else Teal300
+    val barColor = if (isOver) incomeSoftFill() else MaterialTheme.colorScheme.primary
     Surface(
-        color = Surface2,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Line1, RoundedCornerShape(14.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp)),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
                     text = row.section.uppercase(),
                     style = EyebrowStyle,
-                    color = Teal300,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     text = IndianNumberFormat.format(row.used) +
@@ -589,7 +806,7 @@ private fun TaxSectionCard(row: TaxSectionRow) {
                     style = TextStyle(
                         fontFamily = IbmPlexMono,
                         fontSize = 12.sp,
-                        color = Text1,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFeatureSettings = "tnum, lnum",
                     ),
                 )
@@ -601,7 +818,7 @@ private fun TaxSectionCard(row: TaxSectionRow) {
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(RoundedCornerShape(999.dp))
-                        .background(Surface4),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 ) {
                     Box(
                         modifier = Modifier
@@ -627,6 +844,3 @@ private fun TaxSectionCard(row: TaxSectionRow) {
         }
     }
 }
-
-@Suppress("unused")
-private val keepSurface3Reference = Surface3

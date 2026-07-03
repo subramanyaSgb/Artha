@@ -7,15 +7,17 @@ import androidx.lifecycle.viewModelScope
 import android.net.Uri
 import com.subramanya.artha.ai.AiQuickEntryParser
 import com.subramanya.artha.ai.KeyValidationResult
+import com.subramanya.artha.data.backup.BackupArchive
 import com.subramanya.artha.data.backup.BackupCodec
+import com.subramanya.artha.data.backup.BackupData
 import com.subramanya.artha.data.backup.BackupRepository
 import com.subramanya.artha.data.db.AppDatabase
 import com.subramanya.artha.data.db.seed.SeedCategories
-import com.subramanya.artha.data.importing.BankImporter
 import com.subramanya.artha.data.preferences.SettingsPreferences
 import com.subramanya.artha.data.preferences.SpouseTransactionDefault
 import com.subramanya.artha.data.preferences.ThemeMode
 import com.subramanya.artha.security.BackupCrypto
+import com.subramanya.artha.utils.ReceiptStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 data class SettingsUiState(
@@ -37,13 +40,15 @@ data class SettingsUiState(
     val dashboardShowAccounts: Boolean = true,
     val dashboardShowCards: Boolean = true,
     val dashboardShowRecent: Boolean = true,
+    val dashboardShowSpending: Boolean = true,
+    /** Saved section order (keys); empty = default. Callers resolve via DashboardSection.ordered(). */
+    val dashboardSectionOrder: List<String> = emptyList(),
     val biometricLockEnabled: Boolean = false,
     val smsAutoImportEnabled: Boolean = false,
     val aiQuickEntryEnabled: Boolean = false,
     val showFirstResetDialog: Boolean = false,
     val showFinalResetDialog: Boolean = false,
     val showWipeImportConfirm: Boolean = false,
-    val isImportingBundled: Boolean = false,
     /** Set right after Export → file is ready to be shared. */
     val pendingExportFile: File? = null,
     /** AI Quick Entry — true once the user has stored any non-blank key. We only
@@ -94,7 +99,6 @@ class SettingsViewModel(
     private val firstResetDialog = MutableStateFlow(false)
     private val finalResetDialog = MutableStateFlow(false)
     private val wipeImportConfirm = MutableStateFlow(false)
-    private val importingBundled = MutableStateFlow(false)
     private val pendingExport = MutableStateFlow<File?>(null)
     private val aiSaveInFlight = MutableStateFlow(false)
     private val aiKeyStatus = MutableStateFlow<AiKeyStatus>(AiKeyStatus.Idle)
@@ -109,7 +113,10 @@ class SettingsViewModel(
         settingsPreferences.dashboardShowAccounts,
         settingsPreferences.dashboardShowCards,
         settingsPreferences.dashboardShowRecent,
-    ) { monthly, accounts, cards, recent -> DashboardVisibility(monthly, accounts, cards, recent) }
+        settingsPreferences.dashboardShowSpending,
+    ) { monthly, accounts, cards, recent, spending ->
+        DashboardVisibility(monthly, accounts, cards, recent, spending)
+    }
 
     private val securityPrefs = combine(
         settingsPreferences.biometricLockEnabled,
@@ -119,11 +126,11 @@ class SettingsViewModel(
     private val dialogFlags = combine(
         firstResetDialog, finalResetDialog, wipeImportConfirm, pendingExport, dashboardPrefs,
     ) { first, final, wipe, export, vis ->
-        DialogsAndVisibility(first, final, wipe, export, vis, importing = false, security = SecurityPrefs(false, false))
-    }.combine(importingBundled) { bag, importing ->
-        bag.copy(importing = importing)
+        DialogsAndVisibility(first, final, wipe, export, vis, security = SecurityPrefs(false, false))
     }.combine(securityPrefs) { bag, security ->
         bag.copy(security = security)
+    }.combine(settingsPreferences.dashboardSectionOrder) { bag, order ->
+        bag.copy(order = order)
     }
 
     // The restore sub-state (result + pending-password uri) folded into one flow so the
@@ -168,10 +175,11 @@ class SettingsViewModel(
             dashboardShowAccounts = bag.visibility.accounts,
             dashboardShowCards = bag.visibility.cards,
             dashboardShowRecent = bag.visibility.recent,
+            dashboardShowSpending = bag.visibility.spending,
+            dashboardSectionOrder = bag.order,
             showFirstResetDialog = bag.firstReset,
             showFinalResetDialog = bag.finalReset,
             showWipeImportConfirm = bag.wipeImport,
-            isImportingBundled = bag.importing,
             pendingExportFile = bag.export,
             biometricLockEnabled = bag.security.biometric,
             smsAutoImportEnabled = bag.security.smsImport,
@@ -199,7 +207,13 @@ class SettingsViewModel(
         val enabled: Boolean,
     )
 
-    private data class DashboardVisibility(val monthly: Boolean, val accounts: Boolean, val cards: Boolean, val recent: Boolean)
+    private data class DashboardVisibility(
+        val monthly: Boolean,
+        val accounts: Boolean,
+        val cards: Boolean,
+        val recent: Boolean,
+        val spending: Boolean,
+    )
     private data class SecurityPrefs(val biometric: Boolean, val smsImport: Boolean)
     private data class DialogsAndVisibility(
         val firstReset: Boolean,
@@ -207,8 +221,8 @@ class SettingsViewModel(
         val wipeImport: Boolean,
         val export: File?,
         val visibility: DashboardVisibility,
-        val importing: Boolean,
         val security: SecurityPrefs,
+        val order: List<String> = emptyList(),
     )
 
     fun onNameChanged(value: String) {
@@ -242,6 +256,12 @@ class SettingsViewModel(
     }
     fun onDashboardShowRecentChanged(enabled: Boolean) {
         viewModelScope.launch { settingsPreferences.setDashboardShowRecent(enabled) }
+    }
+    fun onDashboardShowSpendingChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsPreferences.setDashboardShowSpending(enabled) }
+    }
+    fun onDashboardSectionOrderChanged(order: List<String>) {
+        viewModelScope.launch { settingsPreferences.setDashboardSectionOrder(order) }
     }
 
     fun onBiometricLockChanged(enabled: Boolean) {
@@ -323,9 +343,10 @@ class SettingsViewModel(
     fun exportData(context: Context) {
         viewModelScope.launch {
             val file = withContext(Dispatchers.IO) {
-                val json = BackupCodec.encode(backupRepository.snapshot(), System.currentTimeMillis())
-                val out = File(context.cacheDir, "artha_export_${System.currentTimeMillis()}.json")
-                out.writeText(json)
+                val out = File(context.cacheDir, "artha_export_${System.currentTimeMillis()}.zip")
+                out.outputStream().use { stream ->
+                    BackupArchive.write(stream, buildBackupJson(), ReceiptStore.allFiles(context))
+                }
                 out
             }
             pendingExport.update { file }
@@ -333,15 +354,17 @@ class SettingsViewModel(
     }
 
     /**
-     * Same as [exportData] but PBKDF2-AES-GCM encrypts the JSON with [password] first.
+     * Same as [exportData] but PBKDF2-AES-GCM encrypts the archive with [password] first.
      * Caller passes an in-memory CharArray (not a String) so the secret can be wiped
      * after use — best practice for passwords.
      */
     fun exportDataEncrypted(context: Context, password: CharArray) {
         viewModelScope.launch {
             val file = withContext(Dispatchers.IO) {
-                val json = BackupCodec.encode(backupRepository.snapshot(), System.currentTimeMillis())
-                val cipherText = BackupCrypto.encrypt(json, password)
+                val zipBytes = ByteArrayOutputStream().also { buf ->
+                    BackupArchive.write(buf, buildBackupJson(), ReceiptStore.allFiles(context))
+                }.toByteArray()
+                val cipherText = BackupCrypto.encryptBytes(zipBytes, password)
                 password.fill(' ') // wipe in-memory copy
                 val out = File(context.cacheDir, "artha_backup_${System.currentTimeMillis()}.artha")
                 out.writeText(cipherText)
@@ -350,6 +373,12 @@ class SettingsViewModel(
             pendingExport.update { file }
         }
     }
+
+    /** Schema-v2 snapshot: every Room table PLUS the DataStore settings block. */
+    private suspend fun buildBackupJson(): String = BackupCodec.encode(
+        backupRepository.snapshot().copy(settings = settingsPreferences.snapshotForBackup()),
+        System.currentTimeMillis(),
+    )
 
     fun acknowledgeExport() {
         pendingExport.update { null }
@@ -368,10 +397,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             restoring.update { true }
             val outcome = withContext(Dispatchers.IO) {
-                runCatching {
-                    val raw = readText(context, uri)
-                    backupRepository.restore(BackupCodec.decode(raw))
-                }
+                runCatching { restorePayload(context, readBytes(context, uri)) }
             }
             restoring.update { false }
             restoreResult.update {
@@ -381,15 +407,18 @@ class SettingsViewModel(
     }
 
     /**
-     * Routes a just-picked backup file: peeks the first line to tell an encrypted `.artha`
-     * (magic-prefixed) from a plain `.json`. Encrypted -> stash the uri and let the UI prompt
-     * for a password; plain -> restore immediately. Keeps the file-format sniff out of the UI.
+     * Routes a just-picked backup file: a ZIP archive (v2 full backup) or plain JSON
+     * restores immediately; an encrypted `.artha` (magic-prefixed text) stashes the uri
+     * and lets the UI prompt for a password. Keeps the file-format sniff out of the UI.
      */
     fun prepareRestore(context: Context, uri: Uri) {
         if (restoring.value) return
         viewModelScope.launch {
             val encrypted = withContext(Dispatchers.IO) {
-                runCatching { BackupCrypto.isEncrypted(readText(context, uri)) }.getOrDefault(false)
+                runCatching {
+                    val bytes = readBytes(context, uri)
+                    !BackupArchive.isZip(bytes) && BackupCrypto.isEncrypted(bytes.toString(Charsets.UTF_8))
+                }.getOrDefault(false)
             }
             if (encrypted) {
                 pendingEncryptedRestoreUri.update { uri }
@@ -397,6 +426,46 @@ class SettingsViewModel(
                 importData(context, uri)
             }
         }
+    }
+
+    /**
+     * Restores either container: a v2 ZIP archive (backup.json + receipts/) or bare
+     * JSON (v1/v2). The JSON is fully decoded BEFORE the receipts are written or the
+     * database is touched; a restored settings block is applied last.
+     */
+    private suspend fun restorePayload(context: Context, bytes: ByteArray) {
+        val data: BackupData
+        if (BackupArchive.isZip(bytes)) {
+            val json = requireNotNull(BackupArchive.readJson(bytes)) { "archive has no ${BackupArchive.BACKUP_ENTRY}" }
+            val decoded = BackupCodec.decode(json)
+            val receiptsDir = ReceiptStore.dir(context)
+            val extracted = BackupArchive.extractReceipts(bytes, receiptsDir)
+            data = rewriteReceiptUris(decoded, receiptsDir, extracted)
+        } else {
+            data = BackupCodec.decode(bytes.toString(Charsets.UTF_8))
+        }
+        backupRepository.restore(data)
+        data.settings?.let { settingsPreferences.applyFromBackup(it) }
+    }
+
+    /** Receipt URIs in a backup point at the OLD install's filesDir; re-point every
+     *  transaction whose receipt file travelled in the archive at the fresh copy. */
+    private fun rewriteReceiptUris(
+        data: BackupData,
+        receiptsDir: File,
+        extracted: Set<String>,
+    ): BackupData {
+        if (extracted.isEmpty()) return data
+        return data.copy(
+            transactions = data.transactions.map { txn ->
+                val name = txn.receiptUri?.substringAfterLast('/')
+                if (name != null && name in extracted) {
+                    txn.copy(receiptUri = Uri.fromFile(File(receiptsDir, name)).toString())
+                } else {
+                    txn
+                }
+            },
+        )
     }
 
     /** User dismissed the encrypted-backup password prompt without restoring. */
@@ -416,18 +485,19 @@ class SettingsViewModel(
             pendingEncryptedRestoreUri.update { null }
             restoring.update { true }
             val outcome = withContext(Dispatchers.IO) {
-                val raw = runCatching { readText(context, uri) }.getOrNull()
+                val raw = runCatching { readBytes(context, uri).toString(Charsets.UTF_8) }.getOrNull()
                 if (raw == null) {
                     password.fill(' ')
                     return@withContext RestoreResult.InvalidFile
                 }
-                val decrypted = BackupCrypto.decrypt(raw, password)
+                // Decrypts to ZIP bytes (v2) or JSON text bytes (v1) — restorePayload sniffs.
+                val decrypted = BackupCrypto.decryptBytes(raw, password)
                 password.fill(' ')
                 if (decrypted.isFailure) {
                     return@withContext RestoreResult.WrongPassword
                 }
                 runCatching {
-                    backupRepository.restore(BackupCodec.decode(decrypted.getOrThrow()))
+                    restorePayload(context, decrypted.getOrThrow())
                 }.fold(
                     onSuccess = { RestoreResult.Success },
                     onFailure = { RestoreResult.InvalidFile },
@@ -442,8 +512,8 @@ class SettingsViewModel(
         restoreResult.update { RestoreResult.Idle }
     }
 
-    private fun readText(context: Context, uri: Uri): String =
-        context.contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+    private fun readBytes(context: Context, uri: Uri): ByteArray =
+        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             ?: throw IllegalStateException("Could not open backup file")
 
     // ----- reset -----
@@ -469,29 +539,9 @@ class SettingsViewModel(
         }
     }
 
-    // ----- import bundled bank-statement data (APK asset) -----
-
-    /**
-     * Reads `assets/seed/bank_import.json` (generated offline by the Python
-     * script) and writes the 3,913 transactions + their two source accounts
-     * into Room. Idempotent — calling twice is a no-op thanks to deterministic
-     * UUID5 transaction IDs + IGNORE-on-conflict.
-     *
-     * Callers get the result via [onDone] so they can surface a toast.
-     */
-    fun importBundledBankData(context: Context, onDone: (BankImporter.Result) -> Unit) {
-        if (importingBundled.value) return
-        viewModelScope.launch {
-            importingBundled.update { true }
-            val result = withContext(Dispatchers.IO) {
-                BankImporter(context.applicationContext, database).importBundled()
-            }
-            importingBundled.update { false }
-            onDone(result)
-        }
-    }
-
     // ----- wipe imported bank-statement data -----
+    // (The bundled import itself runs automatically at startup in MainActivity, versioned +
+    // idempotent — there's no manual trigger here. This only REMOVES that imported data.)
 
     fun requestWipeImport() = wipeImportConfirm.update { true }
     fun dismissWipeImport() = wipeImportConfirm.update { false }

@@ -4,4 +4,12 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
+
+    <!-- Themed system splash: brand teal + the अ mark fills the cold-start window
+         that used to be blank before Compose drew its first frame. -->
+    <style name="Theme.Artha.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Artha</item>
+    </style>
 </resources>

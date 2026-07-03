@@ -12,6 +12,10 @@ class TagRepository(private val tagDao: TagDao) {
     fun observeAll(): Flow<List<Tag>> =
         tagDao.observeAll().map { list -> list.map { it.toDomain() } }
 
+    /** tagId → number of transactions using it (one batch query, not per-tag). */
+    fun observeUsageCounts(): Flow<Map<String, Int>> =
+        tagDao.observeUsageCounts().map { rows -> rows.associate { it.tagId to it.count } }
+
     suspend fun getById(id: String): Tag? = tagDao.getById(id)?.toDomain()
 
     suspend fun usageCount(tagId: String): Int = tagDao.usageCount(tagId)

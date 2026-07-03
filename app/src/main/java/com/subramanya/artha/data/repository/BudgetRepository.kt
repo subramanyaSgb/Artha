@@ -6,8 +6,11 @@ import com.subramanya.artha.data.mapper.toDomain
 import com.subramanya.artha.data.mapper.toEntity
 import com.subramanya.artha.domain.model.Budget
 import com.subramanya.artha.domain.model.BudgetWithProgress
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
 class BudgetRepository(
@@ -28,7 +31,7 @@ class BudgetRepository(
                     daysRemainingInPeriod = bounds.daysRemaining,
                 )
             }
-        }
+        }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     suspend fun upsert(budget: Budget) = budgetDao.upsert(budget.toEntity())
     suspend fun delete(budget: Budget) = budgetDao.delete(budget.toEntity())

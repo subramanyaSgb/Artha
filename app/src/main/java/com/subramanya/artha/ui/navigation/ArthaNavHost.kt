@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -33,6 +34,7 @@ import com.subramanya.artha.ui.settings.AboutScreen
 import com.subramanya.artha.ui.subscriptions.SubscriptionsScreen
 import com.subramanya.artha.ui.settings.SettingsScreen
 import com.subramanya.artha.ui.tags.TagsScreen
+import com.subramanya.artha.ui.share.ShareReceiptScreen
 import com.subramanya.artha.ui.transactions.TransactionDetailScreen
 import com.subramanya.artha.ui.transactions.TransactionsScreen
 
@@ -76,6 +78,13 @@ object SubRoutes {
     /** Global search — opened from the Dashboard header search icon. */
     const val SEARCH = "search"
 
+    // UPI Receipt Share
+    private const val SHARE_RECEIPT_BASE = "share_receipt"
+    const val SHARE_RECEIPT_ARG_URI = "encodedUri"
+    const val SHARE_RECEIPT_PATTERN = "$SHARE_RECEIPT_BASE/{$SHARE_RECEIPT_ARG_URI}"
+    fun shareReceipt(uriString: String): String =
+        "$SHARE_RECEIPT_BASE/${android.net.Uri.encode(uriString)}"
+
     private const val INVESTMENT_DETAIL_BASE = "investment_detail"
     const val INVESTMENT_DETAIL_ARG_ID = "investmentId"
     const val INVESTMENT_DETAIL_PATTERN = "$INVESTMENT_DETAIL_BASE/{$INVESTMENT_DETAIL_ARG_ID}"
@@ -94,39 +103,60 @@ object SubRoutes {
 
 private const val NAV_ANIM_MS: Int = 220
 
+/** True when the route is a bottom-nav tab (not a pushed detail/sub screen). */
+private fun isTab(route: String?): Boolean = ArthaDestination.fromRoute(route) != null
+
 @Composable
 fun ArthaNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
 ) {
+    // Tab ↔ tab: Material fade-through (tabs are peers — a directional slide
+    // implies hierarchy that isn't there). Push to a detail/sub screen: slide in
+    // from the right + fade; pop slides back to the right.
     NavHost(
         navController = navController,
         startDestination = ArthaDestination.Dashboard.route,
         modifier = modifier,
-        // Push: slide new screen in from the right + fade. Pop: slide back to the right.
         enterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(NAV_ANIM_MS),
-            ) + fadeIn(tween(NAV_ANIM_MS))
+            if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) {
+                fadeIn(tween(NAV_ANIM_MS)) + scaleIn(initialScale = 0.96f, animationSpec = tween(NAV_ANIM_MS))
+            } else {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(NAV_ANIM_MS),
+                ) + fadeIn(tween(NAV_ANIM_MS))
+            }
         },
         exitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(NAV_ANIM_MS),
-            ) + fadeOut(tween(NAV_ANIM_MS))
+            if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) {
+                fadeOut(tween(NAV_ANIM_MS / 2))
+            } else {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(NAV_ANIM_MS),
+                ) + fadeOut(tween(NAV_ANIM_MS))
+            }
         },
         popEnterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(NAV_ANIM_MS),
-            ) + fadeIn(tween(NAV_ANIM_MS))
+            if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) {
+                fadeIn(tween(NAV_ANIM_MS)) + scaleIn(initialScale = 0.96f, animationSpec = tween(NAV_ANIM_MS))
+            } else {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(NAV_ANIM_MS),
+                ) + fadeIn(tween(NAV_ANIM_MS))
+            }
         },
         popExitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(NAV_ANIM_MS),
-            ) + fadeOut(tween(NAV_ANIM_MS))
+            if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) {
+                fadeOut(tween(NAV_ANIM_MS / 2))
+            } else {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(NAV_ANIM_MS),
+                ) + fadeOut(tween(NAV_ANIM_MS))
+            }
         },
     ) {
         composable(ArthaDestination.Dashboard.route) {
@@ -141,13 +171,13 @@ fun ArthaNavHost(
                 onOpenCard = { id -> navController.navigate(SubRoutes.cardDetail(id)) },
                 onOpenTransaction = { id -> navController.navigate(SubRoutes.transactionDetail(id)) },
                 onOpenInsurance = { id -> navController.navigate(SubRoutes.insuranceDetail(id)) },
-                onAddAccount = {
+                onOpenAccounts = {
                     navController.navigate(ArthaDestination.Accounts.route) {
                         popUpTo(navController.graph.findStartDestination().id)
                         launchSingleTop = true
                     }
                 },
-                onAddCard = {
+                onOpenCards = {
                     navController.navigate(ArthaDestination.Cards.route) {
                         popUpTo(navController.graph.findStartDestination().id)
                         launchSingleTop = true
@@ -281,7 +311,10 @@ fun ArthaNavHost(
             RecurringScreen(onBack = { navController.popBackStack() })
         }
         composable(SubRoutes.REPORTS) {
-            ReportsScreen(onBack = { navController.popBackStack() })
+            ReportsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenTransaction = { id -> navController.navigate(SubRoutes.transactionDetail(id)) },
+            )
         }
         composable(SubRoutes.SEARCH) {
             SearchScreen(
@@ -294,6 +327,23 @@ fun ArthaNavHost(
                 onOpenPeople = { navController.navigate(SubRoutes.PEOPLE) },
                 onOpenCategories = { navController.navigate(SubRoutes.CATEGORIES) },
                 onOpenTags = { navController.navigate(SubRoutes.TAGS) },
+            )
+        }
+        composable(
+            route = SubRoutes.SHARE_RECEIPT_PATTERN,
+            arguments = listOf(navArgument(SubRoutes.SHARE_RECEIPT_ARG_URI) { type = NavType.StringType }),
+        ) { entry ->
+            val encoded = entry.arguments?.getString(SubRoutes.SHARE_RECEIPT_ARG_URI).orEmpty()
+            val uriString = android.net.Uri.decode(encoded)
+            ShareReceiptScreen(
+                imageUriString = uriString,
+                onBack = { navController.popBackStack() },
+                onTransactionSaved = { txnId ->
+                    navController.navigate(SubRoutes.transactionDetail(txnId)) {
+                        popUpTo(SubRoutes.SHARE_RECEIPT_PATTERN) { inclusive = true }
+                    }
+                },
+                onAddManually = { navController.popBackStack() },
             )
         }
         // No `more` route on purpose — that tap opens a sheet, not a destination.

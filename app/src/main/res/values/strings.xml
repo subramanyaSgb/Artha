@@ -6,6 +6,12 @@
     <!-- Top app bar -->
     <string name="greeting_guest">Namaste</string>
     <string name="greeting_named">Namaste, %1$s</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_morning_named">Good morning, %1$s</string>
+    <string name="greeting_afternoon_named">Good afternoon, %1$s</string>
+    <string name="greeting_evening_named">Good evening, %1$s</string>
 
     <!-- Bottom navigation -->
     <string name="nav_dashboard">Home</string>
@@ -187,6 +193,7 @@
     <string name="common_cancel">Cancel</string>
     <string name="common_save">Save</string>
     <string name="common_remove">Remove</string>
+    <string name="common_clear">Clear</string>
 
     <!-- Dashboard FAB -->
     <string name="dashboard_fab_add">Add</string>
@@ -211,6 +218,22 @@
     <string name="dashboard_card_due_tomorrow">Due tomorrow</string>
     <string name="dashboard_accounts_empty">Add your first account from More → Accounts.</string>
     <string name="dashboard_recent_empty">No transactions for this range yet.</string>
+    <string name="dashboard_section_recent_activity">Recent activity</string>
+    <string name="dashboard_firstrun_title">Welcome to Artha</string>
+    <string name="dashboard_firstrun_body">Add an account or log your first transaction to get started.</string>
+    <string name="dashboard_firstrun_add_txn">Log a transaction</string>
+    <string name="dashboard_section_spending">Where it went</string>
+    <string name="dashboard_spending_empty">No spending logged this month yet.</string>
+    <string name="dashboard_uncategorized">Uncategorised</string>
+    <string name="dashboard_net_change_suffix">this month</string>
+    <string name="dashboard_breakdown_liquid">Liquid</string>
+    <string name="dashboard_breakdown_invested">Invested</string>
+    <string name="dashboard_breakdown_card_os">Card o/s</string>
+    <string name="dashboard_add_account">Add account</string>
+    <string name="dashboard_add_card">Add card</string>
+    <string name="dashboard_card_outstanding">Outstanding %1$s</string>
+    <string name="dashboard_ai_card_title">Quick add with AI</string>
+    <string name="dashboard_ai_card_subtitle">\"Auto to MG Road ₹180\" — type, dictate, snap a receipt</string>
 
     <!-- Transactions screen -->
     <string name="transactions_search_placeholder">Search transactions</string>
@@ -244,6 +267,7 @@
     <string name="transactions_filter_account">Account</string>
     <string name="transactions_filter_card">Card</string>
     <string name="transactions_filter_category">Category</string>
+    <string name="transactions_filter_tag">Tag</string>
     <string name="transactions_filter_clear_all">Clear filters</string>
     <string name="transactions_filter_any">Any</string>
     <string name="transactions_sort_label">Sort</string>
@@ -251,8 +275,21 @@
     <string name="transactions_sort_date_asc">Date — oldest first</string>
     <string name="transactions_sort_amount_desc">Amount — largest first</string>
     <string name="transactions_sort_amount_asc">Amount — smallest first</string>
-    <string name="transactions_empty">No transactions match these filters</string>
+    <string name="transactions_empty">No transactions yet. Tap + to add your first.</string>
+    <string name="transactions_empty_filtered">No transactions match these filters</string>
     <string name="ledger_add_transaction">Add transaction</string>
+    <string name="ledger_title">The Ledger</string>
+    <string name="ledger_total_in">In</string>
+    <string name="ledger_total_out">Out</string>
+    <string name="ledger_total_net">Net</string>
+    <string name="ledger_range_today">Today</string>
+    <string name="ledger_range_week">This week</string>
+    <string name="ledger_range_month">This month</string>
+    <string name="ledger_range_all">All time</string>
+    <plurals name="transactions_count">
+        <item quantity="one">%1$d transaction</item>
+        <item quantity="other">%1$d transactions</item>
+    </plurals>
     <string name="transactions_select_count">%1$d selected</string>
     <string name="transactions_select_delete">Delete</string>
     <string name="transactions_select_clear">Clear selection</string>
@@ -291,6 +328,20 @@
     <string name="accounts_action_move_up">Move up</string>
     <string name="accounts_action_move_down">Move down</string>
     <string name="accounts_action_restore">Restore</string>
+    <string name="accounts_more_options">More options</string>
+    <string name="accounts_sort_label">Sort</string>
+    <string name="accounts_sort_custom">Custom order</string>
+    <string name="accounts_sort_balance_desc">Balance — high to low</string>
+    <string name="accounts_sort_balance_asc">Balance — low to high</string>
+    <string name="accounts_sort_name">Name — A to Z</string>
+    <string name="accounts_group_by_type">Group by type</string>
+    <string name="accounts_grouped_hint">Grouped by type</string>
+    <string name="accounts_eyebrow">Where your money sits</string>
+    <string name="accounts_total_liquid">Total liquid</string>
+    <plurals name="accounts_across_count">
+        <item quantity="one">across %1$d account</item>
+        <item quantity="other">across %1$d accounts</item>
+    </plurals>
 
     <!-- Account form (add/edit) -->
     <string name="account_form_add_title">Add account</string>
@@ -357,6 +408,21 @@
     <string name="cards_due_tomorrow">Due tomorrow</string>
     <string name="cards_due_in_days">Due in %1$d days</string>
     <string name="cards_utilization_label">%1$d%% used</string>
+    <string name="cards_more_options">More options</string>
+    <string name="cards_eyebrow">Plastic on file</string>
+    <string name="cards_total_outstanding">Total outstanding</string>
+    <string name="cards_outstanding_label">Outstanding</string>
+    <string name="cards_util_short">%1$d%% util</string>
+    <string name="cards_of_limit">of %1$s limit</string>
+    <string name="cards_util_of_limit">%1$d%% of %2$s</string>
+    <string name="cards_available">Available %1$s</string>
+    <string name="cards_due_in_short">Due in %1$dd</string>
+    <string name="cards_sort_label">Sort</string>
+    <string name="cards_sort_custom">Custom order</string>
+    <string name="cards_sort_outstanding_desc">Outstanding — high to low</string>
+    <string name="cards_sort_name">Name — A to Z</string>
+    <string name="cards_group_by_type">Group by type</string>
+    <string name="cards_grouped_hint">Grouped by type</string>
 
     <!-- Card form (add/edit) -->
     <string name="card_form_add_title">Add card</string>
@@ -424,6 +490,9 @@
     <string name="categories_system_delete_toast">System categories can be renamed but not deleted</string>
     <string name="categories_empty">No categories yet for this type.</string>
     <string name="categories_action_edit">Edit</string>
+    <string name="categories_action_more">More options</string>
+    <string name="categories_action_move_up">Move up</string>
+    <string name="categories_action_move_down">Move down</string>
     <string name="categories_action_delete">Delete</string>
     <string name="categories_system_chip">System</string>
     <string name="categories_subcount_one">1 sub-category</string>
@@ -474,7 +543,7 @@
     <string name="settings_behavior_spouse_reset_done">Spouse prompt will ask again next time</string>
     <string name="settings_section_data">Data</string>
     <string name="settings_data_export">Export all data</string>
-    <string name="settings_data_export_subtitle">Save a complete JSON snapshot of every record — accounts, cards, categories, people, tags, transactions, investments, insurance, budgets, goals, subscriptions and rules</string>
+    <string name="settings_data_export_subtitle">Save everything in one file — every record, your settings, and receipt images (.zip)</string>
     <string name="settings_data_reset">Reset all data</string>
     <string name="settings_data_reset_subtitle">Wipe every record permanently — used for starting over</string>
     <string name="settings_data_reset_confirm_title">Reset all data?</string>
@@ -493,7 +562,7 @@
     <string name="settings_data_export_encrypted_password">Password</string>
     <string name="settings_data_export_encrypted_password_confirm">Re-enter to confirm</string>
     <string name="settings_data_restore">Restore from backup</string>
-    <string name="settings_data_restore_subtitle">Replace all current data with a backup file (.json or encrypted .artha)</string>
+    <string name="settings_data_restore_subtitle">Replace all current data with a backup file (.zip, .json or encrypted .artha) — settings and receipts restore too</string>
     <string name="settings_data_restore_pick_chooser">Pick a backup file</string>
     <string name="settings_data_restore_confirm_title">Restore from backup?</string>
     <string name="settings_data_restore_confirm_body">Restoring replaces ALL current data on this device with the contents of the backup. This cannot be undone. Continue?</string>
@@ -512,31 +581,30 @@
     <string name="settings_security_sms_body">Listen for bank transaction SMS and pre-fill them for your review. Requires SMS permissions; flipping this off revokes the listener.</string>
     <string name="settings_section_ai">AI Quick Entry</string>
     <string name="settings_ai_enable_title">Enable AI Quick Entry</string>
-    <string name="settings_ai_enable_body">Show the \"Quick add with Gemini\" card on the Dashboard. Off by default.</string>
-    <string name="settings_ai_key_add">Add Gemini API key</string>
-    <string name="settings_ai_key_change">Change Gemini API key</string>
+    <string name="settings_ai_enable_body">Show the \"Quick add with AI\" card on the Dashboard. Off by default.</string>
+    <string name="settings_ai_key_add">Add NVIDIA NIM API key</string>
+    <string name="settings_ai_key_change">Change NVIDIA NIM API key</string>
     <string name="settings_ai_key_present_subtitle">A working key is saved on this device. AI Quick Entry is active.</string>
-    <string name="settings_ai_key_absent_subtitle">Paste a key from aistudio.google.com/apikey. Without it, AI Quick Entry stays offline.</string>
+    <string name="settings_ai_key_absent_subtitle">Paste your NVIDIA NIM API key from build.nvidia.com. Without it, AI Quick Entry stays offline.</string>
     <string name="settings_ai_key_clear">Remove stored key</string>
     <string name="settings_ai_key_clear_subtitle">Disables AI Quick Entry until you paste another key</string>
-    <string name="settings_ai_key_dialog_title">Paste your Gemini API key</string>
-    <string name="settings_ai_key_dialog_body">Artha will round-trip a tiny request to Google to confirm the key works. Only valid keys are saved.</string>
+    <string name="settings_ai_key_dialog_title">Paste your NVIDIA NIM API key</string>
+    <string name="settings_ai_key_dialog_body">Artha will send a tiny test request to NVIDIA NIM to confirm the key works. Only valid keys are saved.</string>
     <string name="settings_ai_key_dialog_field">API key</string>
     <string name="settings_ai_key_dialog_show">Show</string>
     <string name="settings_ai_key_dialog_hide">Hide</string>
-    <string name="settings_ai_key_dialog_validating">Validating with Gemini…</string>
+    <string name="settings_ai_key_dialog_validating">Validating with NVIDIA NIM…</string>
     <string name="settings_ai_key_dialog_save">Save</string>
     <string name="settings_ai_key_saved">Key saved — AI Quick Entry is on</string>
     <string name="settings_ai_key_cleared">AI key removed</string>
     <string name="settings_ai_key_invalid_fmt">Key rejected — try a new one. (%1$s)</string>
-    <string name="settings_ai_key_network_fmt">Couldn\'t reach Gemini — try again on better signal. (%1$s)</string>
+    <string name="settings_ai_key_network_fmt">Couldn\'t reach NVIDIA NIM — try again on better signal. (%1$s)</string>
     <string name="settings_section_about">About</string>
     <string name="settings_about_open">Open About</string>
 
     <!-- About screen -->
     <string name="about_title">About</string>
     <string name="about_version">Version</string>
-    <string name="about_built_with">Built with Claude Code</string>
     <string name="about_back">Back</string>
     <string name="about_eyebrow">Philosophy</string>
     <string name="about_devanagari">अर्थ</string>
@@ -567,12 +635,55 @@
     <string name="txn_detail_field_tags">Tags</string>
     <string name="txn_detail_field_notes">Notes</string>
     <string name="txn_detail_field_receipt">Receipt attached</string>
+    <string name="txn_detail_section_receipt">Receipt</string>
+    <string name="txn_detail_receipt_unavailable">Receipt attached — preview unavailable</string>
     <string name="txn_detail_audit_created">Created %1$s</string>
     <string name="txn_detail_audit_updated">Updated %1$s</string>
     <string name="txn_detail_audit_source">Source: %1$s</string>
     <string name="txn_detail_delete_confirm_title">Delete this transaction?</string>
     <string name="txn_detail_delete_confirm_body">This permanently removes the transaction and adjusts your balances. This cannot be undone.</string>
     <string name="txn_detail_delete_confirm_yes">Delete</string>
+
+    <!-- Transaction Receipt (detail screen, receipt styling) -->
+    <string name="txn_receipt_eyebrow">Receipt</string>
+    <string name="txn_receipt_share">Share</string>
+    <!-- Hero amount eyebrows, by transaction direction -->
+    <string name="txn_receipt_amount_paid">Amount paid</string>
+    <string name="txn_receipt_amount_received">Amount received</string>
+    <string name="txn_receipt_amount_moved">Amount moved</string>
+    <string name="txn_receipt_amount_invested">Amount invested</string>
+    <!-- Rubber-stamp words, by transaction direction -->
+    <string name="txn_receipt_stamp_debited">Debited</string>
+    <string name="txn_receipt_stamp_credited">Credited</string>
+    <string name="txn_receipt_stamp_transferred">Transferred</string>
+    <string name="txn_receipt_stamp_invested">Invested</string>
+    <!-- Itemized body row labels -->
+    <string name="txn_receipt_row_date">Date</string>
+    <string name="txn_receipt_row_time">Time</string>
+    <string name="txn_receipt_row_paid_from">Paid from</string>
+    <string name="txn_receipt_row_credited_to">Credited to</string>
+    <string name="txn_receipt_row_route">Route</string>
+    <string name="txn_receipt_row_method">Method</string>
+    <string name="txn_receipt_row_reference">Reference</string>
+    <string name="txn_receipt_row_balance">Balance · %1$s</string>
+    <!-- Sections -->
+    <string name="txn_receipt_section_tags_people">Tags &amp; people</string>
+    <string name="txn_receipt_section_note">Note</string>
+    <string name="txn_receipt_add_note">Add a note</string>
+    <string name="txn_receipt_photo_caption">receipt photo</string>
+    <string name="txn_receipt_attach_photo_caption">attach photo</string>
+    <string name="txn_receipt_add_place_caption">add place</string>
+    <!-- Seal footer -->
+    <string name="txn_receipt_recorded">Recorded in Artha</string>
+    <string name="txn_receipt_synced">txn %1$s · synced locally</string>
+    <!-- Action row -->
+    <string name="txn_receipt_action_edit">Edit</string>
+    <string name="txn_receipt_action_split">Split</string>
+    <string name="txn_receipt_action_share">Share</string>
+    <string name="txn_receipt_action_duplicate">Duplicate</string>
+    <string name="txn_receipt_action_attach">Attach photo</string>
+    <string name="txn_receipt_action_delete">Delete</string>
+    <string name="txn_receipt_share_subject">Transaction receipt</string>
 
     <!-- Spouse-prompt dialog -->
     <string name="spouse_prompt_title">Sending %1$s to %2$s</string>
@@ -592,6 +703,9 @@
     <string name="tags_fab_add">Add tag</string>
     <string name="tags_empty">No tags yet. Tap + to add one.</string>
     <string name="tags_action_edit">Edit</string>
+    <string name="tags_action_more">More options</string>
+    <string name="tags_usage_none">Not used yet</string>
+    <string name="tags_usage_count">%1$d transactions</string>
     <string name="tags_action_delete">Delete</string>
     <string name="tags_in_use_toast">Tag is in use by %1$d transaction(s)</string>
     <string name="tags_delete_confirm_title">Delete this tag?</string>
@@ -616,7 +730,10 @@
     <string name="settings_dashboard_accounts">Accounts row</string>
     <string name="settings_dashboard_cards">Cards row</string>
     <string name="settings_dashboard_recent">Recent transactions</string>
-    <string name="settings_dashboard_hint">Net Position always stays on top.</string>
+    <string name="settings_dashboard_spending">Spending breakdown</string>
+    <string name="settings_dashboard_hint">Net Position stays pinned on top. Use the arrows to reorder the rest.</string>
+    <string name="settings_dashboard_move_up">Move up</string>
+    <string name="settings_dashboard_move_down">Move down</string>
 
     <!-- Dashboard -->
     <string name="dashboard_section_cards_empty">Add a credit/debit card from More → Cards.</string>
@@ -625,7 +742,7 @@
 
     <!-- AI Quick Entry (Phase 3) -->
     <string name="ai_quick_entry_title">AI Quick Entry</string>
-    <string name="ai_quick_entry_subtitle">Type, dictate, or attach a receipt photo — Gemini will pre-fill the transaction for you to confirm.</string>
+    <string name="ai_quick_entry_subtitle">Type, dictate, or attach a receipt photo — GLM-5.2 will pre-fill the transaction for you to confirm.</string>
     <string name="ai_quick_entry_text_label">What happened?</string>
     <string name="ai_quick_entry_text_placeholder">e.g. 350 at CCD via GPay yesterday</string>
     <string name="ai_quick_entry_voice">Voice</string>
@@ -634,8 +751,8 @@
     <string name="ai_quick_entry_photo_attached">Photo attached</string>
     <string name="ai_quick_entry_submit">Parse</string>
     <string name="ai_quick_entry_confirm">Continue → confirm fields</string>
-    <string name="ai_quick_entry_no_key_title">Gemini API key not set</string>
-    <string name="ai_quick_entry_no_key_body">Open Settings → AI Quick Entry to paste your Gemini API key. Without it, AI Quick Entry stays offline.</string>
+    <string name="ai_quick_entry_no_key_title">NVIDIA NIM API key not set</string>
+    <string name="ai_quick_entry_no_key_body">Open Settings → AI Quick Entry to paste your NVIDIA NIM API key. Without it, AI Quick Entry stays offline.</string>
     <string name="ai_quick_entry_error_title">Couldn\'t parse</string>
     <string name="ai_quick_entry_preview_title">Preview — verify low-confidence fields (red)</string>
     <string name="ai_quick_entry_preview_amount">Amount</string>
@@ -668,6 +785,8 @@
     <string name="picklist_add_app_field">Label (e.g. Amazon Pay)</string>
     <string name="investments_hero_current">Current value</string>
     <string name="investments_hero_invested">Invested</string>
+    <string name="investments_allocation">Allocation</string>
+    <string name="investments_more_options">More options</string>
     <!-- Row sublines. %1$s = invested amount, %2$s = interest/gain amount, %3$s = gain percent. -->
     <string name="investments_subline_interest">Invested %1$s · Interest %2$s</string>
     <string name="investments_subline_gain">Invested %1$s · Gain %2$s (%3$s)</string>
@@ -721,6 +840,11 @@
     <string name="investment_detail_txns_empty">No transactions yet for this investment.</string>
     <string name="investment_detail_meta_start">Started</string>
     <string name="investment_detail_meta_maturity">Matures</string>
+    <string name="investment_matured">matured</string>
+    <plurals name="investment_matures_in">
+        <item quantity="one">in %1$d day</item>
+        <item quantity="other">in %1$d days</item>
+    </plurals>
     <string name="investment_detail_meta_units">Units</string>
     <string name="investment_detail_meta_nav">NAV</string>
     <string name="investment_detail_meta_tax_section">Tax section</string>
@@ -749,6 +873,7 @@
     <string name="insurance_title">Insurance</string>
     <string name="insurance_eyebrow">Cover</string>
     <string name="insurance_fab_add">Add policy</string>
+    <string name="insurance_more_options">More options</string>
     <string name="insurance_empty">No policies yet. Tap + to add one.</string>
     <string name="insurance_hero_annual_premium">Premiums per year</string>
     <string name="insurance_hero_subtitle">across %1$d policies</string>
@@ -814,6 +939,12 @@
     <string name="insurance_detail_end">Ends</string>
     <string name="insurance_detail_nominee">Nominee</string>
     <string name="insurance_detail_agent">Agent</string>
+    <string name="insurance_detail_call_agent">Call agent</string>
+    <string name="insurance_detail_overdue">overdue</string>
+    <plurals name="insurance_detail_due_in">
+        <item quantity="one">in %1$d day</item>
+        <item quantity="other">in %1$d days</item>
+    </plurals>
     <string name="insurance_detail_tax_section">Tax section</string>
     <string name="insurance_detail_linked_investment_title">Linked investment</string>
 
@@ -902,7 +1033,14 @@
     <string name="reports_in">In</string>
     <string name="reports_out">Out</string>
     <string name="reports_net">Net</string>
-    <string name="reports_section_categorybars">By category</string>
+    <string name="reports_section_networth_trend">Net worth trend</string>
+    <string name="reports_section_in_out_bars">Income vs expense · last 6 months</string>
+    <string name="reports_section_categorybars">Category-wise report</string>
+    <string name="reports_uncategorised">Uncategorised</string>
+    <string name="reports_category_count_fmt">%1$d txns</string>
+    <string name="reports_category_share_fmt">%1$d%%</string>
+    <string name="reports_category_expand">Show transactions</string>
+    <string name="reports_category_collapse">Hide transactions</string>
     <string name="reports_section_appbars">By payment app</string>
     <string name="reports_section_top_merchants">Top merchants</string>
     <string name="reports_section_tax">80C · 80D · 80CCD</string>
@@ -913,6 +1051,7 @@
     <string name="people_title">People</string>
     <string name="people_eyebrow">Lending &amp; shared</string>
     <string name="people_fab_add">Add person</string>
+    <string name="people_delete_person">Delete %1$s</string>
     <string name="people_empty">No people yet. Add friends, family, or business contacts to track who owes whom.</string>
     <string name="people_settled">Settled</string>
     <string name="people_owes_you">Owes you</string>
@@ -951,6 +1090,8 @@
     <string name="budgets_form_period_label">Period</string>
     <string name="budgets_form_amount_label">Budget amount</string>
     <string name="budgets_form_threshold_label">Alert at %</string>
+    <string name="budgets_delete_budget">Delete %1$s</string>
+    <string name="budgets_summary_eyebrow">This period</string>
     <string name="budgets_delete_confirm_title">Delete this budget?</string>
     <string name="budgets_delete_confirm_body">Removes the budget. Transactions are untouched.</string>
     <string name="budgets_delete_confirm_yes">Delete</string>
@@ -960,6 +1101,11 @@
     <string name="goals_fab_add">Add goal</string>
     <string name="goals_empty">No goals yet. Tap + to add one (Emergency Fund, Vacation, etc.).</string>
     <string name="goals_days_remaining">%1$d days left</string>
+    <string name="goals_overdue">Overdue</string>
+    <string name="goals_target_prefix">Target %1$s</string>
+    <string name="goals_summary_eyebrow">Across all goals</string>
+    <string name="goals_form_target_date_label">Target date</string>
+    <string name="goals_form_target_date_pick">+ Date</string>
     <string name="goals_form_add_title">Add goal</string>
     <string name="goals_form_edit_title">Edit goal</string>
     <string name="goals_form_name_label">Goal name</string>
@@ -967,6 +1113,7 @@
     <string name="goals_form_linked_accounts">Linked accounts</string>
     <string name="goals_form_linked_investments">Linked investments</string>
     <string name="goals_form_no_options">Nothing to link yet.</string>
+    <string name="goals_delete_goal">Delete %1$s</string>
     <string name="goals_delete_confirm_title">Delete this goal?</string>
     <string name="goals_delete_confirm_body">Removes the goal record. Linked accounts/investments aren\'t touched.</string>
     <string name="goals_delete_confirm_yes">Delete</string>
@@ -981,6 +1128,16 @@
     <string name="subscription_freq_monthly">Monthly</string>
     <string name="subscription_freq_quarterly">Quarterly</string>
     <string name="subscription_freq_yearly">Yearly</string>
+    <string name="subscription_status_active">Active</string>
+    <string name="subscription_status_paused">Paused</string>
+    <string name="subscription_status_cancelled">Cancelled</string>
+    <string name="subscriptions_delete_sub">Delete %1$s</string>
+    <string name="subscriptions_inactive_header">Inactive</string>
+    <string name="subscriptions_due_overdue">Overdue</string>
+    <string name="subscriptions_due_soon">Due soon</string>
+    <string name="subscriptions_due_today">Due today</string>
+    <string name="subscriptions_due_tomorrow">Due tomorrow</string>
+    <string name="subscriptions_due_in_days">Due in %1$d days</string>
     <string name="subscriptions_form_add_title">Add subscription</string>
     <string name="subscriptions_form_edit_title">Edit subscription</string>
     <string name="subscriptions_form_name_label">Subscription name</string>
@@ -1018,6 +1175,7 @@
     <string name="recurring_form_day_of_month">Day of month (1-31)</string>
     <string name="recurring_form_day_of_week">Day of week (1=Mon..7=Sun)</string>
     <string name="recurring_form_auto_confirm">Auto-confirm without notification</string>
+    <string name="recurring_delete_rule">Delete %1$s</string>
     <string name="recurring_delete_confirm_title">Delete this recurring rule?</string>
     <string name="recurring_delete_confirm_body">Removes the rule. Past transactions it created stay in the log.</string>
     <string name="recurring_delete_confirm_yes">Delete</string>
@@ -1040,8 +1198,12 @@
     <string name="rules_action_category_pick">Pick a category…</string>
     <string name="rules_action_subcategory_pick">Pick a sub-category (optional)</string>
     <string name="rules_action_tax_section_label">Tax section</string>
-    <string name="rules_action_tag_id_label">Tag id</string>
-    <string name="rules_action_person_id_label">Person id</string>
+    <string name="rules_action_tag_id_label">Tag</string>
+    <string name="rules_action_person_id_label">Person</string>
+    <string name="rules_action_tag_pick">Pick a tag</string>
+    <string name="rules_action_person_pick">Pick a person</string>
+    <string name="rules_action_no_tags">No tags yet — add some in Tags first.</string>
+    <string name="rules_action_no_people">No people yet — add some in People first.</string>
     <string name="rules_action_summary_set_type">Set type → %1$s</string>
     <string name="rules_action_summary_set_category">Set category → %1$s</string>
     <string name="rules_action_summary_set_tax">Set tax section → %1$s</string>
@@ -1065,4 +1227,49 @@
     <string name="settings_data_wipe_import_confirm_body">This deletes:\n• The "Federal Bank (Jupiter)" and "ICICI Bank" accounts (if present)\n• Every transaction whose notes start with "Imported from"\n\nManually-entered accounts and transactions are untouched. Use this to retry the import after tweaking the categoriser.</string>
     <string name="settings_data_wipe_import_yes">Wipe imports</string>
     <string name="settings_data_wipe_import_done">Imported data removed: %1$d transactions, %2$d accounts.</string>
+
+    <!-- Withdrawal Sheet -->
+    <string name="withdrawal_sheet_title">Withdraw from %1$s</string>
+    <string name="withdrawal_sheet_current_balance">Current balance</string>
+    <string name="withdrawal_sheet_amount_label">Amount</string>
+    <string name="withdrawal_sheet_amount_required">Amount is required</string>
+    <string name="withdrawal_sheet_amount_positive">Amount must be greater than ₹0</string>
+    <string name="withdrawal_sheet_amount_exceeds">Amount cannot exceed %1$s</string>
+    <string name="withdrawal_sheet_destination_account">Destination account</string>
+    <string name="withdrawal_sheet_select_account">Select an account</string>
+    <string name="withdrawal_sheet_account_required">Please select an account</string>
+    <string name="withdrawal_sheet_summary">Summary</string>
+    <string name="withdrawal_sheet_confirmation">₹%1$s will be credited to %2$s</string>
+    <string name="withdrawal_sheet_remaining_balance">Remaining balance</string>
+    <string name="withdrawal_sheet_after_withdrawal">After withdrawal</string>
+    <string name="withdrawal_sheet_confirm">Confirm withdrawal</string>
+
+    <!-- UPI Receipt Share -->
+    <string name="share_receipt_title">Receipt Import</string>
+    <string name="share_receipt_scanning">Reading your receipt…</string>
+    <string name="share_receipt_error_title">Could not read receipt</string>
+    <string name="share_receipt_retry">Try again</string>
+    <string name="share_receipt_add_manually">Add transaction manually</string>
+    <string name="share_receipt_phonepe_label">PhonePe</string>
+    <string name="share_receipt_amount_unknown">Amount not detected</string>
+    <string name="share_receipt_details_label">Receipt details</string>
+    <string name="share_receipt_field_date">Date</string>
+    <string name="share_receipt_field_upi_ref">UPI Ref</string>
+    <string name="share_receipt_field_paid_from">Paid from</string>
+    <string name="share_receipt_account_label">Debit account</string>
+    <string name="share_receipt_account_placeholder">Select account</string>
+    <string name="share_receipt_account_required">Select an account to save</string>
+    <string name="share_receipt_save">Save expense</string>
+    <string name="share_receipt_save_with_amount">Save expense · ₹%1$s</string>
+
+    <!-- In-app update dialog -->
+    <string name="update_dialog_eyebrow">Update available</string>
+    <string name="update_dialog_title">Artha %1$s is ready</string>
+    <string name="update_dialog_whats_new">What\'s new</string>
+    <string name="update_dialog_download">Download &amp; Install</string>
+    <string name="update_dialog_later">Later</string>
+    <string name="update_dialog_downloading">Downloading… %1$d%%</string>
+    <string name="update_dialog_downloading_hint">Please keep the app open</string>
+    <string name="update_dialog_failed">Download failed. Check your connection and try again.</string>
+    <string name="update_dialog_retry">Try again</string>
 </resources>

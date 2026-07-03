@@ -105,7 +105,7 @@ fun InvestmentDetailScreen(
     var showAddContribution by remember { mutableStateOf(false) }
 
     Surface(
-        color = com.subramanya.artha.ui.theme.Surface1,
+        color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize(),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -119,7 +119,7 @@ fun InvestmentDetailScreen(
                             Icon(
                                 Icons.Filled.Edit,
                                 contentDescription = stringResource(R.string.account_detail_action_edit),
-                                tint = com.subramanya.artha.ui.theme.Text2,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         if (inv.isArchived) {
@@ -127,7 +127,7 @@ fun InvestmentDetailScreen(
                                 Icon(
                                     Icons.Filled.Unarchive,
                                     contentDescription = stringResource(R.string.account_detail_action_restore),
-                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         } else {
@@ -135,7 +135,7 @@ fun InvestmentDetailScreen(
                                 Icon(
                                     Icons.Filled.Archive,
                                     contentDescription = stringResource(R.string.account_detail_action_archive),
-                                    tint = com.subramanya.artha.ui.theme.Text2,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
@@ -175,8 +175,9 @@ fun InvestmentDetailScreen(
 
                 MetaBlock(investment = inv)
 
+                val txnsTitle = stringResource(R.string.investment_detail_txns_title)
                 Text(
-                    text = stringResource(R.string.investment_detail_txns_title),
+                    text = if (state.transactions.isNotEmpty()) "$txnsTitle · ${state.transactions.size}" else txnsTitle,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 4.dp),
                 )
@@ -191,7 +192,11 @@ fun InvestmentDetailScreen(
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(state.transactions, key = { it.id }) { txn ->
-                            TransactionRow(txn = txn, onClick = { onOpenTransaction(txn.id) })
+                            TransactionRow(
+                                txn = txn,
+                                investmentId = inv.id,
+                                onClick = { onOpenTransaction(txn.id) },
+                            )
                         }
                     }
                 }
@@ -514,10 +519,17 @@ private fun MetaBlock(investment: Investment) {
             label = stringResource(R.string.investment_detail_meta_start),
             value = DateFormatter.longDate(investment.startDate),
         )
-        investment.maturityDate?.let {
+        investment.maturityDate?.let { maturity ->
+            // Countdown so an FD/RD shows "matures in N days" at a glance.
+            val days = ((maturity - System.currentTimeMillis()) / 86_400_000L).toInt()
+            val suffix = if (days >= 0) {
+                androidx.compose.ui.res.pluralStringResource(R.plurals.investment_matures_in, days, days)
+            } else {
+                stringResource(R.string.investment_matured)
+            }
             MetaRow(
                 label = stringResource(R.string.investment_detail_meta_maturity),
-                value = DateFormatter.longDate(it),
+                value = "${DateFormatter.longDate(maturity)} · $suffix",
             )
         }
         investment.units?.let {
@@ -553,10 +565,21 @@ private fun MetaRow(label: String, value: String) {
 }
 
 @Composable
-private fun TransactionRow(txn: Transaction, onClick: () -> Unit) {
+private fun TransactionRow(txn: Transaction, investmentId: String, onClick: () -> Unit) {
+    val typeLabel = txn.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }
+    // Sign + colour by direction relative to THIS investment: a contribution/interest credits it
+    // (money in, +); a sell withdraws from it (money out, −).
+    val entersInvestment = txn.destinationId == investmentId
+    val leavesInvestment = txn.sourceId == investmentId
+    val sign = if (entersInvestment) "+" else if (leavesInvestment) "−" else ""
+    val color = when {
+        entersInvestment -> MaterialTheme.colorScheme.primary
+        leavesInvestment -> com.subramanya.artha.ui.theme.Danger
+        else -> MaterialTheme.colorScheme.onSurface
+    }
     ListItem(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        headlineContent = { Text(txn.description.ifBlank { txn.type.name }, maxLines = 1) },
+        headlineContent = { Text(txn.description.ifBlank { typeLabel }, maxLines = 1) },
         supportingContent = {
             Text(
                 text = DateFormatter.shortDate(txn.date),
@@ -566,8 +589,9 @@ private fun TransactionRow(txn: Transaction, onClick: () -> Unit) {
         },
         trailingContent = {
             Text(
-                text = IndianNumberFormat.format(txn.amount),
+                text = sign + IndianNumberFormat.format(txn.amount),
                 style = ArthaAmountStyles.body.copy(fontWeight = FontWeight.SemiBold),
+                color = color,
             )
         },
     )

@@ -15,12 +15,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import com.subramanya.artha.ui.common.GhostButton
 import com.subramanya.artha.ui.common.SavePrimaryButton
-import com.subramanya.artha.ui.theme.Surface1
-import com.subramanya.artha.ui.theme.Surface4
 import com.subramanya.artha.ui.theme.Teal700
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,7 +51,7 @@ fun OnboardingFlow(
         if (state.savedAndReady) onCompleted()
     }
 
-    Surface(color = Surface1, modifier = modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
             HorizontalPager(
                 state = pagerState,
@@ -111,7 +110,7 @@ private fun PageIndicator(pageCount: Int, selected: Int, modifier: Modifier = Mo
         horizontalArrangement = Arrangement.Center,
     ) {
         repeat(pageCount) { index ->
-            val color = if (index == selected) Teal700 else Surface4
+            val color = if (index == selected) Teal700 else MaterialTheme.colorScheme.surfaceContainerHighest
             Box(
                 modifier = Modifier
                     .padding(horizontal = 4.dp)
