@@ -1,6 +1,7 @@
 package com.subramanya.artha.ui.share
 
 import android.net.Uri
+import kotlinx.coroutines.flow.first
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -83,7 +84,9 @@ fun ShareReceiptScreen(
     val vm: ShareReceiptViewModel = viewModel(
         factory = ShareReceiptViewModelFactory(
             imageUri = Uri.parse(imageUriString),
-            upiReceiptParser = UpiReceiptParser(),
+            upiReceiptParser = UpiReceiptParser(
+                keyProvider = { app.settingsPreferences.geminiApiKey.first() },
+            ),
             accountRepository = app.accountRepository,
             transactionRepository = app.transactionRepository,
             context = context,
