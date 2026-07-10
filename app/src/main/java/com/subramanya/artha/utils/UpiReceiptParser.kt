@@ -49,7 +49,10 @@ class UpiReceiptParser(
         val bitmap = context.contentResolver.openInputStream(uri)?.use {
             BitmapFactory.decodeStream(it)
         } ?: return null
-        return runCatching { parseWithNim(key, bitmap) }.getOrNull()
+        // Deliberately NOT swallowing here — HTTP/network exceptions propagate to the caller so
+        // the screen can show the real reason (e.g. "HTTP 401") instead of a blanket "couldn't
+        // read". A genuinely empty/unreadable model reply returns null (→ generic message).
+        return parseWithNim(key, bitmap)
     }
 
     private suspend fun parseWithNim(key: String, bitmap: Bitmap): ReceiptData? {
@@ -69,7 +72,12 @@ class UpiReceiptParser(
                 })
             })
             put("temperature", 0.2)
-            put("max_tokens", 4096)
+            put("max_tokens", 1024)
+            // Nemotron is a reasoning model: with thinking ON, its reasoning_content balloons
+            // and eats the whole token budget on a detail-rich receipt BEFORE it emits the JSON
+            // (content comes back empty → "could not read"). Disable thinking for extraction —
+            // verified to return clean JSON in ~1.3s. Do the same anywhere we use this model.
+            put("chat_template_kwargs", JSONObject().apply { put("enable_thinking", false) })
             put("stream", false)
         }.toString()
 

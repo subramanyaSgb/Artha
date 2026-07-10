@@ -105,8 +105,10 @@ class NvidiaNimQuickEntryParser(
                 })
             })
             put("temperature", 0.3)
-            // Generous budget: reasoning tokens count toward the completion limit.
-            put("max_tokens", 4096)
+            put("max_tokens", 1024)
+            // Disable thinking — otherwise nemotron's reasoning_content eats the token budget
+            // before it emits the JSON answer (empty content → parse fails). See UpiReceiptParser.
+            put("chat_template_kwargs", JSONObject().apply { put("enable_thinking", false) })
             put("stream", false)
         }.toString()
     }

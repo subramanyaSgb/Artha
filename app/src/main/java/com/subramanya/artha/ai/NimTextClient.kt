@@ -30,8 +30,10 @@ object NimTextClient {
                     })
                 })
                 put("temperature", 0.2)
-                // Reasoning model: reasoning_content counts toward the completion budget.
-                put("max_tokens", 4096)
+                put("max_tokens", 1024)
+                // Disable thinking so reasoning_content doesn't consume the budget before the
+                // JSON answer is produced (see UpiReceiptParser for the full explanation).
+                put("chat_template_kwargs", JSONObject().apply { put("enable_thinking", false) })
                 put("stream", false)
             }.toString()
 
