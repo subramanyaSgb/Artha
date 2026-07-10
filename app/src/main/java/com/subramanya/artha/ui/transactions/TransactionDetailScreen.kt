@@ -161,6 +161,19 @@ fun TransactionDetailScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf(false) }
 
+    // Photo picker must live at screen level so it survives recomposition of child composables.
+    val scope = rememberCoroutineScope()
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val saved = com.subramanya.artha.utils.ReceiptStore.persist(context, uri)
+                if (saved != null) vm.attachReceipt(saved)
+            }
+        }
+    }
+
     Surface(
         color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize(),
@@ -207,7 +220,11 @@ fun TransactionDetailScreen(
                     ActionRow(
                         onEdit = { editing = true },
                         onDelete = vm::requestDelete,
-                        onAttachPhoto = { uri -> vm.attachReceipt(uri) },
+                        onAttachPhoto = {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                            )
+                        },
                     )
                     Spacer(Modifier.height(32.dp))
                 }
@@ -892,21 +909,8 @@ private class ScallopedShape : androidx.compose.ui.graphics.Shape {
 private fun ActionRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onAttachPhoto: (String) -> Unit,
+    onAttachPhoto: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-    ) { uri ->
-        if (uri != null) {
-            scope.launch {
-                val saved = com.subramanya.artha.utils.ReceiptStore.persist(context, uri)
-                if (saved != null) onAttachPhoto(saved)
-            }
-        }
-    }
-
     // Primary Edit button
     Row(
         modifier = Modifier
@@ -941,11 +945,7 @@ private fun ActionRow(
         SecondaryChip(
             icon = Icons.Filled.AddAPhoto,
             label = stringResource(R.string.txn_receipt_action_attach),
-            onClick = {
-                galleryLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                )
-            },
+            onClick = onAttachPhoto,
             modifier = Modifier.weight(1f),
         )
         SecondaryChip(
