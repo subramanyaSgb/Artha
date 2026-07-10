@@ -6,6 +6,7 @@ import android.net.Uri
 import android.content.Context
 import android.util.Base64
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -49,10 +50,30 @@ class UpiReceiptParser(
         val bitmap = context.contentResolver.openInputStream(uri)?.use {
             BitmapFactory.decodeStream(it)
         } ?: return null
-        // Deliberately NOT swallowing here — HTTP/network exceptions propagate to the caller so
-        // the screen can show the real reason (e.g. "HTTP 401") instead of a blanket "couldn't
-        // read". A genuinely empty/unreadable model reply returns null (→ generic message).
-        return parseWithNim(key, bitmap)
+
+        // Retry on TRANSIENT failures — this is why receipt reading was flaky ("works sometimes":
+        // a single NIM rate-limit / 5xx / timeout, or an occasional non-JSON reply, used to fail
+        // outright). Each attempt re-rolls the model call. A hard auth error (401/403) is not
+        // transient, so we stop immediately. Exceptions from the final attempt propagate so the
+        // screen shows the real reason instead of a blanket "couldn't read".
+        var lastError: Throwable? = null
+        repeat(MAX_ATTEMPTS) { attempt ->
+            val result = runCatching { parseWithNim(key, bitmap) }
+            result.getOrNull()?.let { return it }
+            val error = result.exceptionOrNull()
+            if (error != null) {
+                lastError = error
+                if (isAuthError(error)) throw error // not transient — don't waste retries
+            }
+            if (attempt < MAX_ATTEMPTS - 1) delay(RETRY_DELAY_MS)
+        }
+        lastError?.let { throw it }
+        return null
+    }
+
+    private fun isAuthError(error: Throwable): Boolean {
+        val msg = error.message.orEmpty()
+        return "HTTP 401" in msg || "HTTP 403" in msg
     }
 
     private suspend fun parseWithNim(key: String, bitmap: Bitmap): ReceiptData? {
@@ -225,6 +246,10 @@ class UpiReceiptParser(
     private companion object {
         const val ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
         const val MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+
+        // Retry transient failures (rate-limit / 5xx / timeout / occasional non-JSON reply).
+        const val MAX_ATTEMPTS = 3
+        const val RETRY_DELAY_MS = 700L
 
         val MONTHS = mapOf(
             "jan" to 1, "feb" to 2, "mar" to 3, "apr" to 4, "may" to 5, "jun" to 6,
