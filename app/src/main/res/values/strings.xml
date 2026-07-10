@@ -753,6 +753,9 @@
     <string name="txn_receipt_photo_caption">receipt photo</string>
     <string name="txn_receipt_attach_photo_caption">attach photo</string>
     <string name="txn_receipt_add_place_caption">add place</string>
+    <string name="txn_receipt_no_note">No note added</string>
+    <string name="txn_receipt_unknown_account">Unknown account</string>
+    <string name="txn_receipt_action_add_rule">Add to a rule</string>
     <!-- Seal footer -->
     <string name="txn_receipt_recorded">Recorded in Artha</string>
     <string name="txn_receipt_synced">txn %1$s · synced locally</string>
