@@ -22,9 +22,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreditCard
@@ -32,6 +37,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -86,10 +92,12 @@ import com.subramanya.artha.ui.theme.Income
 import com.subramanya.artha.ui.theme.InstrumentSerif
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Text3
+import com.subramanya.artha.ui.theme.expenseSoftFill
 import com.subramanya.artha.ui.theme.incomeSoftFill
 import com.subramanya.artha.ui.transaction.AddTransactionSheet
 import com.subramanya.artha.ui.transaction.AddTransactionViewModel
 import com.subramanya.artha.ui.transaction.AddTransactionViewModelFactory
+import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
 import com.subramanya.artha.utils.TimeRange
 import kotlinx.datetime.Instant
@@ -133,8 +141,16 @@ fun TransactionsScreen(
                         onDelete = vm::requestDelete,
                     )
                 } else {
+                    val customStart = state.filter.customDateStart
+                    val customEnd = state.filter.customDateEnd
                     LedgerHeader(
-                        rangeLabel = rangeDisplay(state.filter.range),
+                        rangeLabel = if (state.filter.range == TimeRange.CUSTOM &&
+                            customStart != null && customEnd != null
+                        ) {
+                            "${formatChipDate(customStart)} – ${formatChipDate(customEnd)}"
+                        } else {
+                            rangeDisplay(state.filter.range)
+                        },
                         sort = state.sort,
                         activeFilterCount = run {
                             var count = 0
@@ -386,7 +402,7 @@ private fun LedgerHeader(
                         text = { Text(option.displayLabel()) },
                         onClick = { onSortChanged(option); onSortMenuToggle(false) },
                         leadingIcon = if (sort == option) {
-                            { Icon(Icons.Filled.FilterList, contentDescription = null) }
+                            { Icon(Icons.Filled.Check, contentDescription = null) }
                         } else null,
                     )
                 }
@@ -414,7 +430,7 @@ private fun TotalsStrip(inSum: Double, outSum: Double, net: Double) {
         VerticalSep()
         TotalCell(label = stringResource(R.string.ledger_total_out).uppercase(), value = outSum, color = MaterialTheme.colorScheme.onSurface, dot = Expense)
         VerticalSep()
-        TotalCell(label = stringResource(R.string.ledger_total_net).uppercase(), value = net, color = MaterialTheme.colorScheme.onSurface, dot = null, sign = true)
+        TotalCell(label = stringResource(R.string.ledger_total_net).uppercase(), value = net, color = if (net < 0) Expense else MaterialTheme.colorScheme.onSurface, dot = null, sign = true)
     }
 }
 
@@ -533,11 +549,13 @@ private fun ActiveFiltersStrip(
             DismissChip(label = name, onDismiss = onRemoveAccount)
         }
         if (filter.cardId != null) {
-            val name = cards.firstOrNull { it.id == filter.cardId }?.name ?: "Card"
+            val name = cards.firstOrNull { it.id == filter.cardId }?.name
+                ?: stringResource(R.string.transactions_filter_card)
             DismissChip(label = name, onDismiss = onRemoveCard)
         }
         if (filter.categoryId != null) {
-            val name = categories.firstOrNull { it.id == filter.categoryId }?.name ?: "Category"
+            val name = categories.firstOrNull { it.id == filter.categoryId }?.name
+                ?: stringResource(R.string.transactions_filter_category)
             DismissChip(label = name, onDismiss = onRemoveCategory)
         }
         if (filter.tagId != null) {
@@ -623,9 +641,8 @@ private fun TransactionRow(
     val container = if (selected) MaterialTheme.colorScheme.secondaryContainer
                     else Color.Transparent
     val isIncome = txn.type.isIncomeLike()
-    // Prefer the category-specific icon (Restaurant for food, DirectionsCar for
-    // transport, etc.) so the row is scannable by shape; fall back to the type
-    // glyph for transactions with no category (transfers, raw card payments).
+    val avatarColor = category?.let { Color(it.color) }
+    // Prefer the category-specific icon; fall back to type glyph.
     val rowIcon = category?.icon
         ?.let { com.subramanya.artha.utils.MaterialIcons.resolve(it) }
         ?: iconForType(txn.type)
@@ -644,13 +661,16 @@ private fun TransactionRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(11.dp))
-                .background(if (isIncome) incomeSoftFill() else MaterialTheme.colorScheme.surfaceContainerHighest),
+                .background(
+                    avatarColor ?: if (isIncome) incomeSoftFill() else expenseSoftFill()
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = rowIcon,
                 contentDescription = null,
-                tint = if (isIncome) Income else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (avatarColor != null) Color.White
+                       else if (isIncome) Income else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(17.dp),
             )
         }
@@ -663,7 +683,11 @@ private fun TransactionRow(
                 maxLines = 1,
             )
             Spacer(Modifier.height(2.dp))
-            MonoMeta(text = txn.type.displayLabel())
+            MonoMeta(text = buildString {
+                val catName = category?.name
+                if (!catName.isNullOrBlank()) { append(catName); append(" · ") }
+                append(DateFormatter.shortDate(txn.date))
+            })
         }
         Text(
             text = signedAmount(txn),
@@ -722,6 +746,14 @@ internal fun TransactionSort.displayLabel(): String = when (this) {
 
 private fun iconForType(type: TransactionType) = when (type) {
     TransactionType.CARD_PAYMENT -> Icons.Filled.CreditCard
+    TransactionType.TRANSFER -> Icons.Filled.SwapHoriz
+    TransactionType.INVESTMENT_BUY, TransactionType.INVESTMENT_SELL -> Icons.AutoMirrored.Filled.ShowChart
+    TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
+    TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED ->
+        Icons.AutoMirrored.Filled.TrendingUp
+    TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT ->
+        Icons.AutoMirrored.Filled.TrendingDown
+    TransactionType.ADJUSTMENT -> Icons.AutoMirrored.Filled.ReceiptLong
     else -> Icons.Filled.AccountBalance
 }
 
