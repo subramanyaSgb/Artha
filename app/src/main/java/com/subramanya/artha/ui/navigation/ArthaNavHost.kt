@@ -75,6 +75,9 @@ object SubRoutes {
     // Phase 5
     const val REPORTS = "reports"
 
+    // SMS auto-import (ported from fork) — review queue
+    const val REVIEW = "review"
+
     /** Global search — opened from the Dashboard header search icon. */
     const val SEARCH = "search"
 
@@ -239,7 +242,11 @@ fun ArthaNavHost(
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onOpenAbout = { navController.navigate(SubRoutes.ABOUT) },
+                onOpenReview = { navController.navigate(SubRoutes.REVIEW) },
             )
+        }
+        composable(SubRoutes.REVIEW) {
+            com.subramanya.artha.ui.review.ReviewScreen(onBack = { navController.popBackStack() })
         }
         composable(SubRoutes.ABOUT) {
             AboutScreen(onBack = { navController.popBackStack() })

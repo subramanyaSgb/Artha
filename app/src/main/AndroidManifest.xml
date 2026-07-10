@@ -5,6 +5,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Allows triggering the system package installer for self-hosted APK updates. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- SMS auto-import (ported from fork): read incoming bank SMS + post the review
+         notification. Both requested at runtime when the user enables the feature.
+         Sideloaded APK (not Play Store), so the restricted RECEIVE_SMS is fine. -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".ArthaApplication"
@@ -37,6 +42,17 @@
                 <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
+
+        <!-- SMS auto-import receiver (ported from fork). Gated at runtime by the Settings
+             toggle + RECEIVE_SMS permission; inert until the user opts in. -->
+        <receiver
+            android:name=".sms.SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="500">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
 
         <!-- FileProvider for sharing the Settings → Export JSON file out of the app cache. -->
         <provider

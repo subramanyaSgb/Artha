@@ -64,20 +64,28 @@ class MainActivity : FragmentActivity() {
     // Compose-observable state — changes from onNewIntent recompose ArthaRoot automatically.
     private var pendingShareUri by mutableStateOf<Uri?>(null)
 
+    // Bumped each time the SMS-review notification is tapped; MainApp navigates on change.
+    private var openReviewToken by mutableStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         pendingShareUri = extractShareImageUri(intent)
-        setContent { ArthaRoot(pendingShareUri = pendingShareUri) }
+        if (wantsReview(intent)) openReviewToken++
+        setContent { ArthaRoot(pendingShareUri = pendingShareUri, openReviewToken = openReviewToken) }
     }
 
-    /** Handles share intents when Artha is already running (singleTop). */
+    /** Handles share + review-notification intents when Artha is already running (singleTop). */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         extractShareImageUri(intent)?.let { pendingShareUri = it }
+        if (wantsReview(intent)) openReviewToken++
     }
+
+    private fun wantsReview(intent: Intent?): Boolean =
+        intent?.getBooleanExtra(com.subramanya.artha.sms.PendingTransactionNotifier.EXTRA_OPEN_REVIEW, false) == true
 
     private fun extractShareImageUri(intent: Intent?): Uri? {
         if (intent?.action != Intent.ACTION_SEND) return null
@@ -113,7 +121,7 @@ private const val MIN_SPLASH_MILLIS: Long = 500L
 private const val CURRENT_BUNDLED_IMPORT_VERSION: Int = 3
 
 @Composable
-private fun ArthaRoot(pendingShareUri: Uri?) {
+private fun ArthaRoot(pendingShareUri: Uri?, openReviewToken: Int) {
     val context = LocalContext.current
     val app = context.applicationContext as ArthaApplication
 
@@ -123,15 +131,15 @@ private fun ArthaRoot(pendingShareUri: Uri?) {
 
     ArthaTheme(themeMode = themeMode, useDynamicColor = useDynamicColor) {
         if (biometricLock) {
-            BiometricLockGate { ArthaInner(app, pendingShareUri) }
+            BiometricLockGate { ArthaInner(app, pendingShareUri, openReviewToken) }
         } else {
-            ArthaInner(app, pendingShareUri)
+            ArthaInner(app, pendingShareUri, openReviewToken)
         }
     }
 }
 
 @Composable
-private fun ArthaInner(app: ArthaApplication, pendingShareUri: Uri?) {
+private fun ArthaInner(app: ArthaApplication, pendingShareUri: Uri?, openReviewToken: Int) {
     val startup by produceState<StartupState>(initialValue = StartupState.Loading, app) {
         value = withContext(Dispatchers.IO) {
             val started = System.currentTimeMillis()
@@ -171,6 +179,7 @@ private fun ArthaInner(app: ArthaApplication, pendingShareUri: Uri?) {
             settingsPreferences = app.settingsPreferences,
             initialName = state.userName,
             pendingShareUri = pendingShareUri,
+            openReviewToken = openReviewToken,
         )
     }
 }
@@ -180,6 +189,7 @@ private fun MainApp(
     settingsPreferences: SettingsPreferences,
     initialName: String,
     pendingShareUri: Uri?,
+    openReviewToken: Int,
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
@@ -211,6 +221,14 @@ private fun MainApp(
             navController.navigate(SubRoutes.shareReceipt(pendingShareUri.toString())) {
                 launchSingleTop = true
             }
+        }
+    }
+
+    // Tapping the SMS-review notification deep-links into the Review screen. Keyed on the
+    // token so each tap re-navigates (0 is the initial "no request" value).
+    LaunchedEffect(openReviewToken) {
+        if (openReviewToken > 0) {
+            navController.navigate(SubRoutes.REVIEW) { launchSingleTop = true }
         }
     }
 

@@ -34,6 +34,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -69,6 +70,43 @@ class AddTransactionViewModel(
 
     private val _state = MutableStateFlow(AddTransactionUiState())
     val state: StateFlow<AddTransactionUiState> = _state.asStateFlow()
+
+    /**
+     * One-shot signal fired exactly once per genuine save (independent of the `savedAndClose`
+     * state reset). The SMS Review screen collects this to remove the pending row only on a
+     * real save, never on a plain sheet dismiss.
+     */
+    private val _saveCompleted = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val saveCompleted: kotlinx.coroutines.flow.SharedFlow<Unit> = _saveCompleted.asSharedFlow()
+
+    /**
+     * Pre-fills the sheet from an SMS-detected pending transaction (ported from the fork's
+     * Review tab). Mirrors how AI Quick Entry pre-fills the same sheet. `matchedFunds` is the
+     * account/card resolved from the SMS account-hint (null if unmatched) — set as source for a
+     * debit, destination for a credit. Uses `update` so the live payment-app list is preserved.
+     */
+    fun applyPendingSmsPrefill(
+        pending: com.subramanya.artha.domain.model.PendingSmsTransaction,
+        suggestedCategoryName: String?,
+        matchedFunds: FundsEndpoint? = null,
+    ) {
+        val isDebit = pending.direction == com.subramanya.artha.domain.model.SmsDirection.DEBIT
+        _state.update {
+            it.copy(
+                tab = if (isDebit) TransactionTab.EXPENSE else TransactionTab.INCOME,
+                amountText = pending.amount.toString(),
+                description = pending.merchant ?: pending.sender,
+                dateTimeMillis = pending.receivedAt,
+                categoryId = pending.suggestedCategoryId,
+                categoryDisplay = suggestedCategoryName,
+                source = if (isDebit) matchedFunds else null,
+                destination = if (isDebit) null else matchedFunds,
+                subCategoryId = null,
+                subCategoryDisplay = null,
+                isEditing = false,
+            )
+        }
+    }
 
     init {
         // Keep the payment-app picker list live (built-ins + custom; hidden removed).
@@ -566,6 +604,7 @@ class AddTransactionViewModel(
             }
             transactionRepository.save(toSave)
             _state.update { it.copy(isSaving = false, savedAndClose = true) }
+            _saveCompleted.tryEmit(Unit)
         }
     }
 
