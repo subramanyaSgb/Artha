@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 data class TransactionDetailUiState(
     val transaction: Transaction? = null,
@@ -123,22 +122,11 @@ class TransactionDetailViewModel(
         }
     }
 
-    /**
-     * Creates a copy of the current transaction with a fresh id + timestamps. The user
-     * lands back on Transactions; the new row will appear at the top.
-     */
-    fun duplicate(onDuplicated: () -> Unit) {
+    /** Saves a receipt photo URI (already copied to app storage by the caller) onto the transaction. */
+    fun attachReceipt(uri: String) {
         val current = state.value.transaction ?: return
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            transactionRepository.save(
-                current.copy(
-                    id = UUID.randomUUID().toString(),
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
-            onDuplicated()
+            transactionRepository.save(current.copy(receiptUri = uri, updatedAt = System.currentTimeMillis()))
         }
     }
 

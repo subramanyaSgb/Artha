@@ -27,12 +27,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.IosShare
-import androidx.compose.material.icons.filled.Rule
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -47,7 +46,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -186,14 +187,8 @@ fun TransactionDetailScreen(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                 )
-                // Share placeholder button (same width as back for centering)
-                IconButton(onClick = {}) {
-                    Icon(
-                        Icons.Filled.IosShare,
-                        contentDescription = stringResource(R.string.txn_receipt_action_share),
-                        tint = Text1,
-                    )
-                }
+                // Balancing spacer so the title stays centred
+                Spacer(Modifier.size(48.dp))
             }
 
             val txn = state.transaction
@@ -211,8 +206,8 @@ fun TransactionDetailScreen(
                     ReceiptCard(txn = txn, state = state, meta = meta)
                     ActionRow(
                         onEdit = { editing = true },
-                        onDuplicate = { vm.duplicate(onDuplicated = onBack) },
                         onDelete = vm::requestDelete,
+                        onAttachPhoto = { uri -> vm.attachReceipt(uri) },
                     )
                     Spacer(Modifier.height(32.dp))
                 }
@@ -896,10 +891,23 @@ private class ScallopedShape : androidx.compose.ui.graphics.Shape {
 @Composable
 private fun ActionRow(
     onEdit: () -> Unit,
-    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
+    onAttachPhoto: (String) -> Unit,
 ) {
-    // Primary row: Edit (full-weight) + Share ghost
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val saved = com.subramanya.artha.utils.ReceiptStore.persist(context, uri)
+                if (saved != null) onAttachPhoto(saved)
+            }
+        }
+    }
+
+    // Primary Edit button
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -909,7 +917,7 @@ private fun ActionRow(
         Button(
             onClick = onEdit,
             modifier = Modifier
-                .weight(2f)
+                .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Teal700),
@@ -921,68 +929,31 @@ private fun ActionRow(
                 style = MaterialTheme.typography.labelLarge,
             )
         }
-        OutlinedButton(
-            onClick = {},
-            modifier = Modifier
-                .weight(1f)
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Line2),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Text1),
-        ) {
-            Icon(Icons.Filled.Group, contentDescription = null, modifier = Modifier.size(17.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = stringResource(R.string.txn_receipt_action_split),
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
-        OutlinedButton(
-            onClick = {},
-            modifier = Modifier
-                .weight(1f)
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Line2),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Text1),
-        ) {
-            Icon(Icons.Filled.IosShare, contentDescription = null, modifier = Modifier.size(17.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = stringResource(R.string.txn_receipt_action_share),
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
     }
 
-    // Secondary chip row
-    FlowRow(
+    // Secondary chip row — Attach photo + Delete
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        SecondaryChip(
-            icon = Icons.Filled.ContentCopy,
-            label = stringResource(R.string.txn_receipt_action_duplicate),
-            onClick = onDuplicate,
-        )
-        SecondaryChip(
-            icon = Icons.Filled.Rule,
-            label = stringResource(R.string.txn_receipt_action_add_rule),
-            onClick = {},
-        )
         SecondaryChip(
             icon = Icons.Filled.AddAPhoto,
             label = stringResource(R.string.txn_receipt_action_attach),
-            onClick = {},
+            onClick = {
+                galleryLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                )
+            },
+            modifier = Modifier.weight(1f),
         )
         SecondaryChip(
             icon = Icons.Filled.Delete,
             label = stringResource(R.string.txn_receipt_action_delete),
             onClick = onDelete,
             danger = true,
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -993,6 +964,7 @@ private fun SecondaryChip(
     label: String,
     onClick: () -> Unit,
     danger: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val borderColor = if (danger) Danger.copy(alpha = 0.32f) else Line2
     val contentColor = if (danger) Danger else Text1
@@ -1005,7 +977,7 @@ private fun SecondaryChip(
             contentColor = contentColor,
         ),
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-        modifier = Modifier.height(40.dp),
+        modifier = modifier.height(40.dp),
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(8.dp))
