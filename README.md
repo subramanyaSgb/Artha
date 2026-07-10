@@ -196,11 +196,4 @@ If you're filing an issue, please include:
 
 ## License
 
-TBD. Until a license is added, all rights are reserved by the author.
-
----
-
-## Author
-
-**Subramanya GB** — Technical Lead, Deevia Software.
-Built primarily in Python/FastAPI by day; this is the Android Compose side-project.
+TBD. Until a license is added, all rights are reserved by the maintainers.
