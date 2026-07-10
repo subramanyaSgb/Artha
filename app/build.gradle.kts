@@ -27,8 +27,8 @@ android {
         applicationId = "com.subramanya.artha"
         minSdk = 26
         targetSdk = 34
-        versionCode = 15
-        versionName = "0.15.0"
+        versionCode = 16
+        versionName = "0.16.0"
 
         // Baked NIM API key (see localProps note above). Empty string if not set.
         buildConfigField(
@@ -131,9 +131,6 @@ dependencies {
 
     // Google Generative AI — backs Phase 3's AI Quick Entry. Key from local.properties.
     implementation(libs.generative.ai)
-
-    // ML Kit on-device text recognition — UPI receipt share feature
-    implementation(libs.mlkit.text.recognition)
 
     // Phase 5 hardening — biometric prompt + encrypted SharedPreferences + Fragment
     // (BiometricPrompt requires a FragmentActivity host).

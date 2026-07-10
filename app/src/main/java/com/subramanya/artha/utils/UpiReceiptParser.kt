@@ -5,156 +5,160 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.content.Context
 import android.util.Base64
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import com.subramanya.artha.utils.upi.PhonePeReceiptParser
-import com.subramanya.artha.utils.upi.UpiParsedReceipt
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 /**
- * Parses a UPI payment receipt image into structured fields.
+ * Everything the AI reads off a shared payment receipt. All fields optional — anything the
+ * model can't determine comes back null and the review screen leaves it blank.
  *
- * Both paths run in parallel and their results are merged field-by-field:
- *  - NIM vision (z-ai/glm-5.2): handles any UPI app layout, requires API key + internet.
- *  - ML Kit OCR + PhonePeReceiptParser: on-device, works offline, PhonePe only.
+ * `paymentAppHint`, `bankHint`, `categoryHint` are raw strings from the model; the ViewModel
+ * resolves them against the user's catalogues (payment apps / accounts / categories).
+ */
+data class ReceiptData(
+    val amount: Double?,
+    val dateTimeMillis: Long?,
+    val merchant: String?,
+    val description: String?,
+    val paymentAppHint: String?,
+    val bankHint: String?,
+    val categoryHint: String?,
+    val upiRef: String?,
+)
+
+/**
+ * Parses a shared payment-app receipt image into [ReceiptData] using NVIDIA NIM vision
+ * (nemotron-omni) — a single call returning one JSON object with every field.
  *
- * Merging means a field that NIM misses can still come from ML Kit and vice-versa.
+ * Pure-AI: there is no ML Kit / regex fallback. An internet connection + a configured key
+ * are required; without them [parse] returns null and the screen offers manual entry.
  */
 class UpiReceiptParser(
     private val keyProvider: (suspend () -> String)? = null,
 ) {
 
-    suspend fun parse(context: Context, uri: Uri): UpiParsedReceipt? {
+    suspend fun parse(context: Context, uri: Uri): ReceiptData? {
+        val key = keyProvider?.invoke()?.takeIf { it.isNotBlank() } ?: return null
         val bitmap = context.contentResolver.openInputStream(uri)?.use {
             BitmapFactory.decodeStream(it)
         } ?: return null
-
-        val key = keyProvider?.invoke()?.takeIf { it.isNotBlank() }
-
-        // Run NIM and ML Kit in parallel — total wait = slowest of the two, not the sum.
-        return coroutineScope {
-            val nimDeferred = async(Dispatchers.IO) {
-                if (key != null) runCatching { parseWithNim(key, bitmap) }.getOrNull() else null
-            }
-            val mlDeferred = async {
-                runCatching {
-                    val text = runOcr(bitmap)
-                    PhonePeReceiptParser.parse(text)
-                }.getOrNull()
-            }
-            merge(nimDeferred.await(), mlDeferred.await())
-        }
+        return runCatching { parseWithNim(key, bitmap) }.getOrNull()
     }
 
-    /** Prefer NIM for each field; fall back to ML Kit where NIM returned null. */
-    private fun merge(nim: UpiParsedReceipt?, ml: UpiParsedReceipt?): UpiParsedReceipt? {
-        if (nim == null && ml == null) return null
-        if (nim == null) return ml
-        if (ml == null) return nim
-        return UpiParsedReceipt(
-            amount = nim.amount ?: ml.amount,
-            merchantName = nim.merchantName ?: ml.merchantName,
-            dateTimeMillis = nim.dateTimeMillis ?: ml.dateTimeMillis,
-            upiRef = nim.upiRef ?: ml.upiRef,
-            sourceBankHint = nim.sourceBankHint ?: ml.sourceBankHint,
-            paymentApp = if (nim.paymentApp != "OTHER") nim.paymentApp else ml.paymentApp,
-        )
-    }
-
-    private suspend fun parseWithNim(key: String, bitmap: Bitmap): UpiParsedReceipt? {
+    private suspend fun parseWithNim(key: String, bitmap: Bitmap): ReceiptData? {
         val b64 = bitmapToBase64(bitmap)
-        // nvidia/nemotron-3-nano-omni-30b-a3b-reasoning — NVIDIA's image-to-text omni model.
-        // Verified (2026-07-03) to have stronger vision grounding than minimax-m3/glm-5.2
-        // (correctly read a test pixel the others hallucinated). It's a reasoning model:
-        // it emits `reasoning_content` separately, so the clean JSON stays in `content`.
-        // max_tokens is generous because reasoning tokens count toward the completion budget.
-        val body = """
-            {
-              "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
-              "messages": [{
-                "role": "user",
-                "content": [
-                  {"type": "text", "text": ${nimPrompt()}},
-                  {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,$b64"}}
-                ]
-              }],
-              "temperature": 0.2,
-              "max_tokens": 4096,
-              "stream": false
-            }
-        """.trimIndent()
+        val body = JSONObject().apply {
+            put("model", MODEL)
+            put("messages", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("content", JSONArray().apply {
+                        put(JSONObject().apply { put("type", "text"); put("text", PROMPT) })
+                        put(JSONObject().apply {
+                            put("type", "image_url")
+                            put("image_url", JSONObject().apply { put("url", "data:image/jpeg;base64,$b64") })
+                        })
+                    })
+                })
+            })
+            put("temperature", 0.2)
+            put("max_tokens", 4096)
+            put("stream", false)
+        }.toString()
 
         val raw = post(key, body)
         val content = extractContent(raw) ?: return null
         val json = extractJsonObject(content) ?: return null
-        return decodeReceipt(json)
+        return decode(json)
     }
 
-    private fun nimPrompt(): String {
-        val prompt = """
-            Extract UPI payment details from this receipt screenshot. Reply with ONLY a JSON object, no markdown fences.
-            Return ONLY these keys (omit any you cannot determine):
-            amount       - the rupee amount as a plain number, e.g. 434
-            merchantName - the full recipient name from text, NOT the 2-letter avatar initials (e.g. HARISHKUMAR K not HK)
-            upiRef       - the UTR number (digits only, prefer UTR over Transaction ID)
-            dateText     - full date+time as shown, e.g. 02:46 pm on 03 Jul 2026
-            sourceBankHint - payer bank name, e.g. Jupiter, HDFC Bank, SBI
-            paymentApp   - one of PHONEPE GPAY PAYTM BHIM OTHER
-        """.trimIndent()
-        return JSONObject.quote(prompt)
-    }
-
-    private fun decodeReceipt(json: JSONObject): UpiParsedReceipt? {
-        // Models often return "₹434" or "Rs.434" despite being asked for plain numbers.
-        // Use a digit-extraction regex so any currency prefix is stripped automatically.
-        val amountRaw = str(json, "amount").orEmpty()
+    private fun decode(json: JSONObject): ReceiptData? {
         val amount = Regex("""\d+(?:\.\d{1,2})?""")
-            .find(amountRaw.replace(",", ""))
+            .find(str(json, "amount").orEmpty().replace(",", ""))
             ?.value?.toDoubleOrNull()
 
-        val merchantName = str(json, "merchantName")
-        val dateText = str(json, "dateText")
-        // Strip any non-digit chars from upiRef — model sometimes returns "UTR: 540548535287"
-        val upiRef = str(json, "upiRef")?.filter { it.isDigit() }?.takeIf { it.isNotBlank() }
-        val sourceBankHint = str(json, "sourceBankHint")
-        val paymentApp = str(json, "paymentApp")?.uppercase() ?: "OTHER"
+        val dateTime = parseDateTime(str(json, "date"), str(json, "time"))
 
-        // Return null only if NIM gave us absolutely nothing — merge() will fill gaps from ML Kit
-        val hasData = amount != null || merchantName != null || dateText != null ||
-            upiRef != null || sourceBankHint != null
-        if (!hasData) return null
-
-        return UpiParsedReceipt(
+        val data = ReceiptData(
             amount = amount,
-            merchantName = merchantName,
-            dateTimeMillis = dateText?.let(::parseDateText),
-            upiRef = upiRef,
-            sourceBankHint = sourceBankHint,
-            paymentApp = paymentApp,
+            dateTimeMillis = dateTime,
+            merchant = str(json, "merchant"),
+            description = str(json, "description"),
+            paymentAppHint = str(json, "paymentApp"),
+            bankHint = str(json, "bank"),
+            categoryHint = str(json, "category"),
+            upiRef = str(json, "upiRef")?.filter { it.isDigit() }?.takeIf { it.isNotBlank() },
         )
+        // Nothing usable → treat as a failed parse so the screen shows the manual-entry path.
+        val hasAnything = listOf(
+            data.amount, data.dateTimeMillis, data.merchant, data.description,
+            data.paymentAppHint, data.bankHint, data.upiRef,
+        ).any { it != null }
+        return if (hasAnything) data else null
     }
 
     /**
-     * Reads a string field, treating absent, JSON-null, AND the literal strings
-     * "null"/"n/a"/"none"/"-" as "not present".
-     *
-     * Why this matters: `org.json`'s [JSONObject.optString] returns the 4-char string
-     * "null" (not empty!) when the value is `JSONObject.NULL`. The model returns JSON
-     * null for fields it can't read, so without this guard the UI showed literal
-     * "null"/"NULL" for merchant, bank and payment-app.
+     * Combines the model's date + time strings into one epoch-millis value. Date is parsed
+     * from integer/named components (NOT SimpleDateFormat's greedy `yyyy`, which turns a
+     * 2-digit year into year 0026 — see the date-parse gotcha), then the 12-hour time is
+     * added as an offset. Returns null if the date can't be read.
      */
+    private fun parseDateTime(dateText: String?, timeText: String?): Long? {
+        val dateMillis = dateText?.let(::parseDate) ?: return null
+        val timeOffset = timeText?.let(::parseTimeOffset) ?: 0L
+        return dateMillis + timeOffset
+    }
+
+    private fun parseDate(text: String): Long? {
+        val raw = text.trim()
+        // Named month: "03 Jul 2026", "3-Jul-26"
+        Regex("""(\d{1,2})[-/ ]([A-Za-z]{3})[-/ ](\d{2,4})""").find(raw)?.let { m ->
+            MONTHS[m.groupValues[2].lowercase()]?.let { month ->
+                return buildDate(normalizeYear(m.groupValues[3]), month, m.groupValues[1].toInt())
+            }
+        }
+        // ISO: "2026-07-03"
+        Regex("""(\d{4})-(\d{1,2})-(\d{1,2})""").find(raw)?.let { m ->
+            return buildDate(m.groupValues[1].toInt(), m.groupValues[2].toInt(), m.groupValues[3].toInt())
+        }
+        // Numeric d-m-y: "03/07/2026", "03-07-26"
+        Regex("""(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})""").find(raw)?.let { m ->
+            val day = m.groupValues[1].toInt()
+            val month = m.groupValues[2].toInt()
+            if (month in 1..12 && day in 1..31) return buildDate(normalizeYear(m.groupValues[3]), month, day)
+        }
+        return null
+    }
+
+    private fun parseTimeOffset(text: String): Long {
+        val m = Regex("""(\d{1,2}):(\d{2})\s*(am|pm)?""", RegexOption.IGNORE_CASE).find(text) ?: return 0L
+        var h = m.groupValues[1].toIntOrNull() ?: return 0L
+        val min = m.groupValues[2].toIntOrNull() ?: 0
+        when (m.groupValues[3].lowercase()) {
+            "pm" -> if (h != 12) h += 12
+            "am" -> if (h == 12) h = 0
+        }
+        return h * 3_600_000L + min * 60_000L
+    }
+
+    private fun normalizeYear(token: String): Int {
+        val n = token.toIntOrNull() ?: return 0
+        return if (n < 100) 2000 + n else n
+    }
+
+    private fun buildDate(year: Int, month: Int, day: Int): Long? = runCatching {
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }
+            .parse("%04d-%02d-%02d".format(year, month, day))?.time
+    }.getOrNull()
+
+    /** Absent / JSON-null / literal "null" all become Kotlin null (org.json optString quirk). */
     private fun str(json: JSONObject, key: String): String? {
         if (json.isNull(key)) return null
         val v = json.optString(key).trim()
@@ -162,40 +166,8 @@ class UpiReceiptParser(
         return if (v.lowercase() in ABSENT_TOKENS) null else v
     }
 
-    private fun parseDateText(text: String): Long? {
-        val raw = text.trim()
-
-        // Extract 12-hour time if present: "02:46 pm"
-        val time12 = Regex("""(\d{1,2}):(\d{2})\s*(am|pm)""", RegexOption.IGNORE_CASE).find(raw)
-        var hourOffset = 0L
-        if (time12 != null) {
-            var h = time12.groupValues[1].toInt()
-            val m = time12.groupValues[2].toInt()
-            if (time12.groupValues[3].lowercase() == "pm" && h != 12) h += 12
-            if (time12.groupValues[3].lowercase() == "am" && h == 12) h = 0
-            hourOffset = h * 3_600_000L + m * 60_000L
-        }
-
-        // Strip PhonePe datetime prefix: "HH:mm am/pm on " → keep the date portion only
-        val dateStr = raw.replace(
-            Regex("""^\d{1,2}:\d{2}\s*(am|pm)\s+on\s+""", RegexOption.IGNORE_CASE), "",
-        ).trim()
-
-        val formats = listOf("d MMM yyyy", "dd MMM yyyy", "MMM d yyyy", "yyyy-MM-dd", "d/M/yyyy")
-        for (fmt in formats) {
-            runCatching {
-                val sdf = SimpleDateFormat(fmt, Locale.US)
-                sdf.isLenient = false
-                sdf.parse(dateStr)?.time
-            }.getOrNull()?.let { return it + hourOffset }
-        }
-        return null
-    }
-
     private fun post(apiKey: String, body: String): String {
-        val conn = URL("https://integrate.api.nvidia.com/v1/chat/completions")
-            .openConnection() as HttpURLConnection
-        conn.apply {
+        val conn = (URL(ENDPOINT).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 30_000
             readTimeout = 30_000
@@ -242,27 +214,30 @@ class UpiReceiptParser(
         return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
     }
 
-    private suspend fun runOcr(bitmap: Bitmap): String =
-        suspendCancellableCoroutine { cont ->
-            try {
-                val image = InputImage.fromBitmap(bitmap, 0)
-                val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                recognizer.process(image)
-                    .addOnSuccessListener { result ->
-                        recognizer.close()
-                        cont.resume(result.text)
-                    }
-                    .addOnFailureListener { e ->
-                        recognizer.close()
-                        cont.resumeWithException(e)
-                    }
-            } catch (e: Exception) {
-                cont.resumeWithException(e)
-            }
-        }
-
     private companion object {
-        // Values a model returns to mean "I couldn't find this" — treated as absent.
+        const val ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
+        const val MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+
+        val MONTHS = mapOf(
+            "jan" to 1, "feb" to 2, "mar" to 3, "apr" to 4, "may" to 5, "jun" to 6,
+            "jul" to 7, "aug" to 8, "sep" to 9, "oct" to 10, "nov" to 11, "dec" to 12,
+        )
         val ABSENT_TOKENS = setOf("null", "n/a", "na", "none", "-", "unknown", "not found")
+
+        val PROMPT = """
+            Extract the payment details from this receipt/payment screenshot (any UPI or banking app).
+            Reply with ONLY a JSON object, no markdown fences. Use these keys, omit any you cannot read:
+            {
+              "amount": <the rupee amount paid, plain number like 434>,
+              "date": "<transaction date, e.g. 03 Jul 2026>",
+              "time": "<transaction time, e.g. 02:46 pm>",
+              "merchant": "<full recipient/payee name, ignore 2-letter avatar initials>",
+              "description": "<short purpose if visible, else omit>",
+              "paymentApp": "<one of PHONEPE GPAY PAYTM CRED BHIM AMAZONPAY OTHER>",
+              "bank": "<payer bank/account name, e.g. Jupiter, HDFC Bank>",
+              "category": "<1-2 word spending category, e.g. Food, Shopping, Bills>",
+              "upiRef": "<UTR or UPI reference number, digits only>"
+            }
+        """.trimIndent()
     }
 }

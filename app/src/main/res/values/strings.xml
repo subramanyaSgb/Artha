@@ -191,6 +191,7 @@
     <string name="tag_picker_add_title">Add tag</string>
     <string name="tag_picker_name_label">Tag name</string>
     <string name="common_cancel">Cancel</string>
+    <string name="common_ok">OK</string>
     <string name="common_save">Save</string>
     <string name="common_remove">Remove</string>
     <string name="common_clear">Clear</string>
@@ -1317,7 +1318,13 @@
     <string name="share_receipt_account_placeholder">Select account</string>
     <string name="share_receipt_account_required">Select an account to save</string>
     <string name="share_receipt_save">Save expense</string>
-    <string name="share_receipt_save_with_amount">Save expense · ₹%1$s</string>
+    <string name="share_receipt_save_with_amount">Save expense · %1$s</string>
+    <string name="share_receipt_field_time">Time</string>
+    <string name="share_receipt_field_merchant">Merchant</string>
+    <string name="share_receipt_field_description">Description</string>
+    <string name="share_receipt_field_payment_app">Payment app</string>
+    <string name="share_receipt_field_account">Account / bank</string>
+    <string name="share_receipt_field_category">Category</string>
     <string name="share_receipt_description_label">Description</string>
     <string name="share_receipt_description_placeholder">What was this payment for?</string>
     <string name="share_receipt_amount_label">Amount (₹)</string>

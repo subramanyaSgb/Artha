@@ -5,18 +5,21 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.subramanya.artha.data.db.seed.SeedPaymentApps
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.data.repository.AccountRepository
 import com.subramanya.artha.data.repository.CategoryRepository
+import com.subramanya.artha.data.repository.PaymentAppRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Category
+import com.subramanya.artha.domain.model.PaymentAppOption
 import com.subramanya.artha.domain.model.Transaction
+import com.subramanya.artha.utils.ReceiptData
 import com.subramanya.artha.utils.ReceiptStore
 import com.subramanya.artha.utils.UpiReceiptParser
-import com.subramanya.artha.utils.upi.UpiParsedReceipt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,18 +31,23 @@ import java.util.UUID
 
 sealed interface ShareReceiptUiState {
     data object Scanning : ShareReceiptUiState
+
+    /** Every field is editable; the user reviews then saves. */
     data class Parsed(
-        val receipt: UpiParsedReceipt,
         val accounts: List<Account>,
         val categories: List<Category>,
+        val paymentApps: List<PaymentAppOption>,
+        val amountText: String,
+        val dateTimeMillis: Long,
+        val merchant: String,
+        val description: String,
         val selectedAccountId: String?,
         val selectedCategoryId: String?,
-        /** Editable — pre-filled from receipt but user can correct it. */
-        val description: String,
-        /** Editable — pre-filled from receipt but user can correct it. */
-        val amountText: String,
+        val selectedPaymentAppId: String,
+        val upiRef: String?,
         val isSaving: Boolean = false,
     ) : ShareReceiptUiState
+
     data class Saved(val transactionId: String) : ShareReceiptUiState
     data class ScanError(val message: String) : ShareReceiptUiState
 }
@@ -49,6 +57,7 @@ class ShareReceiptViewModel(
     private val upiReceiptParser: UpiReceiptParser,
     private val accountRepository: AccountRepository,
     private val categoryRepository: CategoryRepository,
+    private val paymentAppRepository: PaymentAppRepository,
     private val transactionRepository: TransactionRepository,
     private val context: Context,
 ) : ViewModel() {
@@ -62,105 +71,90 @@ class ShareReceiptViewModel(
         _state.value = ShareReceiptUiState.Scanning
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val parsed = upiReceiptParser.parse(context, imageUri)
+                val receipt = upiReceiptParser.parse(context, imageUri)
                 val accounts = accountRepository.observeActive().first()
                 val categories = categoryRepository.observeAll().first()
+                val paymentApps = paymentAppRepository.observeVisible().first()
 
-                if (parsed == null) {
+                if (receipt == null) {
                     _state.value = ShareReceiptUiState.ScanError(
-                        "Could not read a UPI receipt in this image. Try adding the transaction manually.",
+                        "Couldn't read this receipt. Check your connection and AI key, or add the transaction manually.",
                     )
                     return@launch
                 }
 
-                val matchedAccountId = parsed.sourceBankHint?.let { hint ->
-                    accounts.firstOrNull { acct ->
-                        acct.name.contains(hint, ignoreCase = true) ||
-                            hint.contains(acct.name, ignoreCase = true)
-                    }?.id
-                } ?: accounts.firstOrNull()?.id
-
-                val description = parsed.merchantName.orEmpty()
-                val categoryId = autoCategory(description, categories)
-
                 _state.value = ShareReceiptUiState.Parsed(
-                    receipt = parsed,
                     accounts = accounts,
                     categories = categories,
-                    selectedAccountId = matchedAccountId,
-                    selectedCategoryId = categoryId,
-                    description = description,
-                    amountText = parsed.amount?.let { formatAmount(it) }.orEmpty(),
+                    paymentApps = paymentApps,
+                    amountText = receipt.amount?.let(::formatAmount).orEmpty(),
+                    dateTimeMillis = receipt.dateTimeMillis ?: System.currentTimeMillis(),
+                    merchant = receipt.merchant.orEmpty(),
+                    description = receipt.description.orEmpty(),
+                    selectedAccountId = matchAccount(receipt, accounts),
+                    selectedCategoryId = matchCategory(receipt, categories),
+                    selectedPaymentAppId = matchPaymentApp(receipt, paymentApps),
+                    upiRef = receipt.upiRef,
                 )
             } catch (e: Exception) {
-                _state.value = ShareReceiptUiState.ScanError(
-                    e.message ?: "Failed to scan receipt.",
-                )
+                _state.value = ShareReceiptUiState.ScanError(e.message ?: "Failed to scan receipt.")
             }
         }
     }
 
-    fun selectAccount(accountId: String) {
-        _state.update { if (it is ShareReceiptUiState.Parsed) it.copy(selectedAccountId = accountId) else it }
-    }
-
-    fun selectCategory(categoryId: String) {
-        _state.update { if (it is ShareReceiptUiState.Parsed) it.copy(selectedCategoryId = categoryId) else it }
-    }
-
-    fun updateDescription(text: String) {
-        _state.update { current ->
-            if (current !is ShareReceiptUiState.Parsed) return@update current
-            val categoryId = autoCategory(text, current.categories)
-                .takeIf { it != null } ?: current.selectedCategoryId
-            current.copy(description = text, selectedCategoryId = categoryId)
-        }
-    }
-
-    fun updateAmount(text: String) {
-        _state.update { if (it is ShareReceiptUiState.Parsed) it.copy(amountText = text) else it }
-    }
+    fun updateAmount(text: String) = updateParsed { it.copy(amountText = text) }
+    fun updateMerchant(text: String) = updateParsed { it.copy(merchant = text) }
+    fun updateDescription(text: String) = updateParsed { it.copy(description = text) }
+    fun updateDateTime(millis: Long) = updateParsed { it.copy(dateTimeMillis = millis) }
+    fun selectAccount(id: String) = updateParsed { it.copy(selectedAccountId = id) }
+    fun selectCategory(id: String) = updateParsed { it.copy(selectedCategoryId = id) }
+    fun selectPaymentApp(id: String) = updateParsed { it.copy(selectedPaymentAppId = id) }
 
     fun save() {
         val current = _state.value as? ShareReceiptUiState.Parsed ?: return
         val accountId = current.selectedAccountId ?: return
         if (current.isSaving) return
+        val amount = current.amountText.replace(",", "").toDoubleOrNull() ?: return
 
-        val amount = current.amountText.replace(",", "").toDoubleOrNull() ?: 0.0
-
-        _state.update { (it as ShareReceiptUiState.Parsed).copy(isSaving = true) }
-
+        updateParsed { it.copy(isSaving = true) }
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            val receipt = current.receipt
-            // Copy the shared image into app-private storage so it survives process restarts
             val savedReceiptUri = ReceiptStore.persist(context, imageUri)
+            // Merchant (payee) + UPI ref live in notes; description is the transaction's label.
+            val notes = buildString {
+                if (current.merchant.isNotBlank()) append("Paid to ${current.merchant.trim()}")
+                current.upiRef?.let {
+                    if (isNotEmpty()) append(" · ")
+                    append("UPI Ref: $it")
+                }
+            }.takeIf { it.isNotBlank() }
+
             val txn = Transaction(
                 id = UUID.randomUUID().toString(),
                 type = TransactionType.EXPENSE,
                 amount = amount,
                 currency = "INR",
-                date = receipt.dateTimeMillis ?: now,
-                description = current.description.ifBlank { receipt.merchantName.orEmpty() },
+                date = current.dateTimeMillis,
+                description = current.description.ifBlank { current.merchant }.trim(),
                 categoryId = current.selectedCategoryId,
                 subCategoryId = null,
                 sourceType = SourceKind.ACCOUNT,
                 sourceId = accountId,
                 destinationType = null,
                 destinationId = null,
-                paymentApp = receipt.paymentApp,
+                paymentApp = current.selectedPaymentAppId,
                 place = null,
                 latitude = null,
                 longitude = null,
                 peopleIds = emptyList(),
                 tagIds = emptyList(),
                 receiptUri = savedReceiptUri,
-                notes = receipt.upiRef?.let { "UPI Ref: $it" },
+                notes = notes,
                 taxSection = null,
                 recurringRuleId = null,
                 isSplit = false,
                 splitGroupId = null,
-                source = TransactionSource.MANUAL,
+                source = TransactionSource.OCR,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -171,21 +165,44 @@ class ShareReceiptViewModel(
 
     fun retry() = scan()
 
-    /** Fuzzy-match [text] words against category names to guess the best category. */
-    private fun autoCategory(text: String, categories: List<Category>): String? {
-        if (text.isBlank()) return null
-        val words = text.split(Regex("[\\s,./\\-_]+")).filter { it.length >= 3 }
+    private inline fun updateParsed(block: (ShareReceiptUiState.Parsed) -> ShareReceiptUiState.Parsed) {
+        _state.update { if (it is ShareReceiptUiState.Parsed) block(it) else it }
+    }
+
+    /** Match the payer bank hint to an account by last-4 or name overlap; else the first account. */
+    private fun matchAccount(receipt: ReceiptData, accounts: List<Account>): String? {
+        val hint = receipt.bankHint?.trim()
+        if (hint != null) {
+            accounts.firstOrNull { acct ->
+                acct.name.contains(hint, ignoreCase = true) || hint.contains(acct.name, ignoreCase = true) ||
+                    acct.institution?.contains(hint, ignoreCase = true) == true
+            }?.let { return it.id }
+        }
+        return accounts.firstOrNull()?.id
+    }
+
+    /** Prefer the model's category hint, else fuzzy-match the merchant words to a category. */
+    private fun matchCategory(receipt: ReceiptData, categories: List<Category>): String? {
+        val terms = listOfNotNull(receipt.categoryHint, receipt.merchant, receipt.description)
+            .flatMap { it.split(Regex("[\\s,./\\-_]+")) }
+            .filter { it.length >= 3 }
         return categories.firstOrNull { cat ->
-            words.any { word ->
-                cat.name.contains(word, ignoreCase = true) ||
-                    word.contains(cat.name, ignoreCase = true)
-            }
+            terms.any { t -> cat.name.contains(t, ignoreCase = true) || t.contains(cat.name, ignoreCase = true) }
         }?.id
     }
 
+    /** Map the model's payment-app string to a catalogue id (by id or label); else OTHER. */
+    private fun matchPaymentApp(receipt: ReceiptData, apps: List<PaymentAppOption>): String {
+        val hint = receipt.paymentAppHint?.trim().orEmpty()
+        if (hint.isNotEmpty()) {
+            apps.firstOrNull { it.id.equals(hint, ignoreCase = true) || it.label.equals(hint, ignoreCase = true) }
+                ?.let { return it.id }
+        }
+        return apps.firstOrNull { it.id == SeedPaymentApps.DEFAULT_ID }?.id ?: SeedPaymentApps.DEFAULT_ID
+    }
+
     private fun formatAmount(amount: Double): String =
-        if (amount == amount.toLong().toDouble()) amount.toLong().toString()
-        else "%.2f".format(amount)
+        if (amount == amount.toLong().toDouble()) amount.toLong().toString() else "%.2f".format(amount)
 }
 
 class ShareReceiptViewModelFactory(
@@ -193,6 +210,7 @@ class ShareReceiptViewModelFactory(
     private val upiReceiptParser: UpiReceiptParser,
     private val accountRepository: AccountRepository,
     private val categoryRepository: CategoryRepository,
+    private val paymentAppRepository: PaymentAppRepository,
     private val transactionRepository: TransactionRepository,
     private val context: Context,
 ) : ViewModelProvider.Factory {
@@ -203,6 +221,7 @@ class ShareReceiptViewModelFactory(
             upiReceiptParser,
             accountRepository,
             categoryRepository,
+            paymentAppRepository,
             transactionRepository,
             context,
         ) as T
