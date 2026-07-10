@@ -100,6 +100,7 @@ fun ShareReceiptScreen(
                 openRouterKeyProvider = { app.openRouterApiKey() },
             ),
             accountRepository = app.accountRepository,
+            cardRepository = app.cardRepository,
             categoryRepository = app.categoryRepository,
             paymentAppRepository = app.paymentAppRepository,
             transactionRepository = app.transactionRepository,
@@ -265,14 +266,14 @@ private fun ParsedContent(
         )
         Spacer(Modifier.height(12.dp))
 
-        // Account / bank
+        // Account / card
         DropdownField(
             icon = Icons.Filled.AccountBalance,
             label = stringResource(R.string.share_receipt_field_account),
-            selectedLabel = state.accounts.firstOrNull { it.id == state.selectedAccountId }?.name
+            selectedLabel = state.paymentSources.firstOrNull { it.id == state.selectedAccountId }?.displayName
                 ?: stringResource(R.string.share_receipt_account_placeholder),
             highlighted = state.selectedAccountId != null,
-            options = state.accounts.map { it.id to it.name },
+            options = state.paymentSources.map { it.id to it.displayName },
             selectedId = state.selectedAccountId,
             onSelect = onSelectAccount,
         )

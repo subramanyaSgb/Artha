@@ -10,10 +10,12 @@ import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionSource
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.data.repository.AccountRepository
+import com.subramanya.artha.data.repository.CardRepository
 import com.subramanya.artha.data.repository.CategoryRepository
 import com.subramanya.artha.data.repository.PaymentAppRepository
 import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Account
+import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.PaymentAppOption
 import com.subramanya.artha.domain.model.Transaction
@@ -29,11 +31,28 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 
+/** A unified payment source entry shown in the account/card dropdown. */
+sealed interface PaymentSource {
+    val id: String
+    val displayName: String
+
+    data class BankAccount(val account: Account) : PaymentSource {
+        override val id get() = account.id
+        override val displayName get() = account.name
+    }
+
+    data class CreditCard(val card: Card) : PaymentSource {
+        override val id get() = card.id
+        override val displayName get() = card.name
+    }
+}
+
 sealed interface ShareReceiptUiState {
     data object Scanning : ShareReceiptUiState
 
     /** Every field is editable; the user reviews then saves. */
     data class Parsed(
+        val paymentSources: List<PaymentSource>,
         val accounts: List<Account>,
         val categories: List<Category>,
         val paymentApps: List<PaymentAppOption>,
@@ -56,6 +75,7 @@ class ShareReceiptViewModel(
     private val imageUri: Uri,
     private val upiReceiptParser: UpiReceiptParser,
     private val accountRepository: AccountRepository,
+    private val cardRepository: CardRepository,
     private val categoryRepository: CategoryRepository,
     private val paymentAppRepository: PaymentAppRepository,
     private val transactionRepository: TransactionRepository,
@@ -73,8 +93,13 @@ class ShareReceiptViewModel(
             try {
                 val receipt = upiReceiptParser.parse(context, imageUri)
                 val accounts = accountRepository.observeActive().first()
+                val cards = cardRepository.observeActive().first()
                 val categories = categoryRepository.observeAll().first()
                 val paymentApps = paymentAppRepository.observeVisible().first()
+
+                val sources: List<PaymentSource> =
+                    accounts.map { PaymentSource.BankAccount(it) } +
+                    cards.map { PaymentSource.CreditCard(it) }
 
                 if (receipt == null) {
                     _state.value = ShareReceiptUiState.ScanError(
@@ -84,6 +109,7 @@ class ShareReceiptViewModel(
                 }
 
                 _state.value = ShareReceiptUiState.Parsed(
+                    paymentSources = sources,
                     accounts = accounts,
                     categories = categories,
                     paymentApps = paymentApps,
@@ -91,7 +117,7 @@ class ShareReceiptViewModel(
                     dateTimeMillis = receipt.dateTimeMillis ?: System.currentTimeMillis(),
                     merchant = receipt.merchant.orEmpty(),
                     description = receipt.description.orEmpty(),
-                    selectedAccountId = matchAccount(receipt, accounts),
+                    selectedAccountId = matchSource(receipt, sources),
                     selectedCategoryId = matchCategory(receipt, categories),
                     selectedPaymentAppId = matchPaymentApp(receipt, paymentApps),
                     upiRef = receipt.upiRef,
@@ -129,9 +155,13 @@ class ShareReceiptViewModel(
 
     fun save() {
         val current = _state.value as? ShareReceiptUiState.Parsed ?: return
-        val accountId = current.selectedAccountId ?: return
+        val sourceId = current.selectedAccountId ?: return
         if (current.isSaving) return
         val amount = current.amountText.replace(",", "").toDoubleOrNull() ?: return
+
+        // Determine if the selected source is a card or bank account.
+        val selectedSource = current.paymentSources.firstOrNull { it.id == sourceId }
+        val sourceKind = if (selectedSource is PaymentSource.CreditCard) SourceKind.CARD else SourceKind.ACCOUNT
 
         updateParsed { it.copy(isSaving = true) }
         viewModelScope.launch {
@@ -156,8 +186,8 @@ class ShareReceiptViewModel(
                 description = current.merchant.ifBlank { current.description }.trim(),
                 categoryId = current.selectedCategoryId,
                 subCategoryId = null,
-                sourceType = SourceKind.ACCOUNT,
-                sourceId = accountId,
+                sourceType = sourceKind,
+                sourceId = sourceId,
                 destinationType = null,
                 destinationId = null,
                 paymentApp = current.selectedPaymentAppId,
@@ -187,16 +217,28 @@ class ShareReceiptViewModel(
         _state.update { if (it is ShareReceiptUiState.Parsed) block(it) else it }
     }
 
-    /** Match the payer bank hint to an account by last-4 or name overlap; else the first account. */
-    private fun matchAccount(receipt: ReceiptData, accounts: List<Account>): String? {
+    /** Match the payer bank hint to an account or card by name overlap; else the first source. */
+    private fun matchSource(receipt: ReceiptData, sources: List<PaymentSource>): String? {
         val hint = receipt.bankHint?.trim()
         if (hint != null) {
-            accounts.firstOrNull { acct ->
-                acct.name.contains(hint, ignoreCase = true) || hint.contains(acct.name, ignoreCase = true) ||
-                    acct.institution?.contains(hint, ignoreCase = true) == true
+            sources.firstOrNull { src ->
+                when (src) {
+                    is PaymentSource.BankAccount -> {
+                        val a = src.account
+                        a.name.contains(hint, ignoreCase = true) ||
+                            hint.contains(a.name, ignoreCase = true) ||
+                            a.institution?.contains(hint, ignoreCase = true) == true
+                    }
+                    is PaymentSource.CreditCard -> {
+                        val c = src.card
+                        c.name.contains(hint, ignoreCase = true) ||
+                            hint.contains(c.name, ignoreCase = true) ||
+                            c.issuer?.contains(hint, ignoreCase = true) == true
+                    }
+                }
             }?.let { return it.id }
         }
-        return accounts.firstOrNull()?.id
+        return sources.firstOrNull()?.id
     }
 
     /** Prefer the model's category hint, else fuzzy-match the merchant words to a category. */
@@ -227,6 +269,7 @@ class ShareReceiptViewModelFactory(
     private val imageUri: Uri,
     private val upiReceiptParser: UpiReceiptParser,
     private val accountRepository: AccountRepository,
+    private val cardRepository: CardRepository,
     private val categoryRepository: CategoryRepository,
     private val paymentAppRepository: PaymentAppRepository,
     private val transactionRepository: TransactionRepository,
@@ -238,6 +281,7 @@ class ShareReceiptViewModelFactory(
             imageUri,
             upiReceiptParser,
             accountRepository,
+            cardRepository,
             categoryRepository,
             paymentAppRepository,
             transactionRepository,
