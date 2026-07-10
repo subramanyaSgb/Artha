@@ -247,7 +247,7 @@ class UpiReceiptParser(
 
     private companion object {
         const val ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
-        const val MODEL = "meta/llama-3.2-11b-vision-instruct"
+        const val MODEL = "nvidia/llama-3.1-nemotron-nano-vl-8b-v1"
 
         // Retry transient failures (NAT64/DNS64 flakiness, rate-limit, 5xx, timeout, non-JSON).
         // Exponential backoff 800ms → 1.6s → 3s → 3s ≈ up to ~8s of retrying before giving up,

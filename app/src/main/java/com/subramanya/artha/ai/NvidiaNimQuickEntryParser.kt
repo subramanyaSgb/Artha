@@ -16,7 +16,7 @@ import java.net.URL
 /**
  * NVIDIA NIM (OpenAI-compatible) implementation of [AiQuickEntryParser].
  *
- * Model: meta/llama-3.2-11b-vision-instruct — supports text and vision input.
+ * Model: nvidia/llama-3.1-nemotron-nano-vl-8b-v1 — supports text and vision input.
  * Endpoint: https://integrate.api.nvidia.com/v1/chat/completions
  *
  * The API key is baked from local.properties → BuildConfig.NIM_API_KEY.
@@ -26,7 +26,7 @@ class NvidiaNimQuickEntryParser(
 ) : AiQuickEntryParser {
 
     private val endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
-    private val model = "meta/llama-3.2-11b-vision-instruct"
+    private val model = "nvidia/llama-3.1-nemotron-nano-vl-8b-v1"
 
     override suspend fun parse(input: AiQuickEntryInput): AiQuickEntryResult {
         val key = keyProvider()
