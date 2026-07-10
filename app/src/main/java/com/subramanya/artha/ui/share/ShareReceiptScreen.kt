@@ -65,8 +65,10 @@ import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.ui.common.ArthaDatePickerDialog
 import com.subramanya.artha.ui.common.ArthaTimePickerDialog
+import com.subramanya.artha.data.entity.enums.CategoryType
 import com.subramanya.artha.ui.common.InlineTopBar
 import com.subramanya.artha.ui.common.mergeTimeKeepingDate
+import com.subramanya.artha.ui.transaction.CategoryPickerSheet
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.ExpenseSoft
@@ -198,6 +200,7 @@ private fun ParsedContent(
     var description by remember { mutableStateOf(state.description) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
 
     val parsedAmount = amount.replace(",", "").toDoubleOrNull()
 
@@ -275,16 +278,14 @@ private fun ParsedContent(
         )
         Spacer(Modifier.height(12.dp))
 
-        // Category
-        DropdownField(
+        // Category — opens the full hierarchical picker sheet
+        val selectedCategoryName = state.categories.firstOrNull { it.id == state.selectedCategoryId }?.name
+            ?: stringResource(R.string.share_receipt_category_none)
+        FieldTile(
             icon = Icons.Filled.Category,
             label = stringResource(R.string.share_receipt_field_category),
-            selectedLabel = state.categories.firstOrNull { it.id == state.selectedCategoryId }?.name
-                ?: stringResource(R.string.share_receipt_category_none),
-            highlighted = state.selectedCategoryId != null,
-            options = state.categories.map { it.id to it.name },
-            selectedId = state.selectedCategoryId,
-            onSelect = onSelectCategory,
+            value = selectedCategoryName,
+            onClick = { showCategoryPicker = true },
         )
         Spacer(Modifier.height(24.dp))
 
@@ -335,6 +336,14 @@ private fun ParsedContent(
             initialMillis = state.dateTimeMillis,
             onConfirm = { h, m -> onDateTimeChange(mergeTimeKeepingDate(h, m, state.dateTimeMillis)); showTimePicker = false },
             onDismiss = { showTimePicker = false },
+        )
+    }
+    if (showCategoryPicker) {
+        CategoryPickerSheet(
+            categories = state.categories,
+            type = CategoryType.EXPENSE,
+            onSelected = { onSelectCategory(it.id); showCategoryPicker = false },
+            onDismiss = { showCategoryPicker = false },
         )
     }
 }
