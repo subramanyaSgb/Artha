@@ -70,6 +70,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
+import com.subramanya.artha.data.entity.enums.CategoryType
+import com.subramanya.artha.data.entity.enums.PersonRelation
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.ui.theme.EyebrowStyle
@@ -219,7 +221,7 @@ fun SearchScreen(
                                 icon = Icons.Filled.Person,
                                 title = person.name,
                                 subtitle = listOfNotNull(
-                                    person.relation.name.lowercase().replaceFirstChar { it.titlecase() },
+                                    person.relation.displayLabel(),
                                     person.contact,
                                 ).joinToString(" · "),
                                 onClick = { onOpenPeople() },
@@ -232,7 +234,7 @@ fun SearchScreen(
                             EntityRow(
                                 icon = Icons.Filled.Category,
                                 title = cat.name,
-                                subtitle = cat.type.name.lowercase().replaceFirstChar { it.titlecase() },
+                                subtitle = cat.type.displayLabel(),
                                 onClick = { onOpenCategories() },
                             )
                         }
@@ -526,7 +528,7 @@ private fun TransactionResultRow(txn: Transaction, onClick: () -> Unit) {
             Spacer(Modifier.size(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = txn.description.ifBlank { "(no description)" },
+                    text = txn.description.ifBlank { stringResource(R.string.txn_no_description) },
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -555,6 +557,28 @@ private fun TransactionResultRow(txn: Transaction, onClick: () -> Unit) {
             )
         }
     }
+}
+
+// ─────────────────────────── enum label helpers ──────────────────────────────
+
+@Composable
+private fun PersonRelation.displayLabel(): String = when (this) {
+    PersonRelation.SPOUSE -> stringResource(R.string.person_relation_spouse)
+    PersonRelation.PARENT -> stringResource(R.string.person_relation_parent)
+    PersonRelation.SIBLING -> stringResource(R.string.person_relation_sibling)
+    PersonRelation.CHILD -> stringResource(R.string.person_relation_child)
+    PersonRelation.FRIEND -> stringResource(R.string.person_relation_friend)
+    PersonRelation.COLLEAGUE -> stringResource(R.string.person_relation_colleague)
+    PersonRelation.BUSINESS -> stringResource(R.string.person_relation_business)
+    PersonRelation.OTHER -> stringResource(R.string.person_relation_other)
+}
+
+@Composable
+private fun CategoryType.displayLabel(): String = when (this) {
+    CategoryType.EXPENSE -> stringResource(R.string.categories_filter_expense)
+    CategoryType.INCOME -> stringResource(R.string.categories_filter_income)
+    CategoryType.TRANSFER -> stringResource(R.string.categories_filter_transfer)
+    CategoryType.INVESTMENT -> stringResource(R.string.categories_filter_investment)
 }
 
 // ─────────────────────────── empty states ────────────────────────────────────

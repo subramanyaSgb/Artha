@@ -70,6 +70,7 @@ import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.InvestmentType
 import com.subramanya.artha.data.entity.enums.SourceKind
+import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.data.entity.enums.ValuationMode
 import com.subramanya.artha.domain.model.Investment
 import com.subramanya.artha.domain.model.Transaction
@@ -566,7 +567,7 @@ private fun MetaRow(label: String, value: String) {
 
 @Composable
 private fun TransactionRow(txn: Transaction, investmentId: String, onClick: () -> Unit) {
-    val typeLabel = txn.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }
+    val typeLabel = txn.type.displayName()
     // Sign + colour by direction relative to THIS investment: a contribution/interest credits it
     // (money in, +); a sell withdraws from it (money out, −).
     val entersInvestment = txn.destinationId == investmentId
@@ -595,6 +596,24 @@ private fun TransactionRow(txn: Transaction, investmentId: String, onClick: () -
             )
         },
     )
+}
+
+@Composable
+private fun TransactionType.displayName(): String = when (this) {
+    TransactionType.EXPENSE -> stringResource(R.string.txn_type_expense)
+    TransactionType.INCOME -> stringResource(R.string.txn_type_income)
+    TransactionType.TRANSFER -> stringResource(R.string.txn_type_transfer)
+    TransactionType.INVESTMENT_BUY -> stringResource(R.string.txn_type_investment_buy)
+    TransactionType.INVESTMENT_SELL -> stringResource(R.string.txn_type_investment_sell)
+    TransactionType.CARD_PAYMENT -> stringResource(R.string.txn_type_card_payment)
+    TransactionType.REFUND -> stringResource(R.string.txn_type_refund)
+    TransactionType.CASHBACK -> stringResource(R.string.txn_type_cashback)
+    TransactionType.INTEREST -> stringResource(R.string.txn_type_interest)
+    TransactionType.LOAN_GIVEN -> stringResource(R.string.txn_type_loan_given)
+    TransactionType.LOAN_RECEIVED -> stringResource(R.string.txn_type_loan_received)
+    TransactionType.GIFT_SENT -> stringResource(R.string.txn_type_gift_sent)
+    TransactionType.GIFT_RECEIVED -> stringResource(R.string.txn_type_gift_received)
+    TransactionType.ADJUSTMENT -> stringResource(R.string.txn_type_adjustment)
 }
 
 @Composable

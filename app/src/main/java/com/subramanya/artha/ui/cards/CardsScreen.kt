@@ -67,7 +67,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
-
+import com.subramanya.artha.data.entity.enums.CardNetwork
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.domain.model.CardWithBalance
 import com.subramanya.artha.ui.common.EmptyState
@@ -265,7 +265,7 @@ private fun ActiveCardRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(row.card.name, maxLines = 1)
                 Spacer(Modifier.size(8.dp))
-                NetworkBadge(row.card.network.name)
+                NetworkBadge(row.card.network)
             }
         },
         supportingContent = { CardRowSupport(row = row) },
@@ -390,7 +390,7 @@ private fun CreditCardTile(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = row.card.network.name.uppercase(),
+                    text = row.card.network.displayName().uppercase(),
                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
                     style = com.subramanya.artha.ui.theme.EyebrowStyle,
                 )
@@ -542,7 +542,7 @@ private fun ArchivedCardRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(row.card.name, maxLines = 1)
                 Spacer(Modifier.size(8.dp))
-                NetworkBadge(row.card.network.name)
+                NetworkBadge(row.card.network)
             }
         },
         supportingContent = { CardRowSupport(row = row, showDueChip = false, showUtilization = false) },
@@ -654,9 +654,18 @@ private fun CardAvatar(color: Long) {
 }
 
 @Composable
-private fun NetworkBadge(networkName: String) {
+private fun CardNetwork.displayName(): String = when (this) {
+    CardNetwork.VISA -> stringResource(R.string.card_form_network_visa)
+    CardNetwork.MASTERCARD -> stringResource(R.string.card_form_network_mastercard)
+    CardNetwork.RUPAY -> stringResource(R.string.card_form_network_rupay)
+    CardNetwork.AMEX -> stringResource(R.string.card_form_network_amex)
+    CardNetwork.DINERS -> stringResource(R.string.card_form_network_diners)
+}
+
+@Composable
+private fun NetworkBadge(network: CardNetwork) {
     Text(
-        text = networkName,
+        text = network.displayName(),
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier

@@ -431,12 +431,12 @@ private fun Transaction.entersAccount(accountId: String): Boolean = destinationI
 private fun amountColor(txn: Transaction, accountId: String): Color = when (txn.type) {
     TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
     TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
-    -> MaterialTheme.colorScheme.primary
+    -> com.subramanya.artha.ui.theme.Income
     TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
     -> com.subramanya.artha.ui.theme.Danger
     // Transfers / card payments: colour by direction relative to THIS account.
     TransactionType.TRANSFER, TransactionType.CARD_PAYMENT ->
-        if (txn.entersAccount(accountId)) MaterialTheme.colorScheme.primary
+        if (txn.entersAccount(accountId)) com.subramanya.artha.ui.theme.Income
         else com.subramanya.artha.ui.theme.Danger
     else -> MaterialTheme.colorScheme.onSurface
 }

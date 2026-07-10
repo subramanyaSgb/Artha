@@ -54,6 +54,7 @@ import com.subramanya.artha.R
 import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Person
 import com.subramanya.artha.domain.model.Tag
+import com.subramanya.artha.ui.common.transactionTypeLabel
 import com.subramanya.artha.ui.transaction.CategoryPickerSheet
 import com.subramanya.artha.data.db.seed.SeedPaymentApps
 import com.subramanya.artha.data.entity.enums.PersonRelation
@@ -309,7 +310,7 @@ private fun ConditionEditor(condition: RuleCondition, onChange: (RuleCondition) 
             current = condition.type,
             options = TransactionType.entries,
             onPick = { onChange(condition.copy(type = it)) },
-            labelFor = { it.name },
+            labelFor = { transactionTypeLabel(it) },
         )
         is RuleCondition.PaymentAppIs -> EnumPicker(
             label = stringResource(R.string.rules_cond_payment_app_label),
@@ -324,7 +325,7 @@ private fun ConditionEditor(condition: RuleCondition, onChange: (RuleCondition) 
             current = condition.relation,
             options = PersonRelation.entries,
             onPick = { onChange(condition.copy(relation = it)) },
-            labelFor = { it.name },
+            labelFor = { it.label() },
         )
         is RuleCondition.SourceIs -> SourceKindEditor(
             label = stringResource(R.string.rules_cond_source_label),
@@ -378,7 +379,7 @@ private fun SourceKindEditor(
             current = kind,
             options = SourceKind.entries,
             onPick = { onChange(it, id) },
-            labelFor = { it.name },
+            labelFor = { it.label() },
         )
         OutlinedTextField(
             value = id.orEmpty(),
@@ -535,7 +536,7 @@ private fun ActionEditor(
             current = action.type,
             options = TransactionType.entries,
             onPick = { onChange(action.copy(type = it)) },
-            labelFor = { it.name },
+            labelFor = { transactionTypeLabel(it) },
         )
         is RuleAction.SetCategory -> Column {
             // Picker — was a free-text categoryId field which made it trivial to
@@ -721,6 +722,16 @@ private fun AmountOp.label(): String = when (this) {
 
 private fun Double.toPlainStringOrEmpty(): String =
     if (this == 0.0) "" else if (this == this.toLong().toDouble()) this.toLong().toString() else this.toString()
+
+/** Title-cases a single-word enum name: "SPOUSE" → "Spouse". */
+private fun singleWordEnumLabel(name: String): String =
+    name.lowercase().replaceFirstChar { it.uppercase() }
+
+/** Human-readable label for PersonRelation enum values in the rule picker. */
+private fun PersonRelation.label(): String = singleWordEnumLabel(name)
+
+/** Human-readable label for SourceKind enum values in the rule picker. */
+private fun SourceKind.label(): String = singleWordEnumLabel(name)
 
 /** User-created rules sort below the seeded ones (priorities 10..90). */
 private const val DEFAULT_USER_PRIORITY: Int = 100

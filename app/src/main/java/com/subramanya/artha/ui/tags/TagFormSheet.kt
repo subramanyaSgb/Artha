@@ -83,7 +83,7 @@ fun TagFormSheet(
                 ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "coffee",
+                    placeholder = stringResource(R.string.tag_form_name_placeholder),
                     isError = showErrors && name.isBlank(),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,

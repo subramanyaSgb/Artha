@@ -135,7 +135,7 @@ fun CardFormSheet(
                 ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "HDFC Regalia",
+                    placeholder = stringResource(R.string.card_form_name_placeholder),
                     isError = showErrors && name.isBlank(),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
@@ -157,7 +157,7 @@ fun CardFormSheet(
                 ArthaTextField(
                     value = issuer,
                     onValueChange = { issuer = it },
-                    placeholder = "HDFC Bank",
+                    placeholder = stringResource(R.string.card_form_issuer_placeholder),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Next,

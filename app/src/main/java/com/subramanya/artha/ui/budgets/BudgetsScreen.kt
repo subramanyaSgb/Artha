@@ -516,7 +516,7 @@ private fun BudgetFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "May groceries",
+                    placeholder = stringResource(R.string.budgets_form_name_placeholder),
                 )
             }
             com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.budgets_form_scope_label)) {
@@ -552,7 +552,7 @@ private fun BudgetFormSheet(
                     onValueChange = { v ->
                         amountText = v.filterIndexed { i, c -> c.isDigit() || (c == '.' && v.indexOf('.') == i) }
                     },
-                    placeholder = "8000",
+                    placeholder = stringResource(R.string.budgets_form_amount_placeholder),
                     suffix = "₹",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
@@ -561,7 +561,7 @@ private fun BudgetFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = threshold,
                     onValueChange = { v -> threshold = v.filter { it.isDigit() }.take(3) },
-                    placeholder = "80",
+                    placeholder = stringResource(R.string.budgets_form_threshold_placeholder),
                     suffix = "%",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )

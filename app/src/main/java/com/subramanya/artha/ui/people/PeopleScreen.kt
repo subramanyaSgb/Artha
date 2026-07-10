@@ -338,7 +338,7 @@ internal fun PersonFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Rahul",
+                    placeholder = stringResource(R.string.people_form_name_placeholder),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 )
             }
@@ -358,7 +358,7 @@ internal fun PersonFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = contact,
                     onValueChange = { contact = it },
-                    placeholder = "+91 …",
+                    placeholder = stringResource(R.string.people_form_contact_placeholder),
                 )
             }
 

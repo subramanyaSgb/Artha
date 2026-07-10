@@ -216,9 +216,11 @@ private fun HeroBlock(insurance: Insurance) {
             Spacer(Modifier.height(8.dp))
             Row {
                 Text(
-                    text = stringResource(R.string.insurance_detail_premium_label) + ": " +
-                        IndianNumberFormat.format(insurance.premiumAmount) + " / " +
+                    text = stringResource(
+                        R.string.insurance_detail_premium_fmt,
+                        IndianNumberFormat.format(insurance.premiumAmount),
                         insurance.premiumFrequency.displayName(),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )

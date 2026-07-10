@@ -174,7 +174,7 @@ fun InvestmentFormSheet(
                 ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Nifty 50 Index Fund",
+                    placeholder = stringResource(R.string.investment_form_name_placeholder),
                     isError = showErrors && name.isBlank(),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
@@ -194,7 +194,7 @@ fun InvestmentFormSheet(
                 ArthaTextField(
                     value = institution,
                     onValueChange = { institution = it },
-                    placeholder = "UTI Mutual Fund",
+                    placeholder = stringResource(R.string.investment_form_institution_placeholder),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Next,
@@ -217,7 +217,7 @@ fun InvestmentFormSheet(
                                 c.isDigit() || (c == '.' && v.indexOf('.') == i)
                             }
                         },
-                        placeholder = "60000",
+                        placeholder = stringResource(R.string.investment_form_opening_contribution_placeholder),
                         suffix = "₹",
                         isError = showErrors && parsedOpeningContribution == null,
                         keyboardOptions = KeyboardOptions(
@@ -235,7 +235,7 @@ fun InvestmentFormSheet(
                                 c.isDigit() || (c == '.' && v.indexOf('.') == i)
                             }
                         },
-                        placeholder = "124300",
+                        placeholder = stringResource(R.string.investment_form_current_value_placeholder),
                         suffix = "₹",
                         isError = showErrors && parsedCurrentValue == null,
                         keyboardOptions = KeyboardOptions(
@@ -255,7 +255,7 @@ fun InvestmentFormSheet(
                                 c.isDigit() || (c == '.' && v.indexOf('.') == i)
                             }
                         },
-                        placeholder = "100000",
+                        placeholder = stringResource(R.string.investment_form_invested_so_far_placeholder),
                         suffix = "₹",
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
@@ -279,7 +279,7 @@ fun InvestmentFormSheet(
                                         c.isDigit() || (c == '.' && v.indexOf('.') == i)
                                     }
                                 },
-                                placeholder = "120.5",
+                                placeholder = stringResource(R.string.investment_form_units_placeholder),
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Decimal,
                                     imeAction = ImeAction.Next,
@@ -296,7 +296,7 @@ fun InvestmentFormSheet(
                                         c.isDigit() || (c == '.' && v.indexOf('.') == i)
                                     }
                                 },
-                                placeholder = "1024",
+                                placeholder = stringResource(R.string.investment_form_nav_placeholder),
                                 suffix = "₹",
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Decimal,
@@ -342,7 +342,7 @@ fun InvestmentFormSheet(
                 ArthaTextField(
                     value = taxSection,
                     onValueChange = { taxSection = it.uppercase() },
-                    placeholder = "80C",
+                    placeholder = stringResource(R.string.investment_form_tax_section_placeholder),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 )
             }

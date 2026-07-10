@@ -153,7 +153,7 @@ fun InsuranceFormSheet(
                 ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "HDFC Life Click 2 Protect",
+                    placeholder = stringResource(R.string.insurance_form_name_placeholder),
                     isError = showErrors && name.isBlank(),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
@@ -199,7 +199,7 @@ fun InsuranceFormSheet(
                 ArthaTextField(
                     value = provider,
                     onValueChange = { provider = it },
-                    placeholder = "HDFC Life",
+                    placeholder = stringResource(R.string.insurance_form_provider_placeholder),
                     isError = showErrors && provider.isBlank(),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
@@ -214,7 +214,7 @@ fun InsuranceFormSheet(
                 ArthaTextField(
                     value = policyNumber,
                     onValueChange = { policyNumber = it },
-                    placeholder = "POL-123456",
+                    placeholder = stringResource(R.string.insurance_form_policy_number_placeholder),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 )
             }
@@ -227,7 +227,7 @@ fun InsuranceFormSheet(
                             c.isDigit() || (c == '.' && v.indexOf('.') == i)
                         }
                     },
-                    placeholder = "1500000",
+                    placeholder = stringResource(R.string.insurance_form_sum_assured_placeholder),
                     suffix = "₹",
                     isError = showErrors && parsedSum == null,
                     keyboardOptions = KeyboardOptions(
@@ -244,7 +244,7 @@ fun InsuranceFormSheet(
                             c.isDigit() || (c == '.' && v.indexOf('.') == i)
                         }
                     },
-                    placeholder = "18400",
+                    placeholder = stringResource(R.string.insurance_form_premium_placeholder),
                     suffix = "₹",
                     isError = showErrors && parsedPremium == null,
                     keyboardOptions = KeyboardOptions(
@@ -270,7 +270,7 @@ fun InsuranceFormSheet(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SheetChip(
-                        label = nextDueDate?.let { DateFormatter.longDate(it) } ?: "+ Date",
+                        label = nextDueDate?.let { DateFormatter.longDate(it) } ?: stringResource(R.string.insurance_form_date_pick_cta),
                         leading = Icons.Filled.CalendarMonth,
                         onClick = { pickingDue = true },
                     )
@@ -287,7 +287,7 @@ fun InsuranceFormSheet(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SheetChip(
-                        label = endDate?.let { DateFormatter.longDate(it) } ?: "+ Date",
+                        label = endDate?.let { DateFormatter.longDate(it) } ?: stringResource(R.string.insurance_form_date_pick_cta),
                         leading = Icons.Filled.CalendarMonth,
                         onClick = { pickingEnd = true },
                     )
@@ -306,7 +306,7 @@ fun InsuranceFormSheet(
                 ArthaTextField(
                     value = nominee,
                     onValueChange = { nominee = it },
-                    placeholder = "Nominee name",
+                    placeholder = stringResource(R.string.insurance_form_nominee_placeholder),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Next,
@@ -320,7 +320,7 @@ fun InsuranceFormSheet(
                 ArthaTextField(
                     value = agent,
                     onValueChange = { agent = it },
-                    placeholder = "Agent contact",
+                    placeholder = stringResource(R.string.insurance_form_agent_placeholder),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 )
             }
@@ -331,7 +331,7 @@ fun InsuranceFormSheet(
                 ArthaTextField(
                     value = taxSection,
                     onValueChange = { taxSection = it.uppercase() },
-                    placeholder = "80C",
+                    placeholder = stringResource(R.string.insurance_form_tax_section_placeholder),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 )
             }

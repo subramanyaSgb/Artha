@@ -50,6 +50,7 @@ import com.subramanya.artha.domain.model.Person
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.ui.common.AutoShrinkAmountText
 import com.subramanya.artha.ui.common.EmptyState
+import com.subramanya.artha.ui.common.transactionTypeLabel
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.ui.theme.Danger
 import com.subramanya.artha.ui.theme.EyebrowStyle
@@ -121,7 +122,7 @@ fun PersonDetailScreen(
                         IconButton(onClick = vm::requestDelete) {
                             Icon(
                                 Icons.Filled.Delete,
-                                contentDescription = stringResource(R.string.people_delete_confirm_yes),
+                                contentDescription = stringResource(R.string.people_delete_confirm_title),
                                 tint = Danger,
                             )
                         }
@@ -335,7 +336,7 @@ private fun TxnRow(txn: Transaction, onClick: () -> Unit) {
                 )
             }
             Text(
-                text = date + " · " + txn.type.name.lowercase().replace('_', ' '),
+                text = date + " · " + transactionTypeLabel(txn.type),
                 style = TextStyle(
                     fontFamily = IbmPlexMono,
                     fontSize = 11.sp,

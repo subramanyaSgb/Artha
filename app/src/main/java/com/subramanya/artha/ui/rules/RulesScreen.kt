@@ -47,6 +47,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -233,9 +235,11 @@ private fun RuleRowCard(
                         )
                     }
                 }
+                val toggleCd = stringResource(R.string.rules_row_toggle_cd)
                 Switch(
                     checked = rule.isActive,
                     onCheckedChange = onToggle,
+                    modifier = Modifier.semantics { contentDescription = toggleCd },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = MaterialTheme.colorScheme.onSurface,
                         checkedTrackColor = Teal700,
@@ -292,7 +296,7 @@ private fun RuleRowCard(
             ) {
                 rule.actions.items.forEach { a -> ThenBadge(describe(a)) }
                 if (rule.actions.items.isEmpty()) {
-                    WhenBadge("—")
+                    WhenBadge(stringResource(R.string.rules_then_empty))
                 }
             }
         }

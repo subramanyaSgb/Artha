@@ -112,7 +112,7 @@ fun AccountFormSheet(
                 ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "HDFC Savings",
+                    placeholder = stringResource(R.string.account_form_name_placeholder),
                     isError = showErrors && name.isBlank(),
                     supportingText = if (showErrors && name.isBlank())
                         stringResource(R.string.account_form_validation_name) else null,
@@ -134,7 +134,7 @@ fun AccountFormSheet(
                 ArthaTextField(
                     value = institution,
                     onValueChange = { institution = it },
-                    placeholder = "HDFC Bank",
+                    placeholder = stringResource(R.string.account_form_institution_placeholder),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Next,

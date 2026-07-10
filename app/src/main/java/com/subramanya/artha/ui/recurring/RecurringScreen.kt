@@ -80,9 +80,13 @@ import com.subramanya.artha.domain.recurring.RecurringTemplate
 import com.subramanya.artha.domain.recurring.RecurringTemplateCodec
 import com.subramanya.artha.utils.IndianNumberFormat
 import com.subramanya.artha.ui.common.EmptyState
+import com.subramanya.artha.ui.common.isIncomeLike
+import com.subramanya.artha.ui.common.transactionTypeLabel
 import com.subramanya.artha.ui.theme.EyebrowStyle
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.InstrumentSerif
+import com.subramanya.artha.ui.theme.Expense
+import com.subramanya.artha.ui.theme.Income
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Ochre
 import com.subramanya.artha.ui.theme.Teal700
@@ -114,7 +118,7 @@ fun RecurringScreen(
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = androidx.compose.ui.graphics.Color.White,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.recurring_fab_add)) },
@@ -303,12 +307,25 @@ private fun RecurringRow(
             }
             template?.let { t ->
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "${IndianNumberFormat.format(t.amount)} · ${t.type.name.lowercase().replaceFirstChar { it.titlecase() }}" +
-                        if (t.description.isNotBlank()) " · ${t.description}" else "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                val amountColor = when {
+                    t.type.isIncomeLike() -> Income
+                    t.type == TransactionType.EXPENSE -> Expense
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                val typePart = transactionTypeLabel(t.type) +
+                    if (t.description.isNotBlank()) " · ${t.description}" else ""
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "₹${IndianNumberFormat.format(t.amount)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = amountColor,
+                    )
+                    Text(
+                        text = "· $typePart",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             Spacer(Modifier.height(8.dp))
             Row(
@@ -421,7 +438,7 @@ private fun RecurringFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Rent",
+                    placeholder = stringResource(R.string.recurring_form_name_placeholder),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 )
             }
@@ -430,7 +447,7 @@ private fun RecurringFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = amountText,
                     onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
-                    placeholder = "20000",
+                    placeholder = stringResource(R.string.recurring_form_amount_placeholder),
                     suffix = "₹",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
@@ -468,7 +485,7 @@ private fun RecurringFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = description,
                     onValueChange = { description = it },
-                    placeholder = "Rent — Bangalore flat",
+                    placeholder = stringResource(R.string.recurring_form_description_placeholder),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 )
             }
@@ -537,9 +554,9 @@ private fun RecurringFormSheet(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Fire and forget · for fixed amounts like rent",
+                        text = stringResource(R.string.recurring_form_auto_confirm_hint),
                         style = MaterialTheme.typography.bodySmall,
-                        color = com.subramanya.artha.ui.theme.Text3,
+                        color = Text3,
                     )
                 }
                 Switch(checked = autoConfirm, onCheckedChange = { autoConfirm = it })

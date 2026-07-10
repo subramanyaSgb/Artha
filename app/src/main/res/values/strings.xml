@@ -318,6 +318,8 @@
     <string name="txn_type_gift_sent">Gift sent</string>
     <string name="txn_type_gift_received">Gift received</string>
     <string name="txn_type_adjustment">Adjustment</string>
+    <string name="txn_type_investment_buy">Investment buy</string>
+    <string name="txn_type_investment_sell">Investment sell</string>
 
     <!-- Group headers -->
     <string name="group_header_today">Today</string>
@@ -508,6 +510,8 @@
     <string name="categories_delete_confirm_title">Delete this category?</string>
     <string name="categories_delete_confirm_body">This permanently removes the category. Its children become top-level. This cannot be undone.</string>
     <string name="categories_delete_confirm_yes">Delete</string>
+    <string name="categories_expand">Expand sub-categories</string>
+    <string name="categories_collapse">Collapse sub-categories</string>
 
     <!-- Category form -->
     <string name="category_form_add_title">Add category</string>
@@ -792,6 +796,7 @@
     <string name="tag_form_add_title">Add tag</string>
     <string name="tag_form_edit_title">Edit tag</string>
     <string name="tag_form_name_label">Tag name</string>
+    <string name="tag_form_name_placeholder">e.g. coffee</string>
     <string name="tag_form_color_label">Color</string>
     <string name="tag_form_save">Save</string>
     <string name="tag_form_validation_name">Name is required</string>
@@ -863,6 +868,7 @@
     <string name="picklist_add_app_field">Label (e.g. Amazon Pay)</string>
     <string name="investments_hero_current">Current value</string>
     <string name="investments_hero_invested">Invested</string>
+    <string name="investments_hero_invested_fmt">Invested: %1$s</string>
     <string name="investments_allocation">Allocation</string>
     <string name="investments_more_options">More options</string>
     <!-- Row sublines. %1$s = invested amount, %2$s = interest/gain amount, %3$s = gain percent. -->
@@ -897,10 +903,15 @@
     <!-- DERIVED types (FD/RD/PPF/EPF/Bonds): the value is computed from contributions
          + posted interest, so the user enters how much is in the deposit right now. -->
     <string name="investment_form_opening_contribution_label">Amount currently in this deposit</string>
+    <string name="investment_form_opening_contribution_placeholder">e.g. 60000</string>
     <!-- MARKET types (mutual funds, equity, …): optional total the user has put in,
          used only to show a return %. The displayed value stays the manual current value. -->
     <string name="investment_form_invested_so_far_label">Invested so far</string>
+    <string name="investment_form_current_value_placeholder">e.g. 1,24,300</string>
+    <string name="investment_form_invested_so_far_placeholder">e.g. 1,00,000</string>
     <string name="investment_form_units_label">Units</string>
+    <string name="investment_form_units_placeholder">e.g. 120.5</string>
+    <string name="investment_form_nav_placeholder">e.g. 1024</string>
     <string name="investment_form_nav_label">NAV / Price per unit</string>
     <string name="investment_form_start_date_label">Start date</string>
     <string name="investment_form_maturity_date_label">Maturity date (optional)</string>
@@ -989,16 +1000,22 @@
     <string name="insurance_form_provider_label">Provider</string>
     <string name="insurance_form_provider_placeholder">e.g. ICICI Lombard, HDFC Life</string>
     <string name="insurance_form_policy_number_label">Policy number (optional)</string>
+    <string name="insurance_form_policy_number_placeholder">e.g. POL-123456</string>
     <string name="insurance_form_sum_assured_label">Sum assured</string>
+    <string name="insurance_form_sum_assured_placeholder">e.g. 15,00,000</string>
     <string name="insurance_form_premium_label">Premium amount</string>
+    <string name="insurance_form_premium_placeholder">e.g. 18,400</string>
     <string name="insurance_form_frequency_label">Premium frequency</string>
     <string name="insurance_form_start_label">Start date</string>
     <string name="insurance_form_next_due_label">Next premium due (optional)</string>
+    <string name="insurance_form_date_pick_cta">+ Date</string>
     <string name="insurance_form_clear_due">Clear next-due date</string>
     <string name="insurance_form_end_label">End date (optional)</string>
     <string name="insurance_form_clear_end">Clear end date</string>
     <string name="insurance_form_nominee_label">Nominee (optional)</string>
+    <string name="insurance_form_nominee_placeholder">e.g. Sunita Devi</string>
     <string name="insurance_form_agent_label">Agent contact (optional)</string>
+    <string name="insurance_form_agent_placeholder">e.g. +91 98765 43210</string>
     <string name="insurance_form_tax_section_label">Tax section (optional)</string>
     <string name="insurance_form_tax_section_placeholder">e.g. 80C, 80D (auto-set for Health/Term)</string>
     <string name="insurance_form_save">Save</string>
@@ -1012,6 +1029,8 @@
     <string name="insurance_detail_sum_assured_label">Sum assured</string>
     <string name="insurance_detail_premium_label">Premium</string>
     <string name="insurance_detail_policy_number">Policy #</string>
+    <!-- %1$s = premium amount, %2$s = frequency label -->
+    <string name="insurance_detail_premium_fmt">Premium: %1$s / %2$s</string>
     <string name="insurance_detail_start">Started</string>
     <string name="insurance_detail_next_due">Next due</string>
     <string name="insurance_detail_end">Ends</string>
@@ -1168,6 +1187,9 @@
     <string name="budgets_form_period_label">Period</string>
     <string name="budgets_form_amount_label">Budget amount</string>
     <string name="budgets_form_threshold_label">Alert at %</string>
+    <string name="budgets_form_name_placeholder">e.g. May groceries</string>
+    <string name="budgets_form_amount_placeholder">e.g. 8000</string>
+    <string name="budgets_form_threshold_placeholder">80</string>
     <string name="budgets_delete_budget">Delete %1$s</string>
     <string name="budgets_summary_eyebrow">This period</string>
     <string name="budgets_delete_confirm_title">Delete this budget?</string>
@@ -1191,6 +1213,9 @@
     <string name="goals_form_linked_accounts">Linked accounts</string>
     <string name="goals_form_linked_investments">Linked investments</string>
     <string name="goals_form_no_options">Nothing to link yet.</string>
+    <string name="goals_form_name_placeholder">e.g. Emergency fund, Vacation</string>
+    <string name="goals_form_target_placeholder">600000</string>
+    <string name="goals_form_accounts_hint">Funds count toward this goal</string>
     <string name="goals_delete_goal">Delete %1$s</string>
     <string name="goals_delete_confirm_title">Delete this goal?</string>
     <string name="goals_delete_confirm_body">Removes the goal record. Linked accounts/investments aren\'t touched.</string>
@@ -1219,7 +1244,7 @@
     <string name="subscriptions_form_add_title">Add subscription</string>
     <string name="subscriptions_form_edit_title">Edit subscription</string>
     <string name="subscriptions_form_name_label">Subscription name</string>
-    <string name="subscriptions_form_provider_label">Provider (optional)</string>
+    <string name="subscriptions_form_provider_label">Provider</string>
     <string name="subscriptions_form_amount_label">Amount per cycle</string>
     <string name="subscriptions_form_frequency_label">Billing frequency</string>
     <string name="subscriptions_form_status_label">Status</string>
@@ -1230,6 +1255,9 @@
     <string name="subscriptions_eyebrow">Renewals</string>
     <string name="subscriptions_per_month">/mo</string>
     <string name="subscriptions_paused">Paused</string>
+    <string name="subscriptions_form_name_placeholder">Spotify Family</string>
+    <string name="subscriptions_form_provider_placeholder">Spotify</string>
+    <string name="subscriptions_form_amount_placeholder">179</string>
 
     <!-- Phase 4: Recurring -->
     <string name="recurring_title">Recurring</string>
@@ -1261,6 +1289,10 @@
     <string name="recurring_eyebrow">Schedule</string>
     <string name="recurring_auto_chip">Auto</string>
     <string name="recurring_day_fmt">Day %1$d</string>
+    <string name="recurring_form_name_placeholder">e.g. Rent</string>
+    <string name="recurring_form_amount_placeholder">e.g. 20000</string>
+    <string name="recurring_form_description_placeholder">e.g. Rent — Bangalore flat</string>
+    <string name="recurring_form_auto_confirm_hint">Fire and forget · for fixed amounts like rent</string>
 
     <!-- Rule action labels -->
     <string name="rules_action_kind_set_type">Set transaction type…</string>
@@ -1310,6 +1342,7 @@
     <string name="withdrawal_sheet_title">Withdraw from %1$s</string>
     <string name="withdrawal_sheet_current_balance">Current balance</string>
     <string name="withdrawal_sheet_amount_label">Amount</string>
+    <string name="withdrawal_sheet_amount_placeholder">e.g. 25000</string>
     <string name="withdrawal_sheet_amount_required">Amount is required</string>
     <string name="withdrawal_sheet_amount_positive">Amount must be greater than ₹0</string>
     <string name="withdrawal_sheet_amount_exceeds">Amount cannot exceed %1$s</string>
@@ -1352,6 +1385,17 @@
     <string name="share_receipt_category_label">Category</string>
     <string name="share_receipt_category_none">Uncategorised</string>
     <string name="share_receipt_upi_app_label">Via</string>
+
+    <!-- People form placeholders -->
+    <string name="people_form_name_placeholder">Rahul</string>
+    <string name="people_form_contact_placeholder">+91 …</string>
+
+    <!-- Person detail: transaction type subtitle fallback -->
+    <string name="txn_no_description">(no description)</string>
+
+    <!-- Rules: switch content descriptions and empty-actions placeholder -->
+    <string name="rules_row_toggle_cd">Toggle rule active</string>
+    <string name="rules_then_empty">—</string>
 
     <!-- In-app update dialog -->
     <string name="update_dialog_eyebrow">Update available</string>

@@ -311,7 +311,9 @@ private fun ParentRow(
             if (hasChildren) {
                 Icon(
                     imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = null,
+                    contentDescription = stringResource(
+                        if (expanded) R.string.categories_collapse else R.string.categories_expand,
+                    ),
                     tint = com.subramanya.artha.ui.theme.Text3,
                 )
             }

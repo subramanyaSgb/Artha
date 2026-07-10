@@ -355,7 +355,7 @@ private fun GoalFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Emergency fund",
+                    placeholder = stringResource(R.string.goals_form_name_placeholder),
                 )
             }
             com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.goals_form_target_label)) {
@@ -364,7 +364,7 @@ private fun GoalFormSheet(
                     onValueChange = { v ->
                         targetText = v.filterIndexed { i, c -> c.isDigit() || (c == '.' && v.indexOf('.') == i) }
                     },
-                    placeholder = "600000",
+                    placeholder = stringResource(R.string.goals_form_target_placeholder),
                     suffix = "₹",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
@@ -393,7 +393,7 @@ private fun GoalFormSheet(
             com.subramanya.artha.ui.common.FieldRow(
                 label = stringResource(R.string.goals_form_linked_accounts),
                 optional = true,
-                hint = "Funds count toward this goal",
+                hint = stringResource(R.string.goals_form_accounts_hint),
             ) {
                 if (accountOptions.isEmpty()) {
                     Text(

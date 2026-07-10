@@ -257,8 +257,7 @@ private fun HeroCard(invested: Double, currentValue: Double) {
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                text = stringResource(R.string.investments_hero_invested) +
-                    ": " + IndianNumberFormat.format(invested),
+                text = stringResource(R.string.investments_hero_invested_fmt, IndianNumberFormat.format(invested)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )

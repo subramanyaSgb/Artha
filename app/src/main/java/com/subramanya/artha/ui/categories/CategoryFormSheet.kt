@@ -123,7 +123,7 @@ fun CategoryFormSheet(
                 ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Coffee shops",
+                    placeholder = stringResource(R.string.category_form_name_placeholder),
                     isError = showErrors && name.isBlank(),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,

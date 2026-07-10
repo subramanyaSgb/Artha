@@ -59,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
+import com.subramanya.artha.data.entity.enums.CardNetwork
 import com.subramanya.artha.data.entity.enums.SourceKind
 import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.Card as DomainCard
@@ -323,6 +324,16 @@ private fun CardDetailBody(
     }
 }
 
+/** Maps a [CardNetwork] enum to its human-readable display string. */
+@Composable
+private fun cardNetworkDisplayName(network: CardNetwork): String = when (network) {
+    CardNetwork.VISA -> stringResource(R.string.card_form_network_visa)
+    CardNetwork.MASTERCARD -> stringResource(R.string.card_form_network_mastercard)
+    CardNetwork.RUPAY -> stringResource(R.string.card_form_network_rupay)
+    CardNetwork.AMEX -> stringResource(R.string.card_form_network_amex)
+    CardNetwork.DINERS -> stringResource(R.string.card_form_network_diners)
+}
+
 @Composable
 private fun Header(card: DomainCard) {
     Row(
@@ -343,8 +354,9 @@ private fun Header(card: DomainCard) {
         Spacer(modifier = Modifier.padding(start = 12.dp))
         Column {
             Text(card.name, style = MaterialTheme.typography.titleLarge)
+            val networkName = cardNetworkDisplayName(card.network)
             val subtitle = buildString {
-                append(card.network.name)
+                append(networkName)
                 if (!card.issuer.isNullOrBlank()) append(" · ${card.issuer}")
                 if (!card.cardNumberLast4.isNullOrBlank()) append(" · ••${card.cardNumberLast4}")
             }
@@ -526,12 +538,12 @@ private fun Transaction.paysCard(cardId: String): Boolean = destinationId == car
 private fun amountColor(txn: Transaction, cardId: String): Color = when (txn.type) {
     TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
     TransactionType.INTEREST, TransactionType.LOAN_RECEIVED, TransactionType.GIFT_RECEIVED,
-    -> MaterialTheme.colorScheme.primary
+    -> com.subramanya.artha.ui.theme.Income
     TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
     -> com.subramanya.artha.ui.theme.Danger
     // A bill payment / transfer onto the card is a credit (reduces what you owe).
     TransactionType.TRANSFER, TransactionType.CARD_PAYMENT ->
-        if (txn.paysCard(cardId)) MaterialTheme.colorScheme.primary
+        if (txn.paysCard(cardId)) com.subramanya.artha.ui.theme.Income
         else com.subramanya.artha.ui.theme.Danger
     else -> MaterialTheme.colorScheme.onSurface
 }

@@ -448,11 +448,11 @@ private fun InsuranceAvatar(color: Long) {
 
 @Composable
 internal fun insuranceTypeDisplayName(id: String): String = when (id) {
-    "HEALTH" -> "Health"
-    "VEHICLE" -> "Vehicle"
-    "LIFE_TERM" -> "Life (term)"
-    "LIFE_ENDOWMENT" -> "Life (endowment)"
-    "TRAVEL" -> "Travel"
-    "HOME" -> "Home"
+    "HEALTH" -> stringResource(R.string.insurance_type_health)
+    "VEHICLE" -> stringResource(R.string.insurance_type_vehicle)
+    "LIFE_TERM" -> stringResource(R.string.insurance_type_life_term)
+    "LIFE_ENDOWMENT" -> stringResource(R.string.insurance_type_life_endowment)
+    "TRAVEL" -> stringResource(R.string.insurance_type_travel)
+    "HOME" -> stringResource(R.string.insurance_type_home)
     else -> id.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }
 }

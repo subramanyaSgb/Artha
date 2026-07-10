@@ -118,7 +118,7 @@ fun SubscriptionsScreen(
                 ExtendedFloatingActionButton(
                     onClick = { formMode = FormMode.Add },
                     containerColor = Teal700,
-                    contentColor = androidx.compose.ui.graphics.Color.White,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.subscriptions_fab_add)) },
@@ -428,7 +428,7 @@ private fun SubscriptionFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Spotify Family",
+                    placeholder = stringResource(R.string.subscriptions_form_name_placeholder),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 )
             }
@@ -439,7 +439,7 @@ private fun SubscriptionFormSheet(
                 com.subramanya.artha.ui.common.ArthaTextField(
                     value = provider,
                     onValueChange = { provider = it },
-                    placeholder = "Spotify",
+                    placeholder = stringResource(R.string.subscriptions_form_provider_placeholder),
                 )
             }
             com.subramanya.artha.ui.common.FieldRow(label = stringResource(R.string.subscriptions_form_amount_label)) {
@@ -448,7 +448,7 @@ private fun SubscriptionFormSheet(
                     onValueChange = { v ->
                         amountText = v.filterIndexed { i, c -> c.isDigit() || (c == '.' && v.indexOf('.') == i) }
                     },
-                    placeholder = "179",
+                    placeholder = stringResource(R.string.subscriptions_form_amount_placeholder),
                     suffix = "₹",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )

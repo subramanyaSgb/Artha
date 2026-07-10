@@ -150,7 +150,7 @@ fun WithdrawalSheet(
                         }
                     },
                     singleLine = true,
-                    placeholder = { Text("25000") },
+                    placeholder = { Text(stringResource(R.string.withdrawal_sheet_amount_placeholder)) },
                     suffix = { Text("₹") },
                     isError = showErrors && !isValidAmount && withdrawalAmountText.isNotBlank(),
                     supportingText = {
