@@ -93,7 +93,10 @@ fun ShareReceiptScreen(
     val vm: ShareReceiptViewModel = viewModel(
         factory = ShareReceiptViewModelFactory(
             imageUri = Uri.parse(imageUriString),
-            upiReceiptParser = UpiReceiptParser(keyProvider = { app.nimApiKey() }),
+            upiReceiptParser = UpiReceiptParser(
+                nimKeyProvider = { app.nimApiKey() },
+                openRouterKeyProvider = { app.openRouterApiKey() },
+            ),
             accountRepository = app.accountRepository,
             categoryRepository = app.categoryRepository,
             paymentAppRepository = app.paymentAppRepository,

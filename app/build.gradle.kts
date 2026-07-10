@@ -27,14 +27,19 @@ android {
         applicationId = "com.subramanya.artha"
         minSdk = 26
         targetSdk = 34
-        versionCode = 24
-        versionName = "0.23.1"
+        versionCode = 25
+        versionName = "0.23.2"
 
         // Baked NIM API key (see localProps note above). Empty string if not set.
         buildConfigField(
             "String",
             "NIM_API_KEY",
             "\"${localProps.getProperty("NIM_API_KEY", "")}\"",
+        )
+        buildConfigField(
+            "String",
+            "OPENROUTER_API_KEY",
+            "\"${localProps.getProperty("OPENROUTER_API_KEY", "")}\"",
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

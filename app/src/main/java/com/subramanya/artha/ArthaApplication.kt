@@ -115,15 +115,16 @@ class ArthaApplication : Application() {
     }
 
     /**
-     * The NVIDIA NIM API key used by EVERY AI task (AI Quick Entry + UPI receipt parsing).
-     * Baked into the build from local.properties → [BuildConfig.NIM_API_KEY]. A non-blank
-     * value stored in DataStore still wins (legacy/override path), but there is no in-app
-     * key UI anymore, so in practice this returns the baked key.
+     * The NVIDIA NIM API key. Baked from local.properties → [BuildConfig.NIM_API_KEY].
+     * A non-blank DataStore value still wins (legacy override), but there is no in-app key UI.
      */
     suspend fun nimApiKey(): String {
         val stored = settingsPreferences.geminiApiKey.first()
         return stored.ifBlank { BuildConfig.NIM_API_KEY }
     }
+
+    /** OpenRouter fallback key — baked from local.properties → [BuildConfig.OPENROUTER_API_KEY]. */
+    fun openRouterApiKey(): String = BuildConfig.OPENROUTER_API_KEY
 
     /** Backed by [NvidiaNimQuickEntryParser], keyed by the single baked [nimApiKey]. */
     val aiQuickEntryParser: AiQuickEntryParser by lazy {

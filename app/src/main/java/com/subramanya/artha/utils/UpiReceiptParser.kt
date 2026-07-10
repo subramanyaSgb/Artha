@@ -6,7 +6,6 @@ import android.net.Uri
 import android.content.Context
 import android.util.Base64
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -35,47 +34,46 @@ data class ReceiptData(
 )
 
 /**
- * Parses a shared payment-app receipt image into [ReceiptData] using NVIDIA NIM vision
- * (nemotron-omni) — a single call returning one JSON object with every field.
+ * Parses a shared payment-app receipt image into [ReceiptData] using AI vision.
  *
- * Pure-AI: there is no ML Kit / regex fallback. An internet connection + a configured key
- * are required; without them [parse] returns null and the screen offers manual entry.
+ * Provider strategy (NIM is flaky — models go down without notice):
+ *  1. Try NIM first (fast when up, 15s timeout so it fails quickly when down).
+ *  2. On any non-auth failure, immediately fall back to OpenRouter (free tier,
+ *     `nvidia/nemotron-nano-12b-v2-vl:free`, consistently available).
+ * Auth errors (401/403) are not retried — they indicate a bad key.
  */
 class UpiReceiptParser(
-    private val keyProvider: (suspend () -> String)? = null,
+    private val nimKeyProvider: (suspend () -> String)? = null,
+    private val openRouterKeyProvider: (suspend () -> String)? = null,
 ) {
 
     suspend fun parse(context: Context, uri: Uri): ReceiptData? {
-        val key = keyProvider?.invoke()?.takeIf { it.isNotBlank() } ?: return null
+        val nimKey = nimKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
+        val orKey = openRouterKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
+        if (nimKey == null && orKey == null) return null
+
         val bitmap = context.contentResolver.openInputStream(uri)?.use {
             BitmapFactory.decodeStream(it)
         } ?: return null
 
-        // Encode once, not per-attempt.
         val b64 = withContext(Dispatchers.IO) { bitmapToBase64(bitmap) }
 
-        // Retry with exponential backoff. The dominant real-world failure is UnknownHostException:
-        // this host is IPv4-ONLY, and on IPv6-only mobile networks (common in India) reaching it
-        // depends on the carrier's NAT64/DNS64 translation, which intermittently fails. Translation
-        // usually recovers within a few seconds, so we retry over ~10s before giving up. Rate-limit
-        // / 5xx / timeout / occasional non-JSON replies are covered by the same loop. A hard auth
-        // error (401/403) is not transient — stop immediately. Final failure propagates so the
-        // screen can show a specific message.
-        var lastError: Throwable? = null
-        var backoff = FIRST_RETRY_DELAY_MS
-        repeat(MAX_ATTEMPTS) { attempt ->
-            val result = runCatching { callNim(key, b64) }
+        // Try NIM first
+        if (nimKey != null) {
+            val result = runCatching { callProvider(NIM_ENDPOINT, NIM_MODEL, nimKey, b64, timeoutMs = 15_000) }
             result.getOrNull()?.let { return it }
-            result.exceptionOrNull()?.let { error ->
-                lastError = error
-                if (isAuthError(error)) throw error // not transient — don't waste retries
-            }
-            if (attempt < MAX_ATTEMPTS - 1) {
-                delay(backoff)
-                backoff = (backoff * 2).coerceAtMost(MAX_RETRY_DELAY_MS)
-            }
+            val err = result.exceptionOrNull()
+            if (err != null && isAuthError(err)) throw err  // bad key — surface immediately
+            // NIM failed (timeout / 5xx / model down) → fall through to OpenRouter
         }
-        lastError?.let { throw it }
+
+        // OpenRouter fallback
+        if (orKey != null) {
+            return callProvider(OR_ENDPOINT, OR_MODEL, orKey, b64, timeoutMs = 30_000, extraHeaders = mapOf(
+                "HTTP-Referer" to "https://github.com/subramanyaSgb/Artha",
+            ))
+        }
+
         return null
     }
 
@@ -84,9 +82,16 @@ class UpiReceiptParser(
         return "HTTP 401" in msg || "HTTP 403" in msg
     }
 
-    private suspend fun callNim(key: String, b64: String): ReceiptData? {
+    private fun callProvider(
+        endpoint: String,
+        model: String,
+        key: String,
+        b64: String,
+        timeoutMs: Int,
+        extraHeaders: Map<String, String> = emptyMap(),
+    ): ReceiptData? {
         val body = JSONObject().apply {
-            put("model", MODEL)
+            put("model", model)
             put("messages", JSONArray().apply {
                 put(JSONObject().apply {
                     put("role", "user")
@@ -100,11 +105,11 @@ class UpiReceiptParser(
                 })
             })
             put("temperature", 0.2)
-            put("max_tokens", 1024)
+            put("max_tokens", 512)
             put("stream", false)
         }.toString()
 
-        val raw = post(key, body)
+        val raw = post(endpoint, key, body, timeoutMs, extraHeaders)
         val content = extractContent(raw) ?: return null
         val json = extractJsonObject(content) ?: return null
         return decode(json)
@@ -127,7 +132,6 @@ class UpiReceiptParser(
             categoryHint = str(json, "category"),
             upiRef = str(json, "upiRef")?.filter { it.isDigit() }?.takeIf { it.isNotBlank() },
         )
-        // Nothing usable → treat as a failed parse so the screen shows the manual-entry path.
         val hasAnything = listOf(
             data.amount, data.dateTimeMillis, data.merchant, data.description,
             data.paymentAppHint, data.bankHint, data.upiRef,
@@ -149,17 +153,14 @@ class UpiReceiptParser(
 
     private fun parseDate(text: String): Long? {
         val raw = text.trim()
-        // Named month: "03 Jul 2026", "3-Jul-26"
         Regex("""(\d{1,2})[-/ ]([A-Za-z]{3})[-/ ](\d{2,4})""").find(raw)?.let { m ->
             MONTHS[m.groupValues[2].lowercase()]?.let { month ->
                 return buildDate(normalizeYear(m.groupValues[3]), month, m.groupValues[1].toInt())
             }
         }
-        // ISO: "2026-07-03"
         Regex("""(\d{4})-(\d{1,2})-(\d{1,2})""").find(raw)?.let { m ->
             return buildDate(m.groupValues[1].toInt(), m.groupValues[2].toInt(), m.groupValues[3].toInt())
         }
-        // Numeric d-m-y: "03/07/2026", "03-07-26"
         Regex("""(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})""").find(raw)?.let { m ->
             val day = m.groupValues[1].toInt()
             val month = m.groupValues[2].toInt()
@@ -189,7 +190,6 @@ class UpiReceiptParser(
             .parse("%04d-%02d-%02d".format(year, month, day))?.time
     }.getOrNull()
 
-    /** Absent / JSON-null / literal "null" all become Kotlin null (org.json optString quirk). */
     private fun str(json: JSONObject, key: String): String? {
         if (json.isNull(key)) return null
         val v = json.optString(key).trim()
@@ -197,14 +197,21 @@ class UpiReceiptParser(
         return if (v.lowercase() in ABSENT_TOKENS) null else v
     }
 
-    private fun post(apiKey: String, body: String): String {
-        val conn = (URL(ENDPOINT).openConnection() as HttpURLConnection).apply {
+    private fun post(
+        endpoint: String,
+        apiKey: String,
+        body: String,
+        timeoutMs: Int,
+        extraHeaders: Map<String, String>,
+    ): String {
+        val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
-            connectTimeout = 30_000
-            readTimeout = 30_000
+            connectTimeout = timeoutMs
+            readTimeout = timeoutMs
             setRequestProperty("Authorization", "Bearer $apiKey")
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
+            extraHeaders.forEach { (k, v) -> setRequestProperty(k, v) }
             doOutput = true
         }
         conn.outputStream.use { it.write(body.toByteArray()) }
@@ -246,15 +253,11 @@ class UpiReceiptParser(
     }
 
     private companion object {
-        const val ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
-        const val MODEL = "nvidia/llama-3.1-nemotron-nano-vl-8b-v1"
+        const val NIM_ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
+        const val NIM_MODEL = "nvidia/llama-3.1-nemotron-nano-vl-8b-v1"
 
-        // Retry transient failures (NAT64/DNS64 flakiness, rate-limit, 5xx, timeout, non-JSON).
-        // Exponential backoff 800ms → 1.6s → 3s → 3s ≈ up to ~8s of retrying before giving up,
-        // enough for carrier IPv4-translation to recover.
-        const val MAX_ATTEMPTS = 5
-        const val FIRST_RETRY_DELAY_MS = 800L
-        const val MAX_RETRY_DELAY_MS = 3000L
+        const val OR_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+        const val OR_MODEL = "nvidia/nemotron-nano-12b-v2-vl:free"
 
         val MONTHS = mapOf(
             "jan" to 1, "feb" to 2, "mar" to 3, "apr" to 4, "may" to 5, "jun" to 6,
