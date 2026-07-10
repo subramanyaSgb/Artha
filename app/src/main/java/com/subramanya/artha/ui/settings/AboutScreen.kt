@@ -296,7 +296,7 @@ private fun FeaturesSection() {
             R.string.about_features_money_3, R.string.about_features_money_4,
         ),
         R.string.about_features_group_ai to listOf(
-            R.string.about_features_ai_1, R.string.about_features_ai_2, R.string.about_features_ai_3,
+            R.string.about_features_ai_1, R.string.about_features_ai_2,
         ),
         R.string.about_features_group_grow to listOf(
             R.string.about_features_grow_1, R.string.about_features_grow_2, R.string.about_features_grow_3,

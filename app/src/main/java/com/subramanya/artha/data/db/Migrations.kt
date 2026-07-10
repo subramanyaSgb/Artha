@@ -153,3 +153,15 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         )
     }
 }
+
+/**
+ * v8 -> v9: the first SMS auto-import feature was removed. Drop its `pending_sms` review-queue
+ * table. FORWARD-ONLY and data-safe: it only touches the SMS table — accounts, transactions,
+ * and everything else are untouched. Kept in the chain (not a downgrade) so an installed v8 DB
+ * with real data upgrades cleanly without a destructive wipe.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DROP TABLE IF EXISTS `pending_sms`")
+    }
+}

@@ -81,7 +81,6 @@ import androidx.compose.foundation.clickable
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenPendingSms: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -90,20 +89,6 @@ fun SettingsScreen(
         factory = SettingsViewModelFactory(app.settingsPreferences, app.database, app.aiQuickEntryParser),
     )
     val state by vm.state.collectAsStateWithLifecycle()
-    val pendingSmsCount by app.pendingSmsRepository.observeCount()
-        .collectAsStateWithLifecycle(initialValue = 0)
-
-    // Enabling SMS auto-import needs the RECEIVE_SMS runtime permission. We only flip the
-    // pref on once it's actually granted; a denial shows a hint and leaves the toggle off.
-    val smsPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            vm.onSmsAutoImportChanged(true)
-        } else {
-            Toast.makeText(context, R.string.settings_security_sms_permission_denied, Toast.LENGTH_LONG).show()
-        }
-    }
 
     // When an export file becomes available, fire a share chooser then acknowledge.
     LaunchedEffect(state.pendingExportFile) {
@@ -198,8 +183,6 @@ fun SettingsScreen(
                 SectionHeader(stringResource(R.string.settings_section_security))
                 SecuritySection(
                     biometric = state.biometricLockEnabled,
-                    smsImport = state.smsAutoImportEnabled,
-                    pendingSmsCount = pendingSmsCount,
                     onBiometricChanged = { enabled ->
                         // Don't let the user enable the lock on a device that can't actually
                         // prompt (no enrolled biometric / no secure lock screen) — that would be
@@ -214,19 +197,6 @@ fun SettingsScreen(
                             vm.onBiometricLockChanged(enabled)
                         }
                     },
-                    onSmsImportChanged = { enabled ->
-                        if (enabled) {
-                            val granted = androidx.core.content.ContextCompat.checkSelfPermission(
-                                context,
-                                android.Manifest.permission.RECEIVE_SMS,
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                            if (granted) vm.onSmsAutoImportChanged(true)
-                            else smsPermissionLauncher.launch(android.Manifest.permission.RECEIVE_SMS)
-                        } else {
-                            vm.onSmsAutoImportChanged(false)
-                        }
-                    },
-                    onOpenPendingSms = onOpenPendingSms,
                 )
 
                 HorizontalDivider()
@@ -600,11 +570,7 @@ private fun DashboardSectionRow(
 @Composable
 private fun SecuritySection(
     biometric: Boolean,
-    smsImport: Boolean,
-    pendingSmsCount: Int,
     onBiometricChanged: (Boolean) -> Unit,
-    onSmsImportChanged: (Boolean) -> Unit,
-    onOpenPendingSms: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         ListItem(
@@ -613,40 +579,6 @@ private fun SecuritySection(
             supportingContent = { Text(stringResource(R.string.settings_security_biometric_body)) },
             trailingContent = { com.subramanya.artha.ui.common.ArthaSwitch(checked = biometric, onCheckedChange = onBiometricChanged) },
         )
-        ListItem(
-            modifier = Modifier.fillMaxWidth(),
-            headlineContent = { Text(stringResource(R.string.settings_security_sms)) },
-            supportingContent = { Text(stringResource(R.string.settings_security_sms_body)) },
-            trailingContent = { com.subramanya.artha.ui.common.ArthaSwitch(checked = smsImport, onCheckedChange = onSmsImportChanged) },
-        )
-        // Review-queue entry: visible whenever the feature is on or there are items waiting.
-        if (smsImport || pendingSmsCount > 0) {
-            ListItem(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenPendingSms),
-                headlineContent = { Text(stringResource(R.string.settings_security_sms_review)) },
-                supportingContent = { Text(stringResource(R.string.settings_security_sms_review_body)) },
-                trailingContent = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (pendingSmsCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Teal500)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                            ) {
-                                Text(
-                                    text = pendingSmsCount.toString(),
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                )
-                            }
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        Icon(Icons.Filled.ChevronRight, contentDescription = null)
-                    }
-                },
-            )
-        }
     }
 }
 
