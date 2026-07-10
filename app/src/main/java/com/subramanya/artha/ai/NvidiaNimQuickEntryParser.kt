@@ -16,22 +16,17 @@ import java.net.URL
 /**
  * NVIDIA NIM (OpenAI-compatible) implementation of [AiQuickEntryParser].
  *
- * Model: z-ai/glm-5.2 — supports text and vision input.
+ * Model: meta/llama-3.2-11b-vision-instruct — supports text and vision input.
  * Endpoint: https://integrate.api.nvidia.com/v1/chat/completions
  *
- * The API key is stored in the same DataStore slot as the former Gemini key
- * (key name is unchanged; only the value and the parser reading it changed).
- * The user pastes their NVIDIA NIM API key in Settings → AI Quick Entry.
+ * The API key is baked from local.properties → BuildConfig.NIM_API_KEY.
  */
 class NvidiaNimQuickEntryParser(
     private val keyProvider: suspend () -> String,
 ) : AiQuickEntryParser {
 
     private val endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
-    // Unified across all AI tasks with the receipt parser — NVIDIA's omni model has the
-    // strongest verified vision + text grounding. It's a reasoning model (emits
-    // reasoning_content separately), so clean JSON still lands in message.content.
-    private val model = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+    private val model = "meta/llama-3.2-11b-vision-instruct"
 
     override suspend fun parse(input: AiQuickEntryInput): AiQuickEntryResult {
         val key = keyProvider()
@@ -106,9 +101,6 @@ class NvidiaNimQuickEntryParser(
             })
             put("temperature", 0.3)
             put("max_tokens", 1024)
-            // Disable thinking — otherwise nemotron's reasoning_content eats the token budget
-            // before it emits the JSON answer (empty content → parse fails). See UpiReceiptParser.
-            put("chat_template_kwargs", JSONObject().apply { put("enable_thinking", false) })
             put("stream", false)
         }.toString()
     }

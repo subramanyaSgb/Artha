@@ -101,11 +101,6 @@ class UpiReceiptParser(
             })
             put("temperature", 0.2)
             put("max_tokens", 1024)
-            // Nemotron is a reasoning model: with thinking ON, its reasoning_content balloons
-            // and eats the whole token budget on a detail-rich receipt BEFORE it emits the JSON
-            // (content comes back empty → "could not read"). Disable thinking for extraction —
-            // verified to return clean JSON in ~1.3s. Do the same anywhere we use this model.
-            put("chat_template_kwargs", JSONObject().apply { put("enable_thinking", false) })
             put("stream", false)
         }.toString()
 
@@ -252,7 +247,7 @@ class UpiReceiptParser(
 
     private companion object {
         const val ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
-        const val MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+        const val MODEL = "meta/llama-3.2-11b-vision-instruct"
 
         // Retry transient failures (NAT64/DNS64 flakiness, rate-limit, 5xx, timeout, non-JSON).
         // Exponential backoff 800ms → 1.6s → 3s → 3s ≈ up to ~8s of retrying before giving up,
