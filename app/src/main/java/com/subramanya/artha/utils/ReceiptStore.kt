@@ -55,26 +55,34 @@ object ReceiptStore {
      * Copies the image at [sourceUri] into app-private storage (downsampled JPEG).
      * Returns the stable `file://` URI string to persist on the transaction, or null
      * if the source can't be read.
+     *
+     * Picker URIs (MediaStore one-time grants) can only be opened once before the grant
+     * is consumed. We read the full bytes in a single stream, then work entirely from
+     * the in-memory buffer for bounds, EXIF, and decode — no re-opening.
      */
     suspend fun persist(context: Context, sourceUri: Uri): String? = withContext(Dispatchers.IO) {
         runCatching {
             val resolver = context.contentResolver
-            // Pass 1: bounds only, to pick a power-of-two downsample factor.
+            // Single read: buffer the whole image so we can inspect it multiple times.
+            val bytes = resolver.openInputStream(sourceUri)?.use { it.readBytes() }
+                ?: return@runCatching null
+
+            // Pass 1: bounds only (no pixel allocation).
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            resolver.openInputStream(sourceUri)?.use {
-                BitmapFactory.decodeStream(it, null, bounds)
-            } ?: return@runCatching null
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+
+            // Pass 2: real decode with downsample factor.
             val opts = BitmapFactory.Options().apply {
                 inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight)
             }
-            // Pass 2: real decode (content streams aren't seekable, so reopen).
-            val decoded = resolver.openInputStream(sourceUri)?.use {
-                BitmapFactory.decodeStream(it, null, opts)
-            } ?: return@runCatching null
-            // Pass 3: honour EXIF orientation — gallery photos otherwise save sideways.
-            val rotationDegrees = resolver.openInputStream(sourceUri)?.use {
-                runCatching { ExifInterface(it).rotationDegrees }.getOrDefault(0)
-            } ?: 0
+            val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+                ?: return@runCatching null
+
+            // Pass 3: EXIF rotation from the same buffer.
+            val rotationDegrees = runCatching {
+                ExifInterface(bytes.inputStream()).rotationDegrees
+            }.getOrDefault(0)
+
             val bitmap = if (rotationDegrees != 0) {
                 val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
                 Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
