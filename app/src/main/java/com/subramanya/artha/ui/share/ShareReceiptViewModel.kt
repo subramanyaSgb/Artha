@@ -108,7 +108,7 @@ class ShareReceiptViewModel(
         return when {
             e is java.net.UnknownHostException ||
                 "No address associated" in msg || "Unable to resolve host" in msg ->
-                "No internet connection. Reading a receipt needs internet — connect and try again, or add the transaction manually."
+                "Couldn't reach the AI service. If you're on mobile data, try switching to Wi-Fi — or tap Try again in a moment. You can also add the transaction manually."
             e is java.net.SocketTimeoutException || "timeout" in msg.lowercase() ->
                 "The connection timed out. Check your internet and try again."
             "HTTP 401" in msg || "HTTP 403" in msg ->

@@ -51,21 +51,29 @@ class UpiReceiptParser(
             BitmapFactory.decodeStream(it)
         } ?: return null
 
-        // Retry on TRANSIENT failures — this is why receipt reading was flaky ("works sometimes":
-        // a single NIM rate-limit / 5xx / timeout, or an occasional non-JSON reply, used to fail
-        // outright). Each attempt re-rolls the model call. A hard auth error (401/403) is not
-        // transient, so we stop immediately. Exceptions from the final attempt propagate so the
-        // screen shows the real reason instead of a blanket "couldn't read".
+        // Encode once, not per-attempt.
+        val b64 = withContext(Dispatchers.IO) { bitmapToBase64(bitmap) }
+
+        // Retry with exponential backoff. The dominant real-world failure is UnknownHostException:
+        // this host is IPv4-ONLY, and on IPv6-only mobile networks (common in India) reaching it
+        // depends on the carrier's NAT64/DNS64 translation, which intermittently fails. Translation
+        // usually recovers within a few seconds, so we retry over ~10s before giving up. Rate-limit
+        // / 5xx / timeout / occasional non-JSON replies are covered by the same loop. A hard auth
+        // error (401/403) is not transient — stop immediately. Final failure propagates so the
+        // screen can show a specific message.
         var lastError: Throwable? = null
+        var backoff = FIRST_RETRY_DELAY_MS
         repeat(MAX_ATTEMPTS) { attempt ->
-            val result = runCatching { parseWithNim(key, bitmap) }
+            val result = runCatching { callNim(key, b64) }
             result.getOrNull()?.let { return it }
-            val error = result.exceptionOrNull()
-            if (error != null) {
+            result.exceptionOrNull()?.let { error ->
                 lastError = error
                 if (isAuthError(error)) throw error // not transient — don't waste retries
             }
-            if (attempt < MAX_ATTEMPTS - 1) delay(RETRY_DELAY_MS)
+            if (attempt < MAX_ATTEMPTS - 1) {
+                delay(backoff)
+                backoff = (backoff * 2).coerceAtMost(MAX_RETRY_DELAY_MS)
+            }
         }
         lastError?.let { throw it }
         return null
@@ -76,8 +84,7 @@ class UpiReceiptParser(
         return "HTTP 401" in msg || "HTTP 403" in msg
     }
 
-    private suspend fun parseWithNim(key: String, bitmap: Bitmap): ReceiptData? {
-        val b64 = bitmapToBase64(bitmap)
+    private suspend fun callNim(key: String, b64: String): ReceiptData? {
         val body = JSONObject().apply {
             put("model", MODEL)
             put("messages", JSONArray().apply {
@@ -247,9 +254,12 @@ class UpiReceiptParser(
         const val ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
         const val MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
 
-        // Retry transient failures (rate-limit / 5xx / timeout / occasional non-JSON reply).
-        const val MAX_ATTEMPTS = 3
-        const val RETRY_DELAY_MS = 700L
+        // Retry transient failures (NAT64/DNS64 flakiness, rate-limit, 5xx, timeout, non-JSON).
+        // Exponential backoff 800ms → 1.6s → 3s → 3s ≈ up to ~8s of retrying before giving up,
+        // enough for carrier IPv4-translation to recover.
+        const val MAX_ATTEMPTS = 5
+        const val FIRST_RETRY_DELAY_MS = 800L
+        const val MAX_RETRY_DELAY_MS = 3000L
 
         val MONTHS = mapOf(
             "jan" to 1, "feb" to 2, "mar" to 3, "apr" to 4, "may" to 5, "jun" to 6,
