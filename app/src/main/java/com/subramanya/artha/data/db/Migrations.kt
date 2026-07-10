@@ -165,3 +165,27 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
         db.execSQL("DROP TABLE IF EXISTS `pending_sms`")
     }
 }
+
+/**
+ * v9 -> v10: the (fork-ported) SMS auto-import review queue. Additive — CREATE the
+ * `pending_sms_transactions` table. Must match Room's generated schema for
+ * [com.subramanya.artha.data.entity.PendingSmsTransactionEntity] exactly (kept in sync with
+ * app/schemas/…/10.json), or post-migration validation throws.
+ */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `pending_sms_transactions` (" +
+                "`id` TEXT NOT NULL, " +
+                "`raw_sms_body` TEXT NOT NULL, " +
+                "`sender` TEXT NOT NULL, " +
+                "`received_at` INTEGER NOT NULL, " +
+                "`direction` TEXT NOT NULL, " +
+                "`amount` REAL NOT NULL, " +
+                "`account_hint` TEXT, " +
+                "`merchant` TEXT, " +
+                "`suggested_category_id` TEXT, " +
+                "PRIMARY KEY(`id`))",
+        )
+    }
+}

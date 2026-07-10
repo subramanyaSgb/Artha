@@ -81,6 +81,7 @@ import androidx.compose.foundation.clickable
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenReview: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -89,6 +90,18 @@ fun SettingsScreen(
         factory = SettingsViewModelFactory(app.settingsPreferences, app.database, app.aiQuickEntryParser),
     )
     val state by vm.state.collectAsStateWithLifecycle()
+
+    // Enabling SMS auto-import needs RECEIVE_SMS (read the SMS) + POST_NOTIFICATIONS (the review
+    // notification). We flip the pref on only once RECEIVE_SMS is granted; denial shows a hint.
+    val smsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        if (grants[android.Manifest.permission.RECEIVE_SMS] == true) {
+            vm.onSmsAutoImportChanged(true)
+        } else {
+            Toast.makeText(context, R.string.settings_security_sms_permission_denied, Toast.LENGTH_LONG).show()
+        }
+    }
 
     // When an export file becomes available, fire a share chooser then acknowledge.
     LaunchedEffect(state.pendingExportFile) {
@@ -183,6 +196,7 @@ fun SettingsScreen(
                 SectionHeader(stringResource(R.string.settings_section_security))
                 SecuritySection(
                     biometric = state.biometricLockEnabled,
+                    smsImport = state.smsAutoImportEnabled,
                     onBiometricChanged = { enabled ->
                         // Don't let the user enable the lock on a device that can't actually
                         // prompt (no enrolled biometric / no secure lock screen) — that would be
@@ -197,6 +211,19 @@ fun SettingsScreen(
                             vm.onBiometricLockChanged(enabled)
                         }
                     },
+                    onSmsImportChanged = { enabled ->
+                        if (enabled) {
+                            smsPermissionLauncher.launch(
+                                arrayOf(
+                                    android.Manifest.permission.RECEIVE_SMS,
+                                    android.Manifest.permission.POST_NOTIFICATIONS,
+                                ),
+                            )
+                        } else {
+                            vm.onSmsAutoImportChanged(false)
+                        }
+                    },
+                    onOpenReview = onOpenReview,
                 )
 
                 HorizontalDivider()
@@ -570,7 +597,10 @@ private fun DashboardSectionRow(
 @Composable
 private fun SecuritySection(
     biometric: Boolean,
+    smsImport: Boolean,
     onBiometricChanged: (Boolean) -> Unit,
+    onSmsImportChanged: (Boolean) -> Unit,
+    onOpenReview: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         ListItem(
@@ -579,6 +609,20 @@ private fun SecuritySection(
             supportingContent = { Text(stringResource(R.string.settings_security_biometric_body)) },
             trailingContent = { com.subramanya.artha.ui.common.ArthaSwitch(checked = biometric, onCheckedChange = onBiometricChanged) },
         )
+        ListItem(
+            modifier = Modifier.fillMaxWidth(),
+            headlineContent = { Text(stringResource(R.string.settings_security_sms)) },
+            supportingContent = { Text(stringResource(R.string.settings_security_sms_body)) },
+            trailingContent = { com.subramanya.artha.ui.common.ArthaSwitch(checked = smsImport, onCheckedChange = onSmsImportChanged) },
+        )
+        if (smsImport) {
+            ListItem(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenReview),
+                headlineContent = { Text(stringResource(R.string.settings_security_sms_review)) },
+                supportingContent = { Text(stringResource(R.string.settings_security_sms_review_body)) },
+                trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
+            )
+        }
     }
 }
 
