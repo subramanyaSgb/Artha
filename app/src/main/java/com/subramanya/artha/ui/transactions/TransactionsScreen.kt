@@ -92,6 +92,9 @@ import com.subramanya.artha.ui.transaction.AddTransactionViewModel
 import com.subramanya.artha.ui.transaction.AddTransactionViewModelFactory
 import com.subramanya.artha.utils.IndianNumberFormat
 import com.subramanya.artha.utils.TimeRange
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -143,6 +146,7 @@ fun TransactionsScreen(
                             if (state.filter.tagId != null) count++
                             count
                         },
+
                         sortMenuOpen = sortMenuOpen,
                         onSortMenuToggle = { sortMenuOpen = it },
                         onSortChanged = vm::onSortChanged,
@@ -164,7 +168,7 @@ fun TransactionsScreen(
                     categories = state.categories,
                     tags = state.tags,
                     queryActive = query.isNotEmpty(),
-                    onRemoveRange = { vm.onFilterChanged { it.copy(range = TimeRange.ALL_TIME) } },
+                    onRemoveRange = { vm.onFilterChanged { it.copy(range = TimeRange.ALL_TIME, customDateStart = null, customDateEnd = null) } },
                     onRemoveType = { vm.onFilterChanged { it.copy(typeFilter = null) } },
                     onRemoveAccount = { vm.onFilterChanged { it.copy(accountId = null) } },
                     onRemoveCard = { vm.onFilterChanged { it.copy(cardId = null) } },
@@ -512,7 +516,14 @@ private fun ActiveFiltersStrip(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (filter.range != TimeRange.ALL_TIME) {
-            DismissChip(label = rangeLabel(filter.range), onDismiss = onRemoveRange)
+            val label = if (filter.range == TimeRange.CUSTOM &&
+                filter.customDateStart != null && filter.customDateEnd != null
+            ) {
+                "${formatChipDate(filter.customDateStart)} – ${formatChipDate(filter.customDateEnd)}"
+            } else {
+                rangeLabel(filter.range)
+            }
+            DismissChip(label = label, onDismiss = onRemoveRange)
         }
         if (filter.typeFilter != null) {
             DismissChip(label = filter.typeFilter.displayLabel(), onDismiss = onRemoveType)
@@ -554,6 +565,11 @@ private fun DismissChip(label: String, onDismiss: () -> Unit) {
     )
 }
 
+private fun formatChipDate(millis: Long): String {
+    val d = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault()).date
+    return "${d.dayOfMonth} ${d.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)}"
+}
+
 @Composable
 internal fun rangeLabel(range: TimeRange): String = when (range) {
     TimeRange.TODAY -> stringResource(R.string.dashboard_section_recent_today)
@@ -561,6 +577,7 @@ internal fun rangeLabel(range: TimeRange): String = when (range) {
     TimeRange.THIS_MONTH -> stringResource(R.string.dashboard_section_recent_month)
     TimeRange.ALL_TIME -> stringResource(R.string.transactions_filter_date) + ": " +
         stringResource(R.string.transactions_filter_any)
+    TimeRange.CUSTOM -> stringResource(R.string.ledger_range_custom)
 }
 
 @Composable
@@ -569,6 +586,7 @@ private fun rangeDisplay(range: TimeRange): String = when (range) {
     TimeRange.THIS_WEEK -> stringResource(R.string.ledger_range_week)
     TimeRange.THIS_MONTH -> stringResource(R.string.ledger_range_month)
     TimeRange.ALL_TIME -> stringResource(R.string.ledger_range_all)
+    TimeRange.CUSTOM -> stringResource(R.string.ledger_range_custom)
 }
 
 

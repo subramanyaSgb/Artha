@@ -13,6 +13,10 @@ enum class TransactionSort { DATE_DESC, DATE_ASC, AMOUNT_DESC, AMOUNT_ASC }
 /** Composable filter spec — all-null means "no filter on that dimension". */
 data class TransactionsFilter(
     val range: TimeRange = TimeRange.ALL_TIME,
+    /** Only used when [range] == [TimeRange.CUSTOM]. Epoch-millis start of the custom window. */
+    val customDateStart: Long? = null,
+    /** Only used when [range] == [TimeRange.CUSTOM]. Epoch-millis end (inclusive) of the custom window. */
+    val customDateEnd: Long? = null,
     val typeFilter: TransactionType? = null,
     val accountId: String? = null,
     val cardId: String? = null,

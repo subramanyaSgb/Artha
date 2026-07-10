@@ -289,6 +289,11 @@
     <string name="ledger_range_week">This week</string>
     <string name="ledger_range_month">This month</string>
     <string name="ledger_range_all">All time</string>
+    <string name="ledger_range_custom">Custom range</string>
+    <string name="ledger_filter_custom_start">From</string>
+    <string name="ledger_filter_custom_end">To</string>
+    <string name="ledger_filter_pick_start_date">Pick start date</string>
+    <string name="ledger_filter_pick_end_date">Pick end date</string>
     <plurals name="transactions_count">
         <item quantity="one">%1$d transaction</item>
         <item quantity="other">%1$d transactions</item>

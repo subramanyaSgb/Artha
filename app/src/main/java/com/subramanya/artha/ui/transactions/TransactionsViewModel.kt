@@ -145,7 +145,7 @@ class TransactionsViewModel(
         q: String,
         f: TransactionsFilter,
     ): List<Transaction> {
-        val range = f.range.toRange(now = clock(), tz = timeZone)
+        val range = f.range.toRange(now = clock(), tz = timeZone, customStart = f.customDateStart, customEnd = f.customDateEnd)
         val needle = q.trim().lowercase()
         return all.filter { txn ->
             if (txn.date !in range.startMillis..range.endMillis) return@filter false

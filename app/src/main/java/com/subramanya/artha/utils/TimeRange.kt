@@ -25,9 +25,19 @@ enum class TimeRange {
     THIS_WEEK,
     THIS_MONTH,
     ALL_TIME,
+    CUSTOM,
     ;
 
-    fun toRange(now: Long = Clock.System.now().toEpochMilliseconds(), tz: TimeZone = TimeZone.currentSystemDefault()): MillisRange {
+    /**
+     * @param customStart epoch-millis start, only used when [TimeRange] is [CUSTOM].
+     * @param customEnd   epoch-millis end (inclusive), only used when [TimeRange] is [CUSTOM].
+     */
+    fun toRange(
+        now: Long = Clock.System.now().toEpochMilliseconds(),
+        tz: TimeZone = TimeZone.currentSystemDefault(),
+        customStart: Long? = null,
+        customEnd: Long? = null,
+    ): MillisRange {
         val nowLdt: LocalDateTime = Instant.fromEpochMilliseconds(now).toLocalDateTime(tz)
         val today: LocalDate = nowLdt.date
 
@@ -61,6 +71,7 @@ enum class TimeRange {
                 MillisRange(start, endExclusive - 1)
             }
             ALL_TIME -> MillisRange(0L, Long.MAX_VALUE)
+            CUSTOM -> MillisRange(customStart ?: 0L, customEnd ?: Long.MAX_VALUE)
         }
     }
 }

@@ -43,10 +43,15 @@ import com.subramanya.artha.data.entity.enums.TransactionType
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Tag
+import com.subramanya.artha.ui.common.ArthaDatePickerDialog
 import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Teal700
 import com.subramanya.artha.ui.transaction.CategoryPickerSheet
 import com.subramanya.artha.utils.TimeRange
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -61,6 +66,8 @@ fun LedgerFilterSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var draft by remember { mutableStateOf(current) }
     var showCategoryPicker by remember { mutableStateOf(false) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -104,6 +111,50 @@ fun LedgerFilterSheet(
                             selectedLabelColor = Teal500,
                         ),
                     )
+                }
+            }
+            if (draft.range == TimeRange.CUSTOM) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = { showStartDatePicker = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(R.string.ledger_filter_custom_start),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = draft.customDateStart?.let { formatShortDate(it) }
+                                    ?: stringResource(R.string.ledger_filter_pick_start_date),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { showEndDatePicker = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(R.string.ledger_filter_custom_end),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = draft.customDateEnd?.let { formatShortDate(it) }
+                                    ?: stringResource(R.string.ledger_filter_pick_end_date),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -205,6 +256,42 @@ fun LedgerFilterSheet(
             onDismiss = { showCategoryPicker = false },
         )
     }
+    if (showStartDatePicker) {
+        ArthaDatePickerDialog(
+            initialMillis = draft.customDateStart ?: Clock.System.now().toEpochMilliseconds(),
+            onConfirm = { millis ->
+                val currentEnd = draft.customDateEnd
+                val newEnd = if (currentEnd != null && currentEnd < millis) millis else currentEnd
+                draft = draft.copy(customDateStart = millis, customDateEnd = newEnd)
+                showStartDatePicker = false
+            },
+            onDismiss = { showStartDatePicker = false },
+        )
+    }
+    if (showEndDatePicker) {
+        ArthaDatePickerDialog(
+            initialMillis = draft.customDateEnd ?: Clock.System.now().toEpochMilliseconds(),
+            onConfirm = { millis ->
+                val endOfDay = endOfDayMillis(millis)
+                val currentStart = draft.customDateStart
+                val newStart = if (currentStart != null && currentStart > endOfDay) endOfDay else currentStart
+                draft = draft.copy(customDateEnd = endOfDay, customDateStart = newStart)
+                showEndDatePicker = false
+            },
+            onDismiss = { showEndDatePicker = false },
+        )
+    }
+}
+
+private fun formatShortDate(millis: Long): String {
+    val tz = TimeZone.currentSystemDefault()
+    val d = Instant.fromEpochMilliseconds(millis).toLocalDateTime(tz).date
+    return "${d.dayOfMonth} ${d.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)} ${d.year}"
+}
+
+private fun endOfDayMillis(dayStartMillis: Long): Long {
+    // The Material3 DatePicker returns UTC midnight; add 23h 59m 59.999s to cover the whole day.
+    return dayStartMillis + 24L * 60 * 60 * 1000 - 1
 }
 
 @Composable
