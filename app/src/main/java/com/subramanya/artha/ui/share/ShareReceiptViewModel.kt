@@ -97,8 +97,25 @@ class ShareReceiptViewModel(
                     upiRef = receipt.upiRef,
                 )
             } catch (e: Exception) {
-                _state.value = ShareReceiptUiState.ScanError(e.message ?: "Failed to scan receipt.")
+                _state.value = ShareReceiptUiState.ScanError(friendlyError(e))
             }
+        }
+    }
+
+    /** Turns raw network exceptions into plain-English guidance. */
+    private fun friendlyError(e: Throwable): String {
+        val msg = e.message.orEmpty()
+        return when {
+            e is java.net.UnknownHostException ||
+                "No address associated" in msg || "Unable to resolve host" in msg ->
+                "No internet connection. Reading a receipt needs internet — connect and try again, or add the transaction manually."
+            e is java.net.SocketTimeoutException || "timeout" in msg.lowercase() ->
+                "The connection timed out. Check your internet and try again."
+            "HTTP 401" in msg || "HTTP 403" in msg ->
+                "The AI key was rejected. It may need to be updated."
+            "HTTP 429" in msg ->
+                "The AI service is busy (rate limit). Wait a moment and try again."
+            else -> msg.ifBlank { "Failed to scan receipt." }
         }
     }
 
