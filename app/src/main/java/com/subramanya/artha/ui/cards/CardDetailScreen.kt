@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
@@ -64,6 +65,7 @@ import com.subramanya.artha.domain.model.Card as DomainCard
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.ui.accounts.BalanceLineChart
 import com.subramanya.artha.ui.common.EmptyState
+import com.subramanya.artha.ui.transactions.LedgerListItem
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.ui.transaction.AddTransactionSheet
 import com.subramanya.artha.ui.transaction.AddTransactionViewModel
@@ -259,7 +261,7 @@ private fun CardDetailBody(
                 modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 4.dp),
             )
         }
-        if (state.transactions.isEmpty()) {
+        if (state.rows.isEmpty()) {
             item("txnsEmpty") {
                 EmptyState(
                     icon = Icons.Filled.Inbox,
@@ -267,13 +269,54 @@ private fun CardDetailBody(
                 )
             }
         } else {
-            items(state.transactions, key = { it.id }) { txn ->
-                TxnRow(
-                    txn = txn,
-                    category = txn.categoryId?.let { state.categoriesById[it] },
-                    cardId = card.id,
-                    onClick = { onOpenTransaction(txn.id) },
-                )
+            items(state.rows, key = { it.key }) { item ->
+                when (item) {
+                    is LedgerListItem.DayHeader -> {
+                        Text(
+                            text = item.display,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp, end = 16.dp),
+                        )
+                    }
+                    is LedgerListItem.Entry -> {
+                        val shape = when {
+                            item.isFirstInDay && item.isLastInDay -> RoundedCornerShape(14.dp)
+                            item.isFirstInDay -> RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
+                            item.isLastInDay -> RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+                            else -> RoundedCornerShape(0.dp)
+                        }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                            ) {
+                                TxnRow(
+                                    txn = item.txn,
+                                    category = item.category,
+                                    cardId = card.id,
+                                    onClick = { onOpenTransaction(item.txn.id) },
+                                )
+                                if (!item.isLastInDay) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(start = 56.dp)
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(MaterialTheme.colorScheme.outlineVariant),
+                                    )
+                                }
+                            }
+                            if (item.isLastInDay) Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                }
             }
         }
         item("bottomSpacer") { Spacer(modifier = Modifier.height(24.dp)) }
