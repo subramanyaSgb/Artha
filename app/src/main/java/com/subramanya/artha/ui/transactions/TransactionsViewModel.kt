@@ -15,7 +15,6 @@ import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Tag
 import com.subramanya.artha.domain.model.Transaction
 import com.subramanya.artha.data.entity.enums.TransactionType
-import com.subramanya.artha.utils.DateFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,12 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.minus
-import kotlinx.datetime.toLocalDateTime
 
 /**
  * Transactions list state: filter / sort / select. The full transaction stream is
@@ -72,12 +66,12 @@ class TransactionsViewModel(
     ) { data, ui ->
         val filtered = applyFilters(data.transactions, ui.query, ui.filter)
         val sorted = applySort(filtered, ui.sort)
-        val grouped = groupByDay(sorted)
+        val grouped = LedgerGrouping.groupByDay(sorted, clock(), timeZone)
         // Precompute here (off the UI thread via flowOn below) so the screen never re-derives
         // these on recomposition: the category lookup map once, and the In/Out/Net totals in a
         // single pass instead of re-summing the whole list on every keystroke/selection.
         val categoriesById = data.categories.associateBy { it.id }
-        val rows = flattenRows(grouped, categoriesById)
+        val rows = LedgerGrouping.flattenRows(grouped, categoriesById, ::signedDelta)
         var inSum = 0.0
         var outSum = 0.0
         for (txn in filtered) {
@@ -195,50 +189,6 @@ class TransactionsViewModel(
         )
         TransactionSort.AMOUNT_DESC -> list.sortedByDescending { it.amount }
         TransactionSort.AMOUNT_ASC -> list.sortedBy { it.amount }
-    }
-
-    private fun groupByDay(list: List<Transaction>): List<TransactionsGroup> {
-        if (list.isEmpty()) return emptyList()
-        val today = Instant.fromEpochMilliseconds(clock()).toLocalDateTime(timeZone).date
-        val yesterday = today.minus(1, DateTimeUnit.DAY)
-
-        // Seed sections in iteration order so the chosen sort drives section order too.
-        val builders = LinkedHashMap<LocalDate, MutableList<Transaction>>()
-        for (txn in list) {
-            val day = Instant.fromEpochMilliseconds(txn.date).toLocalDateTime(timeZone).date
-            builders.getOrPut(day) { ArrayList() }.add(txn)
-        }
-        return builders.map { (day, txns) ->
-            val display = when (day) {
-                today -> "Today"
-                yesterday -> "Yesterday"
-                else -> DateFormatter.shortDate(day)
-            }
-            TransactionsGroup(headerKey = day.toString(), headerDisplay = display, transactions = txns)
-        }
-    }
-
-    /** Flatten day groups into a single keyed list: a header followed by its entries, each entry
-     *  carrying its resolved category + first/last-in-day flags for the day-card rounding. */
-    private fun flattenRows(
-        groups: List<TransactionsGroup>,
-        categoriesById: Map<String, Category>,
-    ): List<LedgerListItem> = buildList {
-        groups.forEach { group ->
-            val daySum = group.transactions.sumOf { signedDelta(it) }
-            add(LedgerListItem.DayHeader(group.headerKey, group.headerDisplay, daySum))
-            val lastIndex = group.transactions.lastIndex
-            group.transactions.forEachIndexed { i, txn ->
-                add(
-                    LedgerListItem.Entry(
-                        txn = txn,
-                        category = txn.categoryId?.let { categoriesById[it] },
-                        isFirstInDay = i == 0,
-                        isLastInDay = i == lastIndex,
-                    ),
-                )
-            }
-        }
     }
 
     /** For day totals: positive for income-like, negative for outflow, zero otherwise. */
