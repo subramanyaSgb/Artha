@@ -270,6 +270,8 @@
     <string name="transactions_filter_category">Category</string>
     <string name="transactions_filter_tag">Tag</string>
     <string name="transactions_filter_clear_all">Clear filters</string>
+    <string name="ledger_filter_sheet_title">Filters</string>
+    <string name="ledger_filter_apply">Apply Filters</string>
     <string name="transactions_filter_any">Any</string>
     <string name="transactions_sort_label">Sort</string>
     <string name="transactions_sort_date_desc">Date — newest first</string>

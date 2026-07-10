@@ -496,7 +496,7 @@ private fun RangeFilterChip(current: TimeRange, onPick: (TimeRange) -> Unit) {
 }
 
 @Composable
-private fun rangeLabel(range: TimeRange): String = when (range) {
+internal fun rangeLabel(range: TimeRange): String = when (range) {
     TimeRange.TODAY -> stringResource(R.string.dashboard_section_recent_today)
     TimeRange.THIS_WEEK -> stringResource(R.string.dashboard_section_recent_week)
     TimeRange.THIS_MONTH -> stringResource(R.string.dashboard_section_recent_month)
@@ -758,7 +758,7 @@ private fun SelectionTopBar(count: Int, onClear: () -> Unit, onDelete: () -> Uni
 // ───────────────────────────── helpers ───────────────────────────────────────
 
 @Composable
-private fun TransactionType.displayLabel(): String = when (this) {
+internal fun TransactionType.displayLabel(): String = when (this) {
     TransactionType.EXPENSE -> stringResource(R.string.txn_type_expense)
     TransactionType.INCOME -> stringResource(R.string.txn_type_income)
     TransactionType.TRANSFER -> stringResource(R.string.txn_type_transfer)
@@ -775,7 +775,7 @@ private fun TransactionType.displayLabel(): String = when (this) {
 }
 
 @Composable
-private fun TransactionSort.displayLabel(): String = when (this) {
+internal fun TransactionSort.displayLabel(): String = when (this) {
     TransactionSort.DATE_DESC -> stringResource(R.string.transactions_sort_date_desc)
     TransactionSort.DATE_ASC -> stringResource(R.string.transactions_sort_date_asc)
     TransactionSort.AMOUNT_DESC -> stringResource(R.string.transactions_sort_amount_desc)
