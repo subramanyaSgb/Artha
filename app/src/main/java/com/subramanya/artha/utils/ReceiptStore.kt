@@ -95,29 +95,35 @@ object ReceiptStore {
                 bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
             }
             bitmap.recycle()
-            Uri.fromFile(file).toString()
+            // Store the absolute path — ContentResolver can't open file:// URIs on API 24+.
+            file.absolutePath
         }.getOrNull()
     }
 
     /**
-     * Decodes the receipt at [uri] (file:// or legacy content://) off the main thread.
-     * Returns null when unreadable — e.g. a legacy content:// URI whose grant was
-     * revoked; callers show their text fallback in that case.
+     * Decodes the receipt stored at [uri] off the main thread.
+     * Accepts absolute file paths, file:// URIs (legacy), or content:// URIs.
+     * Returns null when the file can't be read.
      */
     suspend fun loadBitmap(context: Context, uri: String): ImageBitmap? = withContext(Dispatchers.IO) {
         runCatching {
-            val parsed = Uri.parse(uri)
-            val resolver = context.contentResolver
+            // Resolve to an InputStream regardless of how the path was stored.
+            fun openStream(): java.io.InputStream? = when {
+                uri.startsWith("/") -> File(uri).takeIf { it.exists() }?.inputStream()
+                uri.startsWith("file://") -> Uri.parse(uri).path
+                    ?.let { File(it) }
+                    ?.takeIf { it.exists() }
+                    ?.inputStream()
+                else -> context.contentResolver.openInputStream(Uri.parse(uri))
+            }
+
+            val bytes = openStream()?.use { it.readBytes() } ?: return@runCatching null
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            resolver.openInputStream(parsed)?.use {
-                BitmapFactory.decodeStream(it, null, bounds)
-            } ?: return@runCatching null
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
             val opts = BitmapFactory.Options().apply {
                 inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight)
             }
-            resolver.openInputStream(parsed)
-                ?.use { BitmapFactory.decodeStream(it, null, opts) }
-                ?.asImageBitmap()
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)?.asImageBitmap()
         }.getOrNull()
     }
 
