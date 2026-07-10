@@ -84,6 +84,7 @@ import com.subramanya.artha.ui.theme.Expense
 import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
 import com.subramanya.artha.ui.theme.InstrumentSerif
+import com.subramanya.artha.ui.theme.Teal500
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.incomeSoftFill
 import com.subramanya.artha.ui.transaction.AddTransactionSheet
@@ -113,6 +114,7 @@ fun TransactionsScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     var sortMenuOpen by remember { mutableStateOf(false) }
     var showAddSheet by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
     // Search text held locally so it updates synchronously with each keystroke; the VM is
     // fed separately to run the filter (which re-derives the whole list on Default). Binding
     // the field straight to the VM's StateFlow would lag the IME and jumble fast typing.
@@ -131,9 +133,20 @@ fun TransactionsScreen(
                     LedgerHeader(
                         rangeLabel = rangeDisplay(state.filter.range),
                         sort = state.sort,
+                        activeFilterCount = run {
+                            var count = 0
+                            if (state.filter.range != TimeRange.ALL_TIME) count++
+                            if (state.filter.typeFilter != null) count++
+                            if (state.filter.accountId != null) count++
+                            if (state.filter.cardId != null) count++
+                            if (state.filter.categoryId != null) count++
+                            if (state.filter.tagId != null) count++
+                            count
+                        },
                         sortMenuOpen = sortMenuOpen,
                         onSortMenuToggle = { sortMenuOpen = it },
                         onSortChanged = vm::onSortChanged,
+                        onFilterClick = { showFilterSheet = true },
                     )
                 }
 
@@ -143,11 +156,20 @@ fun TransactionsScreen(
                     query = query,
                     onQueryChanged = { query = it; vm.onQueryChanged(it) },
                 )
-                Spacer(Modifier.height(8.dp))
-                FilterRow(
-                    state = state,
-                    viewModel = vm,
+                Spacer(Modifier.height(4.dp))
+                ActiveFiltersStrip(
+                    filter = state.filter,
+                    accounts = state.accounts,
+                    cards = state.cards,
+                    categories = state.categories,
+                    tags = state.tags,
                     queryActive = query.isNotEmpty(),
+                    onRemoveRange = { vm.onFilterChanged { it.copy(range = TimeRange.ALL_TIME) } },
+                    onRemoveType = { vm.onFilterChanged { it.copy(typeFilter = null) } },
+                    onRemoveAccount = { vm.onFilterChanged { it.copy(accountId = null) } },
+                    onRemoveCard = { vm.onFilterChanged { it.copy(cardId = null) } },
+                    onRemoveCategory = { vm.onFilterChanged { it.copy(categoryId = null) } },
+                    onRemoveTag = { vm.onFilterChanged { it.copy(tagId = null) } },
                     onClearAll = { query = ""; vm.clearFilters() },
                 )
                 Spacer(Modifier.height(4.dp))
@@ -249,6 +271,17 @@ fun TransactionsScreen(
         }
     }
 
+    if (showFilterSheet) {
+        LedgerFilterSheet(
+            current = state.filter,
+            accounts = state.accounts,
+            categories = state.categories,
+            tags = state.tags,
+            onApply = { newFilter -> vm.onFilterChanged { newFilter } },
+            onDismiss = { showFilterSheet = false },
+        )
+    }
+
     if (state.showDeleteConfirm) {
         com.subramanya.artha.ui.common.ArthaAlertDialog(
             onDismissRequest = vm::dismissDeleteConfirm,
@@ -287,9 +320,11 @@ fun TransactionsScreen(
 private fun LedgerHeader(
     rangeLabel: String,
     sort: TransactionSort,
+    activeFilterCount: Int,
     sortMenuOpen: Boolean,
     onSortMenuToggle: (Boolean) -> Unit,
     onSortChanged: (TransactionSort) -> Unit,
+    onFilterClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -313,6 +348,30 @@ private fun LedgerHeader(
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
+        // Filter button with active-count badge
+        Box {
+            IconButton(onClick = onFilterClick) {
+                Icon(Icons.Filled.FilterList, contentDescription = stringResource(R.string.ledger_filter_sheet_title))
+            }
+            if (activeFilterCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(Teal500)
+                        .align(Alignment.TopEnd),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "$activeFilterCount",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        fontSize = 9.sp,
+                    )
+                }
+            }
+        }
+        // Sort button
         Box {
             IconButton(onClick = { onSortMenuToggle(true) }) {
                 Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.transactions_sort_label))
@@ -426,73 +485,73 @@ private fun SearchField(query: String, onQueryChanged: (String) -> Unit) {
 }
 
 @Composable
-private fun FilterRow(
-    state: TransactionsUiState,
-    viewModel: TransactionsViewModel,
+private fun ActiveFiltersStrip(
+    filter: TransactionsFilter,
+    accounts: List<Account>,
+    cards: List<Card>,
+    categories: List<Category>,
+    tags: List<Tag>,
     queryActive: Boolean,
+    onRemoveRange: () -> Unit,
+    onRemoveType: () -> Unit,
+    onRemoveAccount: () -> Unit,
+    onRemoveCard: () -> Unit,
+    onRemoveCategory: () -> Unit,
+    onRemoveTag: () -> Unit,
     onClearAll: () -> Unit,
 ) {
+    val hasActive = filter != TransactionsFilter() || queryActive
+    if (!hasActive) return
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        RangeFilterChip(
-            current = state.filter.range,
-            onPick = { range -> viewModel.onFilterChanged { it.copy(range = range) } },
-        )
-        TypeFilterChip(
-            current = state.filter.typeFilter,
-            onPick = { type -> viewModel.onFilterChanged { it.copy(typeFilter = type) } },
-        )
-        AccountFilterChip(
-            accounts = state.accounts,
-            currentId = state.filter.accountId,
-            onPick = { id -> viewModel.onFilterChanged { it.copy(accountId = id) } },
-        )
-        CardFilterChip(
-            cards = state.cards,
-            currentId = state.filter.cardId,
-            onPick = { id -> viewModel.onFilterChanged { it.copy(cardId = id) } },
-        )
-        CategoryFilterChip(
-            categories = state.categories,
-            currentId = state.filter.categoryId,
-            onPick = { id -> viewModel.onFilterChanged { it.copy(categoryId = id) } },
-        )
-        TagFilterChip(
-            tags = state.tags,
-            currentId = state.filter.tagId,
-            onPick = { id -> viewModel.onFilterChanged { it.copy(tagId = id) } },
-        )
-        if (state.filter != TransactionsFilter() || queryActive) {
-            TextButton(onClick = onClearAll) {
-                Text(stringResource(R.string.transactions_filter_clear_all))
-            }
+        if (filter.range != TimeRange.ALL_TIME) {
+            DismissChip(label = rangeLabel(filter.range), onDismiss = onRemoveRange)
+        }
+        if (filter.typeFilter != null) {
+            DismissChip(label = filter.typeFilter.displayLabel(), onDismiss = onRemoveType)
+        }
+        if (filter.accountId != null) {
+            val name = accounts.firstOrNull { it.id == filter.accountId }?.name ?: filter.accountId
+            DismissChip(label = name, onDismiss = onRemoveAccount)
+        }
+        if (filter.cardId != null) {
+            val name = cards.firstOrNull { it.id == filter.cardId }?.name ?: "Card"
+            DismissChip(label = name, onDismiss = onRemoveCard)
+        }
+        if (filter.categoryId != null) {
+            val name = categories.firstOrNull { it.id == filter.categoryId }?.name ?: "Category"
+            DismissChip(label = name, onDismiss = onRemoveCategory)
+        }
+        if (filter.tagId != null) {
+            val name = tags.firstOrNull { it.id == filter.tagId }?.name ?: "Tag"
+            DismissChip(label = name, onDismiss = onRemoveTag)
+        }
+        TextButton(
+            onClick = onClearAll,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+        ) {
+            Text(stringResource(R.string.transactions_filter_clear_all), style = MaterialTheme.typography.labelSmall)
         }
     }
 }
 
 @Composable
-private fun RangeFilterChip(current: TimeRange, onPick: (TimeRange) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        ElevatedFilterChip(
-            selected = current != TimeRange.ALL_TIME,
-            onClick = { expanded = true },
-            label = { Text(rangeLabel(current)) },
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            TimeRange.entries.forEach { range ->
-                DropdownMenuItem(
-                    text = { Text(rangeLabel(range)) },
-                    onClick = { onPick(range); expanded = false },
-                )
-            }
-        }
-    }
+private fun DismissChip(label: String, onDismiss: () -> Unit) {
+    ElevatedFilterChip(
+        selected = true,
+        onClick = onDismiss,
+        label = { Text(label) },
+        trailingIcon = {
+            Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+        },
+    )
 }
 
 @Composable
@@ -512,145 +571,6 @@ private fun rangeDisplay(range: TimeRange): String = when (range) {
     TimeRange.ALL_TIME -> stringResource(R.string.ledger_range_all)
 }
 
-@Composable
-private fun TypeFilterChip(current: TransactionType?, onPick: (TransactionType?) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        ElevatedFilterChip(
-            selected = current != null,
-            onClick = { expanded = true },
-            label = { Text(current?.displayLabel() ?: stringResource(R.string.transactions_filter_type)) },
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.transactions_filter_any)) },
-                onClick = { onPick(null); expanded = false },
-            )
-            TransactionType.entries.forEach { type ->
-                DropdownMenuItem(
-                    text = { Text(type.displayLabel()) },
-                    onClick = { onPick(type); expanded = false },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AccountFilterChip(accounts: List<Account>, currentId: String?, onPick: (String?) -> Unit) {
-    if (accounts.isEmpty()) return
-    var expanded by remember { mutableStateOf(false) }
-    val currentName = currentId?.let { id -> accounts.firstOrNull { it.id == id }?.name }
-    Box {
-        ElevatedFilterChip(
-            selected = currentId != null,
-            onClick = { expanded = true },
-            label = { Text(currentName ?: stringResource(R.string.transactions_filter_account)) },
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.transactions_filter_any)) },
-                onClick = { onPick(null); expanded = false },
-            )
-            accounts.forEach { acct ->
-                DropdownMenuItem(
-                    text = { Text(acct.name) },
-                    onClick = { onPick(acct.id); expanded = false },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CardFilterChip(cards: List<Card>, currentId: String?, onPick: (String?) -> Unit) {
-    if (cards.isEmpty()) return
-    var expanded by remember { mutableStateOf(false) }
-    val currentName = currentId?.let { id -> cards.firstOrNull { it.id == id }?.name }
-    Box {
-        ElevatedFilterChip(
-            selected = currentId != null,
-            onClick = { expanded = true },
-            label = { Text(currentName ?: stringResource(R.string.transactions_filter_card)) },
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.transactions_filter_any)) },
-                onClick = { onPick(null); expanded = false },
-            )
-            cards.forEach { card ->
-                DropdownMenuItem(
-                    text = { Text(card.name) },
-                    onClick = { onPick(card.id); expanded = false },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CategoryFilterChip(categories: List<Category>, currentId: String?, onPick: (String?) -> Unit) {
-    if (categories.isEmpty()) return
-    var expanded by remember { mutableStateOf(false) }
-    val currentName = currentId?.let { id -> categories.firstOrNull { it.id == id }?.name }
-    Box {
-        ElevatedFilterChip(
-            selected = currentId != null,
-            onClick = { expanded = true },
-            label = { Text(currentName ?: stringResource(R.string.transactions_filter_category)) },
-        )
-        // Parents followed by their children (indented), so you can filter by a main
-        // category OR a specific sub-category. applyFilters matches categoryId OR subCategoryId.
-        val ordered = remember(categories) {
-            val parents = categories.filter { it.parentId == null }
-            val childrenByParent = categories.filter { it.parentId != null }.groupBy { it.parentId }
-            buildList {
-                parents.forEach { parent ->
-                    add(parent to false)
-                    childrenByParent[parent.id]?.forEach { child -> add(child to true) }
-                }
-            }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.transactions_filter_any)) },
-                onClick = { onPick(null); expanded = false },
-            )
-            ordered.forEach { (cat, isChild) ->
-                DropdownMenuItem(
-                    text = { Text(if (isChild) "    ${cat.name}" else cat.name) },
-                    onClick = { onPick(cat.id); expanded = false },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TagFilterChip(tags: List<Tag>, currentId: String?, onPick: (String?) -> Unit) {
-    if (tags.isEmpty()) return
-    var expanded by remember { mutableStateOf(false) }
-    val currentName = currentId?.let { id -> tags.firstOrNull { it.id == id }?.name }
-    Box {
-        ElevatedFilterChip(
-            selected = currentId != null,
-            onClick = { expanded = true },
-            label = { Text(currentName ?: stringResource(R.string.transactions_filter_tag)) },
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.transactions_filter_any)) },
-                onClick = { onPick(null); expanded = false },
-            )
-            tags.forEach { tag ->
-                DropdownMenuItem(
-                    text = { Text(tag.name) },
-                    onClick = { onPick(tag.id); expanded = false },
-                )
-            }
-        }
-    }
-}
 
 // ───────────────────────────── Day Header + Rows ─────────────────────────────
 
