@@ -120,9 +120,10 @@ class ShareReceiptViewModel(
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val savedReceiptUri = ReceiptStore.persist(context, imageUri)
-            // Merchant (payee) + UPI ref live in notes; description is the transaction's label.
+            // Merchant maps to `description` — the SAME field the manual Add-Transaction form
+            // labels "Merchant" (its primary title). The Description field + UPI ref go to notes.
             val notes = buildString {
-                if (current.merchant.isNotBlank()) append("Paid to ${current.merchant.trim()}")
+                if (current.description.isNotBlank()) append(current.description.trim())
                 current.upiRef?.let {
                     if (isNotEmpty()) append(" · ")
                     append("UPI Ref: $it")
@@ -135,7 +136,7 @@ class ShareReceiptViewModel(
                 amount = amount,
                 currency = "INR",
                 date = current.dateTimeMillis,
-                description = current.description.ifBlank { current.merchant }.trim(),
+                description = current.merchant.ifBlank { current.description }.trim(),
                 categoryId = current.selectedCategoryId,
                 subCategoryId = null,
                 sourceType = SourceKind.ACCOUNT,
