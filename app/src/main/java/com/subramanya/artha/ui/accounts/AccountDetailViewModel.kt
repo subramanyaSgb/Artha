@@ -13,6 +13,8 @@ import com.subramanya.artha.data.repository.TransactionRepository
 import com.subramanya.artha.domain.model.Account
 import com.subramanya.artha.domain.model.Category
 import com.subramanya.artha.domain.model.Transaction
+import com.subramanya.artha.ui.transactions.LedgerGrouping
+import com.subramanya.artha.ui.transactions.LedgerListItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -39,6 +41,7 @@ data class AccountDetailUiState(
     val totalIn: Double = 0.0,
     val totalOut: Double = 0.0,
     val transactions: List<Transaction> = emptyList(),
+    val rows: List<LedgerListItem> = emptyList(),
     /** For resolving each row's category icon/colour (same pattern as Dashboard). */
     val categoriesById: Map<String, Category> = emptyMap(),
     /** End-of-day balance for the last [CHART_DAYS] days, oldest → newest. */
@@ -80,13 +83,28 @@ class AccountDetailViewModel(
         )
         val (inSum, outSum) = totalsFor(account, transactions)
         val chart = chartPointsLast30Days(account, entities)
+        val sorted = transactions.sortedByDescending { it.date }
+        val categoriesById = categories.associateBy { it.id }
+        val grouped = LedgerGrouping.groupByDay(sorted, clock(), timeZone)
+        val rows = LedgerGrouping.flattenRows(grouped, categoriesById) { txn ->
+            when (txn.type) {
+                TransactionType.INCOME, TransactionType.REFUND, TransactionType.CASHBACK,
+                TransactionType.INTEREST, TransactionType.LOAN_RECEIVED,
+                TransactionType.GIFT_RECEIVED, TransactionType.INVESTMENT_SELL -> txn.amount
+                TransactionType.EXPENSE, TransactionType.LOAN_GIVEN, TransactionType.GIFT_SENT,
+                TransactionType.INVESTMENT_BUY, TransactionType.TRANSFER,
+                TransactionType.CARD_PAYMENT -> -txn.amount
+                else -> 0.0
+            }
+        }
         AccountDetailUiState(
             account = account,
             currentBalance = balance,
             totalIn = inSum,
             totalOut = outSum,
             transactions = transactions,
-            categoriesById = categories.associateBy { it.id },
+            rows = rows,
+            categoriesById = categoriesById,
             chartPoints = chart,
             showArchiveConfirm = archiveConfirm,
             showDeleteConfirm = deleteConfirm,
