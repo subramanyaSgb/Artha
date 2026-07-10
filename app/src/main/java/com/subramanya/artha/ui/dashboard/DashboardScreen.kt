@@ -87,6 +87,7 @@ import com.subramanya.artha.ui.theme.IbmPlexMono
 import com.subramanya.artha.ui.theme.Income
 import com.subramanya.artha.ui.theme.LineTeal
 import com.subramanya.artha.ui.theme.Teal700
+import com.subramanya.artha.ui.theme.Text1
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.ui.theme.aiCardGradientEnd
 import com.subramanya.artha.ui.theme.expenseSoftFill
@@ -576,6 +577,12 @@ private fun PremiumDueBanner(
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
             }
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }
@@ -585,10 +592,10 @@ private fun PremiumDueBanner(
 @Composable
 private fun FlowStrip(state: DashboardUiState) {
     // Current month abbreviation (JAN..DEC) — was previously hardcoded to "MAY".
-    val monthLabel = remember {
-        kotlinx.datetime.Clock.System.now()
-            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
-            .month.name.take(3)
+    val now = kotlinx.datetime.Clock.System.now()
+        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+    val monthLabel = remember(now.year, now.monthNumber) {
+        now.month.name.take(3)
     }
     Row(
         modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
@@ -701,7 +708,8 @@ private fun SpendingBreakdown(items: List<CategorySpend>) {
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainer),
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp)),
         ) {
             items.forEachIndexed { i, spend ->
                 SpendRow(spend = spend, fraction = (spend.amount / maxAmount).toFloat())
@@ -895,7 +903,9 @@ private fun AccountChip(row: AccountWithBalance, tone: Color, onClick: () -> Uni
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = row.account.type.replace('_', ' '),
+                text = row.account.type.split('_').joinToString(" ") { word ->
+                    word.lowercase().replaceFirstChar { it.uppercase() }
+                },
                 color = Color.White.copy(alpha = 0.85f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -964,20 +974,30 @@ private fun CardsRow(
             onAction = onViewAll,
         )
         if (cards.isEmpty()) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
-                    .padding(20.dp),
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(
-                    text = stringResource(R.string.dashboard_section_cards_empty),
-                    color = Text3,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Box(
+                    modifier = Modifier
+                        .height(116.dp)
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+                        .padding(20.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Text(
+                        text = stringResource(R.string.dashboard_section_cards_empty),
+                        color = Text3,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                AddChip(onClick = onAddCard, label = stringResource(R.string.dashboard_add_card))
             }
         } else {
             Row(
@@ -1120,8 +1140,10 @@ private fun RecentSection(
             return@Column
         }
 
+        val labelToday = stringResource(R.string.dashboard_section_recent_today)
+        val labelYesterday = stringResource(R.string.group_header_yesterday)
         // Group transactions by day label (e.g. "Today", "Yesterday", weekday).
-        val grouped: Map<String, List<Transaction>> = transactions.groupBy { dayLabel(it.date) }
+        val grouped: Map<String, List<Transaction>> = transactions.groupBy { dayLabel(it.date, labelToday, labelYesterday) }
 
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             grouped.forEach { (day, list) ->
@@ -1277,7 +1299,7 @@ private fun FabRow(onTap: () -> Unit, modifier: Modifier = Modifier) {
         onClick = onTap,
         shape = RoundedCornerShape(18.dp),
         containerColor = Teal700,
-        contentColor = androidx.compose.ui.graphics.Color(0xFFF0EAD6),
+        contentColor = Text1,
         icon = {
             Icon(
                 imageVector = Icons.Filled.Add,
@@ -1336,16 +1358,15 @@ private fun transactionMeta(txn: Transaction): String {
 }
 
 /** Compact day label per recent-list grouping in the design. */
-private fun dayLabel(epochMillis: Long): String {
+private fun dayLabel(epochMillis: Long, labelToday: String, labelYesterday: String): String {
     val tz = kotlinx.datetime.TimeZone.currentSystemDefault()
-    val today = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-    val tdy = kotlinx.datetime.Instant.fromEpochMilliseconds(today)
+    val tdy = kotlinx.datetime.Clock.System.now()
         .toLocalDateTime(tz).date
     val d = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMillis)
         .toLocalDateTime(tz).date
     return when (d) {
-        tdy -> "Today"
-        tdy.minus(1, kotlinx.datetime.DateTimeUnit.DAY) -> "Yesterday"
+        tdy -> labelToday
+        tdy.minus(1, kotlinx.datetime.DateTimeUnit.DAY) -> labelYesterday
         else -> DateFormatter.shortDate(d)
     }
 }
