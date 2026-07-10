@@ -13,7 +13,9 @@ import org.junit.Test
  */
 class BankSmsParserTest {
 
-    private val now = 1_000_000_000_000L
+    // A realistic "SMS arrived now" timestamp in mid-2026 — SMS about a 2026 transaction
+    // arrives in 2026, so receivedAt is near the parsed dates (matters for the sanity clamp).
+    private val now = 1_785_500_000_000L
 
     @Test
     fun hdfc_debit_upi() {
@@ -57,6 +59,59 @@ class BankSmsParserTest {
         assertTrue(p.isDebit)
         assertEquals("5678", p.accountHint)
         assertEquals("998877665544", p.refNo)
+    }
+
+    private fun yearOf(millis: Long): Int =
+        java.util.Calendar.getInstance().apply { timeInMillis = millis }.get(java.util.Calendar.YEAR)
+
+    private fun monthOf(millis: Long): Int =
+        java.util.Calendar.getInstance().apply { timeInMillis = millis }.get(java.util.Calendar.MONTH) + 1
+
+    private fun dayOf(millis: Long): Int =
+        java.util.Calendar.getInstance().apply { timeInMillis = millis }.get(java.util.Calendar.DAY_OF_MONTH)
+
+    @Test
+    fun date_two_digit_year_dash_resolves_to_2000s() {
+        // "03-07-26" must be 03 Jul 2026 — not year 0026 (the greedy-yyyy bug).
+        val p = BankSmsParser.parse("Sent Rs.434 From HDFC A/C x1234 On 03-07-26 Ref 540548535287", now)
+        requireNotNull(p)
+        assertEquals(2026, yearOf(p.occurredAt!!))
+        assertEquals(7, monthOf(p.occurredAt!!))
+        assertEquals(3, dayOf(p.occurredAt!!))
+    }
+
+    @Test
+    fun date_named_month_two_digit_year() {
+        val p = BankSmsParser.parse("Rs.5000 credited to A/c XX7890 on 02-Jul-26 UPI Ref No 112233445566", now)
+        requireNotNull(p)
+        assertEquals(2026, yearOf(p.occurredAt!!))
+        assertEquals(7, monthOf(p.occurredAt!!))
+        assertEquals(2, dayOf(p.occurredAt!!))
+    }
+
+    @Test
+    fun date_four_digit_year_slash() {
+        val p = BankSmsParser.parse("INR 1299 spent on Card XX4321 at AMAZON on 01/07/2026", now)
+        requireNotNull(p)
+        assertEquals(2026, yearOf(p.occurredAt!!))
+        assertEquals(7, monthOf(p.occurredAt!!))
+        assertEquals(1, dayOf(p.occurredAt!!))
+    }
+
+    @Test
+    fun date_absent_falls_back_to_received_at() {
+        val p = BankSmsParser.parse("Rs.250 debited from a/c 5678 to zomato via UPI ref 998877665544", now)
+        requireNotNull(p)
+        assertEquals(now, p.occurredAt)
+    }
+
+    @Test
+    fun absurd_past_date_falls_back_to_received_at() {
+        // A pre-2000 parse (or any mis-parse) must NOT stamp the transaction — fall back to now,
+        // so it can never be buried ~decades in the past and hidden from every view.
+        val p = BankSmsParser.parse("Rs.100 spent at SHOP on 01-07-1995 via card XX1234", now)
+        requireNotNull(p)
+        assertEquals(now, p.occurredAt)
     }
 
     @Test
