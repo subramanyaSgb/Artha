@@ -8,6 +8,7 @@ A native Android personal finance manager built for the Indian context — local
 
 ## Overview
 
+
 Artha is a single-user personal finance app designed around how money actually moves in India: UPI handles, joint family accounts, religious giving, RDs and SIPs, endowment-linked insurance, and the everyday mix of cash, cards, and bank transfers. Nothing leaves the device unless you explicitly export it.
 
 - **Local-only storage** — Room database on-device. No cloud, no telemetry, no account required.
