@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.subramanya.artha.R
 
@@ -24,6 +25,9 @@ enum class ArthaDestination(
     Transactions(route = "transactions", labelRes = R.string.nav_transactions, icon = Icons.AutoMirrored.Filled.ReceiptLong),
     Accounts(route = "accounts", labelRes = R.string.nav_accounts, icon = Icons.Filled.AccountBalance),
     Cards(route = "cards", labelRes = R.string.nav_cards, icon = Icons.Filled.CreditCard),
+    // Route intentionally matches SubRoutes.REVIEW ("review") so the existing NavHost
+    // entry serves this tab; the SMS-review screen is now a top-level destination.
+    Review(route = "review", labelRes = R.string.nav_review, icon = Icons.Filled.RateReview),
     More(route = "more", labelRes = R.string.nav_more, icon = Icons.Filled.MoreHoriz),
     ;
 

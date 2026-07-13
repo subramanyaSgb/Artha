@@ -238,7 +238,9 @@ private fun MainApp(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         topBar = {
-            if (isBottomNavRoute) {
+            // Review is a tab but renders its own "Review" TopAppBar, so skip the shared
+            // greeting bar for it to avoid a double top bar.
+            if (isBottomNavRoute && currentDestination != ArthaDestination.Review) {
                 ArthaTopBar(
                     userName = userName,
                     onSearchClick = {
