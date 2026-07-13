@@ -73,6 +73,19 @@ Work from the goal I state at session start; don't start speculative features. W
 - All IDs are UUID strings, not auto-increment ints
 - **Hilt is NOT used in Phase 1.** Manual constructor injection only. Keep the dependency tree small.
 
+## Codebase Architecture (big-picture wiring)
+
+The conventions above say *what* the rules are; this is *where the wires actually connect* — the parts you'd otherwise have to reconstruct by reading `ArthaApplication`, `MainActivity`, and `ui/navigation/` together.
+
+- **Manual DI lives in `ArthaApplication`.** Every repository, `SettingsPreferences`, the `AppDatabase`, and the `aiQuickEntryParser` are `by lazy` singletons on the Application instance. Anything that needs one reaches it via `LocalContext.current.applicationContext as ArthaApplication`, then hands it to a `ViewModel` through a `…ViewModelFactory` constructor. There is no service locator beyond this — if you add a repository, wire it here.
+- **Repository-held shared flows use a process-lifetime `appScope`** (`SupervisorJob + Dispatchers.Default`) with `shareIn(WhileSubscribed)`. Balance/valuation flows only compute while a screen collects them. Pass `appScope` to any repository that caches a `shareIn` flow (see `AccountRepository`, `CardRepository`, `InvestmentRepository`).
+- **Startup is a state machine in `MainActivity`.** `MainActivity` is a `FragmentActivity` (BiometricPrompt requires it). `ArthaRoot` applies theme + optional `BiometricLockGate`; `ArthaInner` runs a `Loading → NeedsOnboarding → Ready` machine that forces DB init + `CategorySeeder`, runs the bundled bank import once per `CURRENT_BUNDLED_IMPORT_VERSION`, prunes orphan receipts, then shows Splash / Onboarding / `MainApp`.
+- **Navigation is split in `ui/navigation/`.** `ArthaDestination` = the bottom-nav tabs; `SubRoutes` = everything else (detail screens keyed by UUID arg, plus More-drawer destinations). `MainApp` owns the `Scaffold` (top bar, bottom bar, More sheet) and hosts `ArthaNavHost`. Deep-links (shared UPI receipt image via `ACTION_SEND`, SMS-review notification tap) arrive as intents → observable state → `LaunchedEffect` navigation.
+- **Balance/valuation math is isolated in `data/balance/`** (`BalanceCalculator`, `BudgetCalculator`, `MonthlyTotals`) and unit-tested in `app/src/test/.../data/balance/`. This is the code the "balances are computed, never stored" rule protects — touch it only with tests.
+- **AI parsing is behind the `AiQuickEntryParser` interface** (`ai/`). The live implementation is `NvidiaNimQuickEntryParser` (NIM, see the AI-provider note below). `GeminiQuickEntryParser` is legacy and no longer wired — don't extend it without checking `ArthaApplication.aiQuickEntryParser`.
+- **Rules, recurring, and SMS are self-contained subsystems.** `domain/rules/` (`RuleEngine` + `RuleSpecJson` codec, stored as JSON in a `String` column), `domain/recurring/` (`RecurringFireEngine`) fired by `worker/RecurringFireWorker` (WorkManager, scheduled in `ArthaApplication.onCreate`), and `sms/` (`SmsReceiver` → `BankSmsParser` → `pending_sms` review queue surfaced by `ReviewScreen`). Each has JVM tests under `app/src/test/`.
+- **Room specifics.** `AppDatabase` is currently **version 10**, `exportSchema = true` → `app/schemas/<v>.json` (committed, validated by `MigrationTestHelper`). Migrations live in `data/db/Migrations.kt`; first-run seeding runs through `db/seed/` callbacks. When you change the schema: bump the version, add a migration, regenerate the schema JSON, and add/adjust the instrumented migration test.
+
 ## Coding Style
 
 - Composable functions over classes. One screen per file; small helpers in same file.
@@ -86,8 +99,10 @@ Work from the goal I state at session start; don't start speculative features. W
 ## Build & Run
 
 - Build: `./gradlew assembleDebug`
-- Unit tests: `./gradlew test`
-- Instrumentation tests: `./gradlew connectedDebugAndroidTest` (needs emulator/device)
+- Unit tests: `./gradlew test` (or `./gradlew testDebugUnitTest` for just the debug variant)
+- Single test class/method: `./gradlew testDebugUnitTest --tests "com.subramanya.artha.data.balance.BalanceCalculatorTest"` (append `.methodName` for one method)
+- Instrumentation tests: `./gradlew connectedDebugAndroidTest` (needs emulator/device; includes the Room `MigrationTestHelper` tests)
+- On Windows, use `.\gradlew.bat` in place of `./gradlew`.
 - Install on connected device: `./gradlew installDebug`
 - Lint: `./gradlew lint`
 - Format: configure ktlint / Spotless in Session 1
@@ -165,8 +180,10 @@ file as the SDK path) or AI silently no-ops.
   and transaction-level dedup (SMS vs shared UPI receipt).
 - **Configurable pick-lists done (2026-06-06)** — All three phases shipped:
   Phase 1 (custom colours/icons + Settings manage-UI), Phase 2 (PaymentApp catalogue,
-  DB v5→v6), Phase 3 (Account/Card/Insurance type catalogues, DB v6→v7). DB is now
-  v7. Four `enum` TypeConverters removed; columns are plain `String` with seeded
+  DB v5→v6), Phase 3 (Account/Card/Insurance type catalogues, DB v6→v7). (The pick-list
+  work landed the DB at v7; it has since advanced to **v10** — SMS auto-import and later
+  migrations. `AppDatabase.version` is authoritative.) Four `enum` TypeConverters removed;
+  columns are plain `String` with seeded
   built-in catalogues. Instrumented migration tests written; pending device-run.
 - **Bug fixes (2026-06-06)** — Receipt thumbnail now renders (BitmapFactory decode
   from content URI); Investments LazyColumn trailing spacer added to clear FAB.
