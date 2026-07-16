@@ -3,6 +3,7 @@
 package com.subramanya.artha.ui.transactions
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -696,7 +697,7 @@ private fun PersonChip(name: String) {
     }
 }
 
-/** Receipt image full-width in the card. */
+/** Receipt image full-width in the card — tap to view fullscreen. */
 @Composable
 private fun ReceiptImageSection(uri: String) {
     val context = LocalContext.current
@@ -704,6 +705,8 @@ private fun ReceiptImageSection(uri: String) {
         value = ReceiptStore.loadBitmap(context, uri)
     }
     val loaded = bitmap
+    var fullscreen by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.padding(horizontal = 26.dp, vertical = 8.dp)) {
         DottedRule(spaceTop = 4.dp)
         Spacer(Modifier.height(10.dp))
@@ -721,10 +724,30 @@ private fun ReceiptImageSection(uri: String) {
                 modifier = Modifier
                     .height(180.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp)),
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { fullscreen = true },
             )
         }
         Spacer(Modifier.height(4.dp))
+    }
+
+    if (fullscreen && loaded != null) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { fullscreen = false }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.92f))
+                    .clickable { fullscreen = false },
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.foundation.Image(
+                    bitmap = loaded,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
     }
 }
 
