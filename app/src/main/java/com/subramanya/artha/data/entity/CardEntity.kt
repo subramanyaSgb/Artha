@@ -45,4 +45,6 @@ data class CardEntity(
     val displayOrder: Int,
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
+    @ColumnInfo(name = "card_image_uri")
+    val cardImageUri: String? = null,
 )

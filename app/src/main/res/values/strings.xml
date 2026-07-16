@@ -458,6 +458,9 @@
     <string name="card_form_linked_account_label">Linked account</string>
     <string name="card_form_linked_account_none">No linked account selected</string>
     <string name="card_form_color_label">Color</string>
+    <string name="card_form_image_label">Card photo</string>
+    <string name="card_form_image_upload">Upload card image</string>
+    <string name="card_form_image_remove">Remove</string>
     <string name="card_form_save">Save</string>
     <string name="card_form_validation_name">Name is required</string>
     <string name="card_form_validation_credit_limit">Credit limit must be greater than 0</string>

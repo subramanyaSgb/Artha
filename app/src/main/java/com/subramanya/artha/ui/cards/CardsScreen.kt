@@ -57,7 +57,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -73,6 +77,7 @@ import com.subramanya.artha.domain.model.CardWithBalance
 import com.subramanya.artha.ui.common.EmptyState
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.utils.IndianNumberFormat
+import com.subramanya.artha.utils.ReceiptStore
 import com.subramanya.artha.utils.computeNextDue
 
 private const val DUE_HIGHLIGHT_THRESHOLD_DAYS: Int = 10
@@ -328,6 +333,34 @@ private fun ActiveCardRow(
  * NETWORK eyebrow + card name + "DUE IN Nd" pill on top, outstanding +
  * mono last-4 + utilization bar + footer on the bottom.
  */
+/**
+ * Resolves the card background image in priority order:
+ * 1. User-uploaded photo (cardImageUri absolute path)
+ * 2. Bundled drawable matched by card name slug  (card_bg_<slug>.png)
+ * 3. Bundled drawable matched by issuer keyword  (card_bg_hdfc.png etc.)
+ * Returns null → fall back to gradient tile.
+ */
+private fun resolveCardDrawable(card: Card, context: android.content.Context): Int? {
+    // Priority 2: name slug (e.g. "ICICI Mine" → card_bg_icici_mine)
+    val slug = card.name.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
+    val byName = context.resources.getIdentifier("card_bg_$slug", "drawable", context.packageName)
+    if (byName != 0) return byName
+
+    // Priority 3: issuer keyword
+    val issuer = card.issuer?.lowercase() ?: return null
+    val byIssuer = when {
+        "hdfc"   in issuer -> context.resources.getIdentifier("card_bg_hdfc",   "drawable", context.packageName)
+        "icici"  in issuer -> context.resources.getIdentifier("card_bg_icici",  "drawable", context.packageName)
+        "sbi"    in issuer -> context.resources.getIdentifier("card_bg_sbi",    "drawable", context.packageName)
+        "axis"   in issuer -> context.resources.getIdentifier("card_bg_axis",   "drawable", context.packageName)
+        "kotak"  in issuer -> context.resources.getIdentifier("card_bg_kotak",  "drawable", context.packageName)
+        "yes"    in issuer -> context.resources.getIdentifier("card_bg_yes",    "drawable", context.packageName)
+        "federal" in issuer -> context.resources.getIdentifier("card_bg_federal","drawable", context.packageName)
+        else -> 0
+    }
+    return if (byIssuer != 0) byIssuer else null
+}
+
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun CreditCardTile(
@@ -339,48 +372,23 @@ private fun CreditCardTile(
     onDelete: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    val tone = androidx.compose.ui.graphics.Color(row.card.color)
-    val toneDeep = androidx.compose.ui.graphics.Color(
-        red = tone.red * 0.45f,
-        green = tone.green * 0.45f,
-        blue = tone.blue * 0.45f,
-        alpha = 1f,
-    )
     val limit = row.card.creditLimit ?: 0.0
     val utilPct = if (limit > 0) (row.currentOutstanding / limit * 100).toInt() else 0
     val available = (limit - row.currentOutstanding).coerceAtLeast(0.0)
     val due = row.card.dueDayOfMonth
-    val daysToDue: Int? = due?.let {
-        com.subramanya.artha.utils.computeNextDue(it)?.daysUntil
-    }
+    val daysToDue: Int? = due?.let { computeNextDue(it)?.daysUntil }
+    val context = LocalContext.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(190.dp)
-            .padding(bottom = 14.dp)
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
-            .background(
-                brush = androidx.compose.ui.graphics.Brush.linearGradient(listOf(tone, toneDeep)),
-            )
-            .combinedClickable(onClick = onClick, onLongClick = onLongPress),
-    ) {
-        // Jaali lattice — 0.15 white per the spec
-        com.subramanya.artha.ui.common.JaaliOverlay(
-            modifier = Modifier.matchParentSize(),
-            tint = androidx.compose.ui.graphics.Color.White,
-            alpha = 0.15f,
-        )
-        // Chhatri silhouette top-right, offset -10/-10dp
-        com.subramanya.artha.ui.common.Chhatri(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 10.dp, y = (-10).dp)
-                .size(120.dp)
-                .alpha(0.10f),
-            tint = androidx.compose.ui.graphics.Color.White,
-        )
-        // Top row: network + name + DUE pill
+    // Resolve background: user photo > bundled drawable > gradient
+    val userBitmap by produceState<ImageBitmap?>(initialValue = null, row.card.cardImageUri) {
+        value = row.card.cardImageUri?.let { ReceiptStore.loadBitmap(context, it) }
+    }
+    val fallbackDrawable = if (userBitmap == null) resolveCardDrawable(row.card, context) else null
+
+    // Shared overlay content (top bar + bottom stats) — used in both branches
+    @Composable
+    fun androidx.compose.foundation.layout.BoxScope.CardOverlay() {
+        // Top row: network + name + DUE pill + menu
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -450,79 +458,167 @@ private fun CreditCardTile(
                 }
             }
         }
-        // Bottom row: outstanding + last4, utilization bar, footer
+        // Bottom: card number + name (image tiles) or outstanding + util bar (gradient tile)
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
                 .padding(start = 22.dp, end = 22.dp, bottom = 20.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                Column {
+            if (userBitmap != null || fallbackDrawable != null) {
+                // Image tile bottom: masked number + cardholder name
+                Text(
+                    text = "•••• •••• •••• ${row.card.cardNumberLast4 ?: "••••"}",
+                    color = androidx.compose.ui.graphics.Color.White,
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                        fontSize = 15.sp,
+                        fontFeatureSettings = "tnum",
+                        letterSpacing = 0.08.em,
+                    ),
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = row.card.name,
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.80f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            } else {
+                // Gradient tile bottom: outstanding + util
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.cards_outstanding_label).uppercase(),
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f),
+                            style = com.subramanya.artha.ui.theme.EyebrowStyle,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = IndianNumberFormat.format(row.currentOutstanding),
+                            color = androidx.compose.ui.graphics.Color.White,
+                            style = androidx.compose.ui.text.TextStyle(
+                                fontFamily = com.subramanya.artha.ui.theme.InstrumentSerif,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 28.sp,
+                                letterSpacing = (-0.01).em,
+                                fontFeatureSettings = "tnum",
+                            ),
+                        )
+                    }
+                    row.card.cardNumberLast4?.let {
+                        Text(
+                            text = "•••• $it",
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+                            style = androidx.compose.ui.text.TextStyle(
+                                fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                                fontSize = 11.sp,
+                                fontFeatureSettings = "tnum",
+                            ),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                com.subramanya.artha.ui.common.LinearMeter(
+                    fraction = (utilPct / 100f).coerceIn(0f, 1f),
+                    fillColor = androidx.compose.ui.graphics.Color.White,
+                    trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f),
+                    heightDp = 4,
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     Text(
-                        text = stringResource(R.string.cards_outstanding_label).uppercase(),
-                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f),
-                        style = com.subramanya.artha.ui.theme.EyebrowStyle,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = IndianNumberFormat.format(row.currentOutstanding),
-                        color = androidx.compose.ui.graphics.Color.White,
+                        text = stringResource(R.string.cards_util_of_limit, utilPct, IndianNumberFormat.formatCompact(limit)),
+                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
                         style = androidx.compose.ui.text.TextStyle(
-                            fontFamily = com.subramanya.artha.ui.theme.InstrumentSerif,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 28.sp,
-                            letterSpacing = (-0.01).em,
+                            fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
+                            fontSize = 10.sp,
                             fontFeatureSettings = "tnum",
                         ),
                     )
-                }
-                row.card.cardNumberLast4?.let {
                     Text(
-                        text = "•••• $it",
-                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+                        text = stringResource(R.string.cards_available, IndianNumberFormat.formatCompact(available)),
+                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
                         style = androidx.compose.ui.text.TextStyle(
                             fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontFeatureSettings = "tnum",
                         ),
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            com.subramanya.artha.ui.common.LinearMeter(
-                fraction = (utilPct / 100f).coerceIn(0f, 1f),
-                fillColor = androidx.compose.ui.graphics.Color.White,
-                trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f),
-                heightDp = 4,
+        }
+    }
+
+    val tileModifier = Modifier
+        .fillMaxWidth()
+        .height(190.dp)
+        .padding(bottom = 14.dp)
+        .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+        .combinedClickable(onClick = onClick, onLongClick = onLongPress)
+
+    when {
+        userBitmap != null -> {
+            // User-uploaded photo
+            Box(modifier = tileModifier) {
+                androidx.compose.foundation.Image(
+                    bitmap = userBitmap!!,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                Box(modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.22f)))
+                CardOverlay()
+            }
+        }
+        fallbackDrawable != null -> {
+            // Bundled PNG matched by name or issuer
+            Box(modifier = tileModifier) {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(fallbackDrawable),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                Box(modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.22f)))
+                CardOverlay()
+            }
+        }
+        else -> {
+            // Gradient tile (original)
+            val tone = androidx.compose.ui.graphics.Color(row.card.color)
+            val toneDeep = androidx.compose.ui.graphics.Color(
+                red = tone.red * 0.45f,
+                green = tone.green * 0.45f,
+                blue = tone.blue * 0.45f,
+                alpha = 1f,
             )
-            Spacer(Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+            Box(
+                modifier = tileModifier.background(
+                    brush = androidx.compose.ui.graphics.Brush.linearGradient(listOf(tone, toneDeep)),
+                ),
             ) {
-                Text(
-                    text = stringResource(R.string.cards_util_of_limit, utilPct, IndianNumberFormat.formatCompact(limit)),
-                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
-                    style = androidx.compose.ui.text.TextStyle(
-                        fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
-                        fontSize = 10.sp,
-                        fontFeatureSettings = "tnum",
-                    ),
+                com.subramanya.artha.ui.common.JaaliOverlay(
+                    modifier = Modifier.matchParentSize(),
+                    tint = androidx.compose.ui.graphics.Color.White,
+                    alpha = 0.15f,
                 )
-                Text(
-                    text = stringResource(R.string.cards_available, IndianNumberFormat.formatCompact(available)),
-                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
-                    style = androidx.compose.ui.text.TextStyle(
-                        fontFamily = com.subramanya.artha.ui.theme.IbmPlexMono,
-                        fontSize = 10.sp,
-                        fontFeatureSettings = "tnum",
-                    ),
+                com.subramanya.artha.ui.common.Chhatri(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 10.dp, y = (-10).dp)
+                        .size(120.dp)
+                        .alpha(0.10f),
+                    tint = androidx.compose.ui.graphics.Color.White,
                 )
+                CardOverlay()
             }
         }
     }

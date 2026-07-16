@@ -19,6 +19,7 @@ data class Card(
     val isArchived: Boolean,
     val displayOrder: Int,
     val createdAt: Long,
+    val cardImageUri: String? = null,
 )
 
 data class CardWithBalance(

@@ -20,6 +20,7 @@ fun CardEntity.toDomain(): Card =
         isArchived = isArchived,
         displayOrder = displayOrder,
         createdAt = createdAt,
+        cardImageUri = cardImageUri,
     )
 
 fun Card.toEntity(): CardEntity =
@@ -39,4 +40,5 @@ fun Card.toEntity(): CardEntity =
         isArchived = isArchived,
         displayOrder = displayOrder,
         createdAt = createdAt,
+        cardImageUri = cardImageUri,
     )

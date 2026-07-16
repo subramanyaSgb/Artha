@@ -71,7 +71,7 @@ import com.subramanya.artha.data.entity.TransactionTagCrossRef
         // SMS auto-import (ported from fork) — review queue
         PendingSmsTransactionEntity::class,
     ],
-    version = 10,
+    version = 11,
     // Schemas are exported to app/schemas (room.schemaLocation in build.gradle.kts) so
     // MigrationTestHelper can validate migrations against the generated schema.
     exportSchema = true,

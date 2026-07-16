@@ -1,5 +1,9 @@
 package com.subramanya.artha.ui.cards
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,20 +12,32 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -32,7 +48,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subramanya.artha.ArthaApplication
 import com.subramanya.artha.R
 import com.subramanya.artha.data.entity.enums.CardNetwork
-
 import com.subramanya.artha.domain.model.Card
 import com.subramanya.artha.ui.common.ArthaSheetHandle
 import com.subramanya.artha.ui.common.ArthaTextField
@@ -45,6 +60,7 @@ import com.subramanya.artha.ui.common.SheetTitle
 import com.subramanya.artha.ui.common.SheetWindowInsets
 import androidx.compose.material3.MaterialTheme
 import com.subramanya.artha.ui.theme.Text3
+import com.subramanya.artha.utils.ReceiptStore
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -89,6 +105,18 @@ fun CardFormSheet(
     var linkedAccountId by remember(editing) { mutableStateOf(editing?.linkedAccountId) }
     var color by remember(editing) { mutableStateOf(editing?.color ?: PALETTE.first()) }
     var showErrors by remember { mutableStateOf(false) }
+    var cardImageUri by remember(editing) { mutableStateOf(editing?.cardImageUri) }
+
+    // Photo picker — must be at composable top level so the callback survives recomposition
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                cardImageUri = ReceiptStore.persist(context, uri)
+            }
+        }
+    }
 
     val parsedLimit = creditLimitText.toDoubleOrNull()
     val parsedStatement = statementDayText.toIntOrNull()
@@ -256,6 +284,46 @@ fun CardFormSheet(
                 ColorSwatchRow(value = color, swatches = PALETTE, onChange = { color = it })
             }
 
+            FieldRow(
+                label = stringResource(R.string.card_form_image_label),
+                optional = true,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val thumb by produceState<ImageBitmap?>(initialValue = null, cardImageUri) {
+                        value = cardImageUri?.let { ReceiptStore.loadBitmap(context, it) }
+                    }
+                    if (thumb != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Image(
+                                bitmap = thumb!!,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(width = 80.dp, height = 50.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                            )
+                            TextButton(onClick = { cardImageUri = null }) {
+                                Text(stringResource(R.string.card_form_image_remove))
+                            }
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                            )
+                        },
+                    ) {
+                        Icon(Icons.Filled.AddAPhoto, contentDescription = null)
+                        Spacer(Modifier.size(6.dp))
+                        Text(stringResource(R.string.card_form_image_upload))
+                    }
+                }
+            }
+
             Spacer(Modifier.height(28.dp))
             SavePrimaryButton(
                 label = stringResource(R.string.card_form_save),
@@ -281,6 +349,7 @@ fun CardFormSheet(
                         isArchived = editing?.isArchived ?: false,
                         displayOrder = editing?.displayOrder ?: nextDisplayOrder(),
                         createdAt = editing?.createdAt ?: now,
+                        cardImageUri = cardImageUri,
                     )
                     scope.launch {
                         app.cardRepository.upsert(resolved)
