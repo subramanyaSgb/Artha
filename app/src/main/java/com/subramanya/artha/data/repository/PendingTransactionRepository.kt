@@ -16,4 +16,6 @@ class PendingTransactionRepository(private val dao: PendingTransactionDao) {
     suspend fun insert(pending: PendingSmsTransaction) = dao.insert(pending.toEntity())
 
     suspend fun dismiss(id: String) = dao.deleteById(id)
+
+    suspend fun dismissAll() = dao.deleteAll()
 }

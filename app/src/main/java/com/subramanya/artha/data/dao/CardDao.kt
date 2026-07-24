@@ -26,6 +26,9 @@ interface CardDao {
     @Query("SELECT * FROM cards WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): CardEntity?
 
+    @Query("SELECT card_image_uri FROM cards WHERE card_image_uri IS NOT NULL")
+    suspend fun allImageUris(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(card: CardEntity)
 

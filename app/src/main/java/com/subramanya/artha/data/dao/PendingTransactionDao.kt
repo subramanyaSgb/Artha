@@ -20,4 +20,7 @@ interface PendingTransactionDao {
 
     @Query("DELETE FROM pending_sms_transactions WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM pending_sms_transactions")
+    suspend fun deleteAll()
 }

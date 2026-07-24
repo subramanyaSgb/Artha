@@ -601,6 +601,7 @@
     <!-- SMS review (ported from fork) -->
     <string name="nav_review">Review</string>
     <string name="review_empty_state">No pending transactions</string>
+    <string name="review_clear_all">Clear all</string>
     <string name="review_notification_channel_name">Pending transaction review</string>
     <plurals name="review_notification_title">
         <item quantity="one">%d transaction to review</item>

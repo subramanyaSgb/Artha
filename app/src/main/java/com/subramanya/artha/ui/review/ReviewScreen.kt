@@ -18,6 +18,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -117,6 +118,13 @@ fun ReviewScreen(onBack: () -> Unit = {}) {
             // secondary entries (Settings → SMS review, the review notification).
             TopAppBar(
                 title = { Text(stringResource(R.string.nav_review)) },
+                actions = {
+                    if (state.items.isNotEmpty()) {
+                        TextButton(onClick = { vm.dismissAll() }) {
+                            Text(stringResource(R.string.review_clear_all))
+                        }
+                    }
+                },
             )
         },
     ) { innerPadding ->

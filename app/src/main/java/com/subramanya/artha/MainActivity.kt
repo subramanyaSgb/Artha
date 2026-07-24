@@ -149,7 +149,9 @@ private fun ArthaInner(app: ArthaApplication, pendingShareUri: Uri?, openReviewT
                 app.settingsPreferences.setBundledImportVersion(CURRENT_BUNDLED_IMPORT_VERSION)
             }
             runCatching {
-                ReceiptStore.pruneOrphans(app, app.database.transactionDao().allReceiptUris())
+                val txnUris = app.database.transactionDao().allReceiptUris()
+                val cardUris = app.database.cardDao().allImageUris()
+                ReceiptStore.pruneOrphans(app, txnUris + cardUris)
             }
             val name = app.settingsPreferences.userName.first()
             val elapsed = System.currentTimeMillis() - started

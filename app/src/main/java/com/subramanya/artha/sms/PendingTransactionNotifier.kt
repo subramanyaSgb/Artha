@@ -48,8 +48,7 @@ object PendingTransactionNotifier {
             .setContentTitle(
                 context.resources.getQuantityString(R.plurals.review_notification_title, pendingCount, pendingCount),
             )
-            .setOngoing(true)
-            .setAutoCancel(false)
+            .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()

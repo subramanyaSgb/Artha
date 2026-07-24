@@ -68,6 +68,10 @@ class ReviewViewModel(
     fun dismiss(id: String) {
         viewModelScope.launch { pendingTransactionRepository.dismiss(id) }
     }
+
+    fun dismissAll() {
+        viewModelScope.launch { pendingTransactionRepository.dismissAll() }
+    }
 }
 
 class ReviewViewModelFactory(
