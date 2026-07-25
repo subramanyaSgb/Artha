@@ -58,20 +58,22 @@ class UpiReceiptParser(
 
         val b64 = withContext(Dispatchers.IO) { bitmapToBase64(bitmap) }
 
-        // Try NIM first
-        if (nimKey != null) {
-            val result = runCatching { callProvider(NIM_ENDPOINT, NIM_MODEL, nimKey, b64, timeoutMs = 15_000) }
+        // Try OpenRouter first (more reliable)
+        if (orKey != null) {
+            val result = runCatching {
+                callProvider(OR_ENDPOINT, OR_MODEL, orKey, b64, timeoutMs = 30_000, extraHeaders = mapOf(
+                    "HTTP-Referer" to "https://github.com/subramanyaSgb/Artha",
+                ))
+            }
             result.getOrNull()?.let { return it }
             val err = result.exceptionOrNull()
             if (err != null && isAuthError(err)) throw err  // bad key — surface immediately
-            // NIM failed (timeout / 5xx / model down) → fall through to OpenRouter
+            // OpenRouter failed → fall through to NIM
         }
 
-        // OpenRouter fallback
-        if (orKey != null) {
-            return callProvider(OR_ENDPOINT, OR_MODEL, orKey, b64, timeoutMs = 30_000, extraHeaders = mapOf(
-                "HTTP-Referer" to "https://github.com/subramanyaSgb/Artha",
-            ))
+        // NIM fallback
+        if (nimKey != null) {
+            return callProvider(NIM_ENDPOINT, NIM_MODEL, nimKey, b64, timeoutMs = 15_000)
         }
 
         return null
