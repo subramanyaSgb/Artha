@@ -1371,6 +1371,8 @@
     <string name="share_receipt_phonepe_label">PhonePe</string>
     <string name="share_receipt_amount_unknown">Amount not detected</string>
     <string name="share_receipt_details_label">Receipt details</string>
+    <string name="share_receipt_toggle_expense">Expense</string>
+    <string name="share_receipt_toggle_income">Income</string>
     <string name="share_receipt_field_date">Date</string>
     <string name="share_receipt_field_upi_ref">UPI Ref</string>
     <string name="share_receipt_field_paid_from">Paid from</string>

@@ -64,6 +64,8 @@ sealed interface ShareReceiptUiState {
         val selectedCategoryId: String?,
         val selectedPaymentAppId: String,
         val upiRef: String?,
+        /** true = income (money received), false = expense. Seeded from the AI's direction guess. */
+        val isIncome: Boolean,
         val isSaving: Boolean = false,
     ) : ShareReceiptUiState
 
@@ -121,6 +123,7 @@ class ShareReceiptViewModel(
                     selectedCategoryId = matchCategory(receipt, categories),
                     selectedPaymentAppId = matchPaymentApp(receipt, paymentApps),
                     upiRef = receipt.upiRef,
+                    isIncome = receipt.isCredit == true,
                 )
             } catch (e: Exception) {
                 _state.value = ShareReceiptUiState.ScanError(friendlyError(e))
@@ -152,6 +155,7 @@ class ShareReceiptViewModel(
     fun selectAccount(id: String) = updateParsed { it.copy(selectedAccountId = id) }
     fun selectCategory(id: String) = updateParsed { it.copy(selectedCategoryId = id) }
     fun selectPaymentApp(id: String) = updateParsed { it.copy(selectedPaymentAppId = id) }
+    fun setIncome(income: Boolean) = updateParsed { it.copy(isIncome = income) }
 
     fun save() {
         val current = _state.value as? ShareReceiptUiState.Parsed ?: return
@@ -179,7 +183,9 @@ class ShareReceiptViewModel(
 
             val txn = Transaction(
                 id = UUID.randomUUID().toString(),
-                type = TransactionType.EXPENSE,
+                // INCOME and EXPENSE both credit/debit the SAME source account (INCOME is in
+                // BalanceCalculator's MONEY_INTO_SOURCE), so only the type flips — no destination.
+                type = if (current.isIncome) TransactionType.INCOME else TransactionType.EXPENSE,
                 amount = amount,
                 currency = "INR",
                 date = current.dateTimeMillis,

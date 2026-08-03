@@ -69,6 +69,10 @@ fun ReviewScreen(onBack: () -> Unit = {}) {
 
     var showSheet by remember { mutableStateOf(false) }
     var pendingPrefill: ReviewItem? by remember { mutableStateOf(null) }
+    // Id of the row whose sheet is currently open. Captured here (NOT read off pendingPrefill
+    // inside the collector) so dismissing survives onDismiss nulling pendingPrefill / tearing
+    // down the sheet — that race was why saved entries stayed in the queue.
+    var openPendingId: String? by remember { mutableStateOf(null) }
 
     if (showSheet) {
         val txnVm: AddTransactionViewModel = viewModel(
@@ -87,27 +91,22 @@ fun ReviewScreen(onBack: () -> Unit = {}) {
         )
         pendingPrefill?.let { item ->
             LaunchedEffect(item) {
+                openPendingId = item.pending.id
                 txnVm.applyPendingSmsPrefill(item.pending, item.suggestedCategoryName, item.matchedFunds)
-            }
-        }
-
-        // AddTransactionSheet's own internal LaunchedEffect(state.savedAndClose) resets the VM's
-        // state back to defaults (flipping savedAndClose back to false) as part of closing the
-        // sheet — racing against that from here by watching the same boolean is fragile. Instead
-        // collect the VM's explicit one-shot `saveCompleted` signal, which is independent of
-        // that reset and of onDismiss's timing: it fires exactly once per genuine save, so the
-        // pending row is removed only then and never on a plain sheet dismiss.
-        LaunchedEffect(txnVm) {
-            txnVm.saveCompleted.collect {
-                pendingPrefill?.let { item -> vm.dismiss(item.pending.id) }
             }
         }
 
         AddTransactionSheet(
             viewModel = txnVm,
+            // Remove the pending row only on a genuine save. onSaved fires inside the sheet's
+            // own save→close effect, so it can't be cancelled by the teardown below (the race
+            // that previously left saved entries in the queue). Uses the captured id, not
+            // pendingPrefill, which onDismiss nulls.
+            onSaved = { openPendingId?.let(vm::dismiss) },
             onDismiss = {
                 showSheet = false
                 pendingPrefill = null
+                openPendingId = null
             },
         )
     }

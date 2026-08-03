@@ -554,7 +554,7 @@ class AddTransactionViewModel(
             // phantom card "outstanding" accrues. Credit cards keep their own endpoints (and
             // their outstanding). Resolved AFTER effectiveType so credit-card CARD_PAYMENT
             // detection on the Transfer tab is unaffected.
-            val resolvedSource = resolveCardAlias(snapshot.source!!)
+            val resolvedSource = resolveCardAlias(requireNotNull(snapshot.source) { "source validated before save" })
             val resolvedDestination = effectiveDestination?.let { resolveCardAlias(it) }
             val baseTxn = Transaction(
                 id = id,

@@ -98,6 +98,8 @@ fun ShareReceiptScreen(
             upiReceiptParser = UpiReceiptParser(
                 nimKeyProvider = { app.nimApiKey() },
                 openRouterKeyProvider = { app.openRouterApiKey() },
+                groqKeyProvider = { app.groqApiKey() },
+                routesMeKeyProvider = { app.routesMeApiKey() },
             ),
             accountRepository = app.accountRepository,
             cardRepository = app.cardRepository,
@@ -127,6 +129,7 @@ fun ShareReceiptScreen(
                 onSelectAccount = vm::selectAccount,
                 onSelectCategory = vm::selectCategory,
                 onSelectPaymentApp = vm::selectPaymentApp,
+                onSetIncome = vm::setIncome,
                 onSave = vm::save,
                 onAddManually = onAddManually,
             )
@@ -192,6 +195,7 @@ private fun ParsedContent(
     onSelectAccount: (String) -> Unit,
     onSelectCategory: (String) -> Unit,
     onSelectPaymentApp: (String) -> Unit,
+    onSetIncome: (Boolean) -> Unit,
     onSave: () -> Unit,
     onAddManually: () -> Unit,
 ) {
@@ -216,6 +220,10 @@ private fun ParsedContent(
 
         // Amount hero
         AmountField(value = amount, onValueChange = { amount = it; onAmountChange(it) })
+        Spacer(Modifier.height(12.dp))
+
+        // Expense / Income toggle — seeded from the AI's direction guess, user can flip.
+        ExpenseIncomeToggle(isIncome = state.isIncome, onSetIncome = onSetIncome)
         Spacer(Modifier.height(16.dp))
 
         // Date + Time
@@ -386,6 +394,57 @@ private fun AmountField(value: String, onValueChange: (String) -> Unit) {
                 )
             }
         }
+    }
+}
+
+/** Two-pill Expense/Income selector. Red pill = expense (money out), green pill = income (money in). */
+@Composable
+private fun ExpenseIncomeToggle(isIncome: Boolean, onSetIncome: (Boolean) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        TogglePill(
+            modifier = Modifier.weight(1f),
+            label = stringResource(R.string.share_receipt_toggle_expense),
+            color = Expense,
+            selected = !isIncome,
+            onClick = { onSetIncome(false) },
+        )
+        TogglePill(
+            modifier = Modifier.weight(1f),
+            label = stringResource(R.string.share_receipt_toggle_income),
+            color = Income,
+            selected = isIncome,
+            onClick = { onSetIncome(true) },
+        )
+    }
+}
+
+@Composable
+private fun TogglePill(
+    modifier: Modifier = Modifier,
+    label: String,
+    color: androidx.compose.ui.graphics.Color,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        color = if (selected) color.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .border(
+                1.dp,
+                if (selected) color else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                RoundedCornerShape(12.dp),
+            )
+            .clickable(onClick = onClick),
+    ) {
+        Text(
+            text = label,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            color = if (selected) color else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        )
     }
 }
 

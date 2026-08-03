@@ -278,7 +278,7 @@ fun WithdrawalSheet(
                             sheetState.hide()
                             onDismiss()
                         }
-                        onConfirm(withdrawalAmount!!, selectedDestinationId)
+                        onConfirm(requireNotNull(withdrawalAmount) { "guarded by isFormValid" }, selectedDestinationId)
                     },
                     enabled = isFormValid,
                     modifier = Modifier.weight(1f),

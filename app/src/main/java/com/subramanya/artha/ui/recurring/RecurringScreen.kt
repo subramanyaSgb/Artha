@@ -572,7 +572,7 @@ private fun RecurringFormSheet(
                     val day = dayText.toIntOrNull()
                     val encodedTemplate = RecurringTemplateCodec.encode(
                         RecurringTemplate(
-                            amount = parsedAmount!!,
+                            amount = requireNotNull(parsedAmount) { "guarded by enabled check" },
                             type = txnType,
                             description = description.trim(),
                             sourceType = sourceType,

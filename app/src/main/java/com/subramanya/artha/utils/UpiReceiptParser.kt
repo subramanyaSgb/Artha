@@ -31,26 +31,35 @@ data class ReceiptData(
     val bankHint: String?,
     val categoryHint: String?,
     val upiRef: String?,
+    /** true = money received (income/credit), false = money paid (expense/debit), null = unknown. */
+    val isCredit: Boolean?,
 )
 
 /**
  * Parses a shared payment-app receipt image into [ReceiptData] using AI vision.
  *
- * Provider strategy (NIM is flaky — models go down without notice):
- *  1. Try NIM first (fast when up, 15s timeout so it fails quickly when down).
- *  2. On any non-auth failure, immediately fall back to OpenRouter (free tier,
- *     `nvidia/nemotron-nano-12b-v2-vl:free`, consistently available).
- * Auth errors (401/403) are not retried — they indicate a bad key.
+ * Provider fallback chain (each tried in order; first valid result wins):
+ *  1. Groq `qwen/qwen3.6-27b` — fastest (~0.3s), free. It's a THINKING model, so we send
+ *     `reasoning_effort: "none"` or it burns the token budget reasoning and returns nothing.
+ *  2. RoutesMe (aggregator, `Kimi-k3`) — free, fast; occasionally returns `all_keys_failed`.
+ *  3. NIM `llama-3.1-nemotron-nano-vl-8b-v1` — OCR-specialised, reliable.
+ *  4. OpenRouter `nvidia/nemotron-nano-12b-v2-vl:free` — last resort (free tier queues, slow).
+ * Auth errors (401/403) on a provider skip to the next; they don't abort the whole chain
+ * (one bad key shouldn't kill a working fallback).
  */
 class UpiReceiptParser(
     private val nimKeyProvider: (suspend () -> String)? = null,
     private val openRouterKeyProvider: (suspend () -> String)? = null,
+    private val groqKeyProvider: (suspend () -> String)? = null,
+    private val routesMeKeyProvider: (suspend () -> String)? = null,
 ) {
 
     suspend fun parse(context: Context, uri: Uri): ReceiptData? {
+        val groqKey = groqKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
+        val routesMeKey = routesMeKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
         val nimKey = nimKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
         val orKey = openRouterKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
-        if (nimKey == null && orKey == null) return null
+        if (groqKey == null && routesMeKey == null && nimKey == null && orKey == null) return null
 
         val bitmap = context.contentResolver.openInputStream(uri)?.use {
             BitmapFactory.decodeStream(it)
@@ -58,31 +67,37 @@ class UpiReceiptParser(
 
         val b64 = withContext(Dispatchers.IO) { bitmapToBase64(bitmap) }
 
-        // Try OpenRouter first (more reliable)
-        if (orKey != null) {
-            val result = runCatching {
-                callProvider(OR_ENDPOINT, OR_MODEL, orKey, b64, timeoutMs = 30_000, extraHeaders = mapOf(
+        // Ordered fallback chain: (endpoint, model, key, timeout, reasoningEffortNone, extraHeaders).
+        // Nulls (missing key) are skipped. First provider that returns a non-null result wins.
+        val providers = listOfNotNull(
+            groqKey?.let { Provider(GROQ_ENDPOINT, GROQ_MODEL, it, 20_000, reasoningEffortNone = true) },
+            routesMeKey?.let { Provider(ROUTESME_ENDPOINT, ROUTESME_MODEL, it, 20_000) },
+            nimKey?.let { Provider(NIM_ENDPOINT, NIM_MODEL, it, 15_000) },
+            orKey?.let {
+                Provider(OR_ENDPOINT, OR_MODEL, it, 20_000, extraHeaders = mapOf(
                     "HTTP-Referer" to "https://github.com/subramanyaSgb/Artha",
                 ))
+            },
+        )
+
+        for (p in providers) {
+            val result = runCatching {
+                callProvider(p.endpoint, p.model, p.key, b64, p.timeoutMs, p.reasoningEffortNone, p.extraHeaders)
             }
             result.getOrNull()?.let { return it }
-            val err = result.exceptionOrNull()
-            if (err != null && isAuthError(err)) throw err  // bad key — surface immediately
-            // OpenRouter failed → fall through to NIM
+            // Any failure (auth, timeout, 5xx, empty) → try the next provider in the chain.
         }
-
-        // NIM fallback
-        if (nimKey != null) {
-            return callProvider(NIM_ENDPOINT, NIM_MODEL, nimKey, b64, timeoutMs = 15_000)
-        }
-
         return null
     }
 
-    private fun isAuthError(error: Throwable): Boolean {
-        val msg = error.message.orEmpty()
-        return "HTTP 401" in msg || "HTTP 403" in msg
-    }
+    private data class Provider(
+        val endpoint: String,
+        val model: String,
+        val key: String,
+        val timeoutMs: Int,
+        val reasoningEffortNone: Boolean = false,
+        val extraHeaders: Map<String, String> = emptyMap(),
+    )
 
     private fun callProvider(
         endpoint: String,
@@ -90,10 +105,14 @@ class UpiReceiptParser(
         key: String,
         b64: String,
         timeoutMs: Int,
+        reasoningEffortNone: Boolean = false,
         extraHeaders: Map<String, String> = emptyMap(),
     ): ReceiptData? {
         val body = JSONObject().apply {
             put("model", model)
+            // Thinking models (Groq's qwen3.6) otherwise spend the whole token budget on a
+            // <think> block and return no answer — see the nemotron-disable-thinking gotcha.
+            if (reasoningEffortNone) put("reasoning_effort", "none")
             put("messages", JSONArray().apply {
                 put(JSONObject().apply {
                     put("role", "user")
@@ -133,6 +152,11 @@ class UpiReceiptParser(
             bankHint = str(json, "bank"),
             categoryHint = str(json, "category"),
             upiRef = str(json, "upiRef")?.filter { it.isDigit() }?.takeIf { it.isNotBlank() },
+            isCredit = when (str(json, "direction")?.uppercase()) {
+                "CREDIT" -> true
+                "DEBIT" -> false
+                else -> null
+            },
         )
         val hasAnything = listOf(
             data.amount, data.dateTimeMillis, data.merchant, data.description,
@@ -255,6 +279,12 @@ class UpiReceiptParser(
     }
 
     private companion object {
+        const val GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
+        const val GROQ_MODEL = "qwen/qwen3.6-27b"
+
+        const val ROUTESME_ENDPOINT = "https://routesme.online/v1/chat/completions"
+        const val ROUTESME_MODEL = "Kimi-k3"
+
         const val NIM_ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
         const val NIM_MODEL = "nvidia/llama-3.1-nemotron-nano-vl-8b-v1"
 
@@ -269,12 +299,16 @@ class UpiReceiptParser(
 
         val PROMPT = """
             Extract the payment details from this receipt/payment screenshot (any UPI or banking app).
-            Reply with ONLY a JSON object, no markdown fences. Use these keys, omit any you cannot read:
+            Reply with ONLY a JSON object, no markdown fences. Use these keys, omit any you cannot read.
+            For date/time use EXACTLY these formats: date as YYYY-MM-DD, time as HH:MM in 24-hour clock.
+            For direction: DEBIT if money was PAID/SENT/DEBITED by the account owner, CREDIT if money was
+            RECEIVED/CREDITED (look for words like "received", "credited", "paid to you", green +amount).
             {
-              "amount": <the rupee amount paid, plain number like 434>,
-              "date": "<transaction date, e.g. 03 Jul 2026>",
-              "time": "<transaction time, e.g. 02:46 pm>",
-              "merchant": "<full recipient/payee name, ignore 2-letter avatar initials>",
+              "amount": <the rupee amount, plain number like 434>,
+              "date": "<YYYY-MM-DD, e.g. 2026-07-03>",
+              "time": "<HH:MM 24-hour, e.g. 14:46>",
+              "direction": "<DEBIT or CREDIT>",
+              "merchant": "<full other-party name, ignore 2-letter avatar initials>",
               "description": "<short purpose if visible, else omit>",
               "paymentApp": "<one of PHONEPE GPAY PAYTM CRED BHIM AMAZONPAY OTHER>",
               "bank": "<payer bank/account name, e.g. Jupiter, HDFC Bank>",

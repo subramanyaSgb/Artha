@@ -126,6 +126,12 @@ class ArthaApplication : Application() {
     /** OpenRouter fallback key — baked from local.properties → [BuildConfig.OPENROUTER_API_KEY]. */
     fun openRouterApiKey(): String = BuildConfig.OPENROUTER_API_KEY
 
+    /** Groq key (primary receipt-vision provider) — baked from local.properties → [BuildConfig.GROQ_API_KEY]. */
+    fun groqApiKey(): String = BuildConfig.GROQ_API_KEY
+
+    /** RoutesMe key (second receipt-vision provider) — baked from local.properties → [BuildConfig.ROUTESME_API_KEY]. */
+    fun routesMeApiKey(): String = BuildConfig.ROUTESME_API_KEY
+
     /** Backed by [NvidiaNimQuickEntryParser], keyed by the single baked [nimApiKey]. */
     val aiQuickEntryParser: AiQuickEntryParser by lazy {
         NvidiaNimQuickEntryParser(keyProvider = { nimApiKey() })

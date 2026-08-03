@@ -119,6 +119,10 @@ import kotlinx.datetime.toLocalDateTime
 fun AddTransactionSheet(
     viewModel: AddTransactionViewModel,
     onDismiss: () -> Unit,
+    // Fired exactly once on a genuine save (not a plain cancel-dismiss), in the same effect
+    // that closes the sheet — so callers can react to the save without a separate collector
+    // that races the sheet teardown. Runs before onDismiss.
+    onSaved: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val funds by viewModel.fundsCatalogue.collectAsStateWithLifecycle()
@@ -132,10 +136,12 @@ fun AddTransactionSheet(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    // Close the sheet when the VM signals a successful save.
+    // Close the sheet when the VM signals a successful save. onSaved fires here (before the
+    // reset + dismiss) so a genuine save is signalled exactly once, distinct from a cancel.
     LaunchedEffect(state.savedAndClose) {
         if (state.savedAndClose) {
             viewModel.acknowledgeClose()
+            onSaved()
             onDismiss()
         }
     }
