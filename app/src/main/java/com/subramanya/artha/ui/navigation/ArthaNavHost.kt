@@ -280,6 +280,7 @@ fun ArthaNavHost(
             InsurancesScreen(
                 onBack = { navController.popBackStack() },
                 onOpenInsurance = { id -> navController.navigate(SubRoutes.insuranceDetail(id)) },
+                onOpenPolicyImport = { uri -> navController.navigate(SubRoutes.policyImport(uri)) },
             )
         }
         composable(

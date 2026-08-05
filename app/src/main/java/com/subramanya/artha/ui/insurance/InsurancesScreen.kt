@@ -1,5 +1,7 @@
 package com.subramanya.artha.ui.insurance
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -34,6 +37,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -80,6 +84,7 @@ import kotlinx.datetime.Clock
 fun InsurancesScreen(
     onBack: () -> Unit,
     onOpenInsurance: (String) -> Unit,
+    onOpenPolicyImport: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -90,7 +95,14 @@ fun InsurancesScreen(
     val state by vm.state.collectAsStateWithLifecycle()
 
     var formMode: FormMode? by remember { mutableStateOf(null) }
+    var showChoiceSheet by remember { mutableStateOf(false) }
     var pendingDelete: Insurance? by remember { mutableStateOf(null) }
+
+    // System file picker for PDFs/images. The import screen buffers the bytes
+    // immediately, so a transient read grant is enough — no persistable perms.
+    val pickPolicy = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> if (uri != null) onOpenPolicyImport(uri.toString()) }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
@@ -98,7 +110,7 @@ fun InsurancesScreen(
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             floatingActionButton = {
                 ExtendedFloatingActionButton(
-                    onClick = { formMode = FormMode.Add },
+                    onClick = { showChoiceSheet = true },
                     containerColor = Teal700,
                     contentColor = androidx.compose.ui.graphics.Color.White,
                     shape = RoundedCornerShape(16.dp),
@@ -157,6 +169,20 @@ fun InsurancesScreen(
         }
     }
 
+    if (showChoiceSheet) {
+        AddChoiceSheet(
+            onDismiss = { showChoiceSheet = false },
+            onManual = {
+                showChoiceSheet = false
+                formMode = FormMode.Add
+            },
+            onUpload = {
+                showChoiceSheet = false
+                pickPolicy.launch(arrayOf("application/pdf", "image/*"))
+            },
+        )
+    }
+
     val mode = formMode
     if (mode != null) {
         InsuranceFormSheet(
@@ -186,6 +212,92 @@ fun InsurancesScreen(
 private sealed interface FormMode {
     data object Add : FormMode
     data class Edit(val insurance: Insurance) : FormMode
+}
+
+// ---------------- add-choice sheet ----------------
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddChoiceSheet(
+    onDismiss: () -> Unit,
+    onManual: () -> Unit,
+    onUpload: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = com.subramanya.artha.ui.common.SheetWindowInsets,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            com.subramanya.artha.ui.common.SheetTitle(
+                title = stringResource(R.string.insurance_add_choice_title),
+            )
+            ChoiceRow(
+                icon = Icons.Filled.Edit,
+                title = stringResource(R.string.insurance_add_choice_manual),
+                subtitle = stringResource(R.string.insurance_add_choice_manual_sub),
+                onClick = onManual,
+            )
+            ChoiceRow(
+                icon = Icons.Filled.UploadFile,
+                title = stringResource(R.string.insurance_add_choice_upload),
+                subtitle = stringResource(R.string.insurance_add_choice_upload_sub),
+                onClick = onUpload,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChoiceRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Teal700),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.size(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Text3,
+                )
+            }
+        }
+    }
 }
 
 // ---------------- hero ----------------

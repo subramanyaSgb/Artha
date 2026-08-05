@@ -969,6 +969,11 @@
     <string name="insurance_title">Insurance</string>
     <string name="insurance_eyebrow">Cover</string>
     <string name="insurance_fab_add">Add policy</string>
+    <string name="insurance_add_choice_title">Add insurance</string>
+    <string name="insurance_add_choice_manual">Enter manually</string>
+    <string name="insurance_add_choice_manual_sub">Fill in the policy details yourself</string>
+    <string name="insurance_add_choice_upload">Upload policy PDF</string>
+    <string name="insurance_add_choice_upload_sub">Let AI read a PDF or photo of the policy</string>
     <string name="insurance_more_options">More options</string>
     <string name="insurance_empty">No policies yet. Tap + to add one.</string>
     <string name="insurance_hero_annual_premium">Premiums per year</string>
