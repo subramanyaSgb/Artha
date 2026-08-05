@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Shield
@@ -60,6 +61,7 @@ import com.subramanya.artha.domain.model.Insurance
 import com.subramanya.artha.ui.theme.ArthaAmountStyles
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
+import com.subramanya.artha.utils.PolicyDetails
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,6 +140,14 @@ fun InsuranceDetailScreen(
                 ) {
                     HeroBlock(insurance = ins)
                     MetaBlock(insurance = ins)
+
+                    // Rich sections from the uploaded-policy blob. Each is null/empty for
+                    // a manually-entered policy, so nothing below renders in that case.
+                    state.details?.let { PolicyDetailSections(details = it) }
+
+                    if (ins.policyDocUri != null) {
+                        DocumentsSection(policyDocUri = ins.policyDocUri)
+                    }
 
                     state.linkedInvestment?.let { inv ->
                         Spacer(Modifier.height(8.dp))
@@ -233,8 +243,20 @@ private fun HeroBlock(insurance: Insurance) {
 private fun MetaBlock(insurance: Insurance) {
     val context = LocalContext.current
     Column(modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth()) {
+        insurance.planName?.takeIf { it.isNotBlank() }?.let {
+            MetaRow(stringResource(R.string.insurance_detail_plan_name), it)
+        }
         insurance.policyNumber?.takeIf { it.isNotBlank() }?.let {
             MetaRow(stringResource(R.string.insurance_detail_policy_number), it)
+        }
+        insurance.uin?.takeIf { it.isNotBlank() }?.let {
+            MetaRow(stringResource(R.string.insurance_detail_uin), it)
+        }
+        insurance.lifeAssured?.takeIf { it.isNotBlank() }?.let {
+            MetaRow(stringResource(R.string.insurance_detail_life_assured), it)
+        }
+        insurance.policyTerm?.takeIf { it.isNotBlank() }?.let {
+            MetaRow(stringResource(R.string.insurance_detail_policy_term), it)
         }
         MetaRow(stringResource(R.string.insurance_detail_start), DateFormatter.longDate(insurance.startDate))
         insurance.nextPremiumDate?.let { nextDue ->
@@ -330,6 +352,185 @@ private fun LinkedInvestmentCard(name: String, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
+            }
+        }
+    }
+}
+
+// ---------------- rich policy sections ----------------
+
+@Composable
+private fun PolicyDetailSections(details: PolicyDetails) {
+    if (details.members.isNotEmpty()) {
+        SectionCard(title = stringResource(R.string.insurance_detail_members_title)) {
+            details.members.forEach { m ->
+                val subtitle = listOfNotNull(m.relation, m.age).takeIf { it.isNotEmpty() }?.let {
+                    if (m.relation != null && m.age != null) {
+                        stringResource(R.string.insurance_detail_member_relation_age, m.relation, m.age)
+                    } else {
+                        it.joinToString(" · ")
+                    }
+                }
+                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                    Text(m.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    subtitle?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (details.coverage.isNotEmpty()) {
+        SectionCard(title = stringResource(R.string.insurance_detail_coverage_title)) {
+            details.coverage.forEach { MetaRow(it.label, it.value) }
+        }
+    }
+
+    if (details.riders.isNotEmpty()) {
+        SectionCard(title = stringResource(R.string.insurance_detail_riders_title)) {
+            details.riders.forEach { r ->
+                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(r.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        r.premium?.let {
+                            Text(it, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    r.note?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (details.exclusions.isNotEmpty()) {
+        SectionCard(title = stringResource(R.string.insurance_detail_exclusions_title)) {
+            details.exclusions.forEach { ex ->
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                    Text("•  ", style = MaterialTheme.typography.bodyMedium)
+                    Text(ex, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+    }
+
+    details.premiumBreakdown?.let { pb ->
+        SectionCard(title = stringResource(R.string.insurance_detail_premium_breakdown_title)) {
+            pb.base?.let { MetaRow(stringResource(R.string.insurance_detail_premium_base), it) }
+            pb.riders?.let { MetaRow(stringResource(R.string.insurance_detail_premium_riders), it) }
+            pb.gst?.let { MetaRow(stringResource(R.string.insurance_detail_premium_gst), it) }
+            pb.total?.let { MetaRow(stringResource(R.string.insurance_detail_premium_total), it) }
+        }
+    }
+
+    details.contacts?.let { c ->
+        SectionCard(title = stringResource(R.string.insurance_detail_contacts_title)) {
+            c.helpline?.let { DialableRow(stringResource(R.string.insurance_detail_helpline), it) }
+            c.claimsEmail?.let { MetaRow(stringResource(R.string.insurance_detail_claims_email), it) }
+            c.branch?.let { MetaRow(stringResource(R.string.insurance_detail_branch), it) }
+            c.tpa?.let { MetaRow(stringResource(R.string.insurance_detail_tpa), it) }
+        }
+    }
+}
+
+/** Section wrapper matching the linked-investment card styling. */
+@Composable
+private fun SectionCard(title: String, content: @Composable () -> Unit) {
+    Spacer(Modifier.height(8.dp))
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            content()
+        }
+    }
+}
+
+/** Label + value with a dial button — reuses the agent-contact pattern for phone-like values. */
+@Composable
+private fun DialableRow(label: String, value: String) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            val phoneLike = value.filter { it.isDigit() || it == '+' }
+            if (phoneLike.length >= 7) {
+                IconButton(onClick = {
+                    val intent = Intent(Intent.ACTION_DIAL).apply { data = Uri.parse("tel:$phoneLike") }
+                    runCatching { context.startActivity(intent) }
+                }) {
+                    Icon(Icons.Filled.Call, contentDescription = stringResource(R.string.insurance_detail_call_helpline))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * "View policy document" — the uploaded doc is persisted through ReceiptStore, which
+ * re-encodes it to a JPEG in filesDir/receipts. So it's an image, not a live PDF;
+ * we show it fullscreen via the same viewer the receipt flow uses (no FileProvider
+ * for filesDir exists, and ACTION_VIEW on a JPEG-of-a-PDF would be misleading).
+ */
+@Composable
+private fun DocumentsSection(policyDocUri: String) {
+    val context = LocalContext.current
+    var fullscreen by remember { mutableStateOf(false) }
+    SectionCard(title = stringResource(R.string.insurance_detail_documents_title)) {
+        TextButton(onClick = { fullscreen = true }) {
+            Icon(Icons.Filled.Description, contentDescription = null)
+            Spacer(Modifier.size(8.dp))
+            Text(stringResource(R.string.insurance_detail_view_policy))
+        }
+    }
+
+    if (fullscreen) {
+        val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+            initialValue = null,
+            policyDocUri,
+        ) {
+            value = com.subramanya.artha.utils.ReceiptStore.loadBitmap(context, policyDocUri)
+        }
+        androidx.compose.ui.window.Dialog(onDismissRequest = { fullscreen = false }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.92f))
+                    .clickable { fullscreen = false },
+                contentAlignment = Alignment.Center,
+            ) {
+                bitmap?.let {
+                    androidx.compose.foundation.Image(
+                        bitmap = it,
+                        contentDescription = stringResource(R.string.insurance_detail_view_policy),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }

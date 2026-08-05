@@ -151,7 +151,10 @@ private fun ArthaInner(app: ArthaApplication, pendingShareUri: Uri?, openReviewT
             runCatching {
                 val txnUris = app.database.transactionDao().allReceiptUris()
                 val cardUris = app.database.cardDao().allImageUris()
-                ReceiptStore.pruneOrphans(app, txnUris + cardUris)
+                // Uploaded insurance policy docs also live in filesDir/receipts — include
+                // them or they get pruned on startup. (see receipt-store-prune-scope memory)
+                val policyUris = app.database.insuranceDao().allPolicyDocUris()
+                ReceiptStore.pruneOrphans(app, txnUris + cardUris + policyUris)
             }
             val name = app.settingsPreferences.userName.first()
             val elapsed = System.currentTimeMillis() - started

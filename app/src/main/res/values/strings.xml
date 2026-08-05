@@ -1057,6 +1057,32 @@
     <string name="insurance_detail_tax_section">Tax section</string>
     <string name="insurance_detail_linked_investment_title">Linked investment</string>
 
+    <!-- Insurance detail — rich sections parsed from an uploaded policy (shown only if present) -->
+    <string name="insurance_detail_plan_name">Plan</string>
+    <string name="insurance_detail_policy_term">Policy term</string>
+    <string name="insurance_detail_life_assured">Life assured</string>
+    <string name="insurance_detail_uin">UIN</string>
+    <string name="insurance_detail_status">Status</string>
+    <string name="insurance_detail_members_title">Insured members</string>
+    <!-- %1$s = relation, %2$s = age -->
+    <string name="insurance_detail_member_relation_age">%1$s · %2$s</string>
+    <string name="insurance_detail_coverage_title">Coverage &amp; benefits</string>
+    <string name="insurance_detail_riders_title">Riders</string>
+    <string name="insurance_detail_exclusions_title">Waiting periods &amp; exclusions</string>
+    <string name="insurance_detail_contacts_title">Insurer contacts</string>
+    <string name="insurance_detail_helpline">Helpline</string>
+    <string name="insurance_detail_call_helpline">Call helpline</string>
+    <string name="insurance_detail_claims_email">Claims email</string>
+    <string name="insurance_detail_branch">Branch</string>
+    <string name="insurance_detail_tpa">TPA</string>
+    <string name="insurance_detail_premium_breakdown_title">Premium breakdown</string>
+    <string name="insurance_detail_premium_base">Base premium</string>
+    <string name="insurance_detail_premium_riders">Riders</string>
+    <string name="insurance_detail_premium_gst">GST</string>
+    <string name="insurance_detail_premium_total">Total</string>
+    <string name="insurance_detail_documents_title">Documents</string>
+    <string name="insurance_detail_view_policy">View policy document</string>
+
     <!-- Insurance delete -->
     <string name="insurance_delete_confirm_title">Delete this policy?</string>
     <string name="insurance_delete_confirm_body">This permanently removes the policy record. A linked investment row (if any) stays — delete it separately if you want it gone too.</string>

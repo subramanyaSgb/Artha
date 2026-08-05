@@ -34,6 +34,10 @@ interface InsuranceDao {
     )
     fun observeDueWithin(cutoffMillis: Long): Flow<List<InsuranceEntity>>
 
+    /** Every stored policy-doc path — feeds the ReceiptStore orphan-prune union. */
+    @Query("SELECT policy_doc_uri FROM insurances WHERE policy_doc_uri IS NOT NULL")
+    suspend fun allPolicyDocUris(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(insurance: InsuranceEntity)
 

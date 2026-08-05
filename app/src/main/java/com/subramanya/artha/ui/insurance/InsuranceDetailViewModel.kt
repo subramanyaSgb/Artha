@@ -7,6 +7,8 @@ import com.subramanya.artha.data.repository.InsuranceRepository
 import com.subramanya.artha.data.repository.InvestmentRepository
 import com.subramanya.artha.domain.model.Insurance
 import com.subramanya.artha.domain.model.Investment
+import com.subramanya.artha.utils.PolicyDetails
+import com.subramanya.artha.utils.parsePolicyDetails
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +20,9 @@ import kotlinx.coroutines.launch
 data class InsuranceDetailUiState(
     val insurance: Insurance? = null,
     val linkedInvestment: Investment? = null,
+    // Rich sections parsed from the uploaded policy's detailsJson blob; null for
+    // manually-entered policies (they degrade to core facts only).
+    val details: PolicyDetails? = null,
     val showDeleteConfirm: Boolean = false,
 )
 
@@ -49,6 +54,7 @@ class InsuranceDetailViewModel(
         InsuranceDetailUiState(
             insurance = insurance,
             linkedInvestment = linked,
+            details = parsePolicyDetails(insurance?.detailsJson),
             showDeleteConfirm = deleteConfirm,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InsuranceDetailUiState())
