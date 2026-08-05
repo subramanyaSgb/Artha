@@ -137,9 +137,10 @@ class InsurancePolicyImportViewModel(
         updateParsed { it.copy(isSaving = true) }
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            // Persist the source doc VERBATIM into filesDir/policy_docs — keeps a real
-            // multi-page PDF (not a re-encoded 1-page JPEG) so the user can view all pages.
-            val savedDocUri = PolicyDocStore.persist(context, imageUri)
+            // The doc was already copied into filesDir/policy_docs at pick time (so the picker
+            // URI is read exactly once, while its grant is valid). imageUri IS that stored path
+            // now — persist it directly; don't re-read/re-copy it.
+            val savedDocUri = imageUri.path ?: imageUri.toString()
             val insurance = Insurance(
                 id = UUID.randomUUID().toString(),
                 name = current.name.trim(),

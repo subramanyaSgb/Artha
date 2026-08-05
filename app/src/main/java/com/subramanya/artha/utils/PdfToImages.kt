@@ -26,12 +26,22 @@ import java.util.UUID
  * Blocking (I/O + bitmap rasterization) — call on Dispatchers.IO.
  */
 fun renderPolicyPagesToBase64(context: Context, uri: Uri, maxPages: Int = 3): List<String> {
-    // Picker URIs are one-time-use grants: buffer the whole thing once, then work from memory.
-    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-        ?: return emptyList()
+    // The doc is already copied into app-private storage before we get here, so [uri] is an
+    // absolute path / file:// (read via File), not a picker content:// grant. Fall back to the
+    // ContentResolver only for a real content:// uri. Buffer once, then work from memory.
+    val path = if (uri.scheme == null) uri.toString() else uri.path
+    val localFile = path?.let(::File)?.takeIf { it.isAbsolute && it.exists() }
+    val bytes = if (localFile != null) {
+        localFile.readBytes()
+    } else {
+        context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return emptyList()
+    }
 
-    // Image (not PDF) → decode straight to one base64 entry.
-    if (context.contentResolver.getType(uri)?.startsWith("image/") == true) {
+    // Image (not PDF) → decode straight to one base64 entry. Detect by magic bytes (works for a
+    // File too) rather than only the resolver's mime.
+    val isPdf = bytes.size >= 4 && bytes[0] == '%'.code.toByte() && bytes[1] == 'P'.code.toByte() &&
+        bytes[2] == 'D'.code.toByte() && bytes[3] == 'F'.code.toByte()
+    if (!isPdf) {
         return runCatching {
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 ?: return emptyList()

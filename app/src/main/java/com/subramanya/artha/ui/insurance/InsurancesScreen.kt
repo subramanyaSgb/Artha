@@ -1,6 +1,5 @@
 package com.subramanya.artha.ui.insurance
 
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -49,6 +48,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,6 +78,8 @@ import com.subramanya.artha.ui.theme.Teal700
 import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
+import com.subramanya.artha.utils.PolicyDocStore
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,24 +101,20 @@ fun InsurancesScreen(
     var showChoiceSheet by remember { mutableStateOf(false) }
     var pendingDelete: Insurance? by remember { mutableStateOf(null) }
 
-    // System file picker for PDFs/images. The URI is read LATER — after navigating to the
-    // import screen, in the VM (scan) and again on save — so the transient OpenDocument grant
-    // doesn't survive (Permission Denial). Take a persistable read grant here, while we still
-    // hold access, so both later reads work. runCatching: a few providers can't persist; the
-    // transient grant may still cover the immediate case, so don't crash the pick if it fails.
+    // System file picker for PDFs/images. The picker's read grant is transient and one-time —
+    // it does NOT survive the nav to the import screen, and the picker URI can only be read
+    // once. So COPY the doc into app-private storage HERE (in the callback, while the grant is
+    // valid, reading it exactly once), then navigate with our own stable path. Every later read
+    // (scan / parse / view) then works off a file the app owns — no permission grant needed.
+    val scope = rememberCoroutineScope()
     val pickPolicy = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri != null) {
-            runCatching {
-                // ponytail: leaks one persistable grant per import (Android caps ~128-512/app).
-                // Fine for occasional single-user imports; release after save if it ever matters.
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
+            scope.launch {
+                val storedPath = PolicyDocStore.persist(context, uri)
+                if (storedPath != null) onOpenPolicyImport(storedPath)
             }
-            onOpenPolicyImport(uri.toString())
         }
     }
 
