@@ -1,5 +1,6 @@
 package com.subramanya.artha.ui.insurance
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -98,11 +99,26 @@ fun InsurancesScreen(
     var showChoiceSheet by remember { mutableStateOf(false) }
     var pendingDelete: Insurance? by remember { mutableStateOf(null) }
 
-    // System file picker for PDFs/images. The import screen buffers the bytes
-    // immediately, so a transient read grant is enough — no persistable perms.
+    // System file picker for PDFs/images. The URI is read LATER — after navigating to the
+    // import screen, in the VM (scan) and again on save — so the transient OpenDocument grant
+    // doesn't survive (Permission Denial). Take a persistable read grant here, while we still
+    // hold access, so both later reads work. runCatching: a few providers can't persist; the
+    // transient grant may still cover the immediate case, so don't crash the pick if it fails.
     val pickPolicy = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
-    ) { uri -> if (uri != null) onOpenPolicyImport(uri.toString()) }
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                // ponytail: leaks one persistable grant per import (Android caps ~128-512/app).
+                // Fine for occasional single-user imports; release after save if it ever matters.
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            onOpenPolicyImport(uri.toString())
+        }
+    }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Scaffold(
