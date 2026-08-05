@@ -19,6 +19,14 @@ data class Insurance(
     val agentContact: String?,
     val policyDocUri: String?,
     val taxSection: String?,
+    // Insurance redesign (v12): rich policy metadata extracted from an uploaded PDF.
+    // detailsJson holds open-ended extras (members/riders/coverage/exclusions/contacts).
+    val planName: String? = null,
+    val policyTerm: String? = null,
+    val lifeAssured: String? = null,
+    val uin: String? = null,
+    val insurerHelpline: String? = null,
+    val detailsJson: String? = null,
     val icon: String,
     val color: Long,
     val isArchived: Boolean,
