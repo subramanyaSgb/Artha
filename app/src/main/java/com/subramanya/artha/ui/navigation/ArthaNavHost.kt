@@ -20,6 +20,7 @@ import com.subramanya.artha.ui.cards.CardsScreen
 import com.subramanya.artha.ui.categories.CategoriesScreen
 import com.subramanya.artha.ui.dashboard.DashboardScreen
 import com.subramanya.artha.ui.insurance.InsuranceDetailScreen
+import com.subramanya.artha.ui.insurance.InsurancePolicyImportScreen
 import com.subramanya.artha.ui.insurance.InsurancesScreen
 import com.subramanya.artha.ui.budgets.BudgetsScreen
 import com.subramanya.artha.ui.goals.GoalsScreen
@@ -87,6 +88,13 @@ object SubRoutes {
     const val SHARE_RECEIPT_PATTERN = "$SHARE_RECEIPT_BASE/{$SHARE_RECEIPT_ARG_URI}"
     fun shareReceipt(uriString: String): String =
         "$SHARE_RECEIPT_BASE/${android.net.Uri.encode(uriString)}"
+
+    // Insurance policy-PDF import
+    private const val POLICY_IMPORT_BASE = "policy_import"
+    const val POLICY_IMPORT_ARG_URI = "encodedUri"
+    const val POLICY_IMPORT_PATTERN = "$POLICY_IMPORT_BASE/{$POLICY_IMPORT_ARG_URI}"
+    fun policyImport(uriString: String): String =
+        "$POLICY_IMPORT_BASE/${android.net.Uri.encode(uriString)}"
 
     private const val INVESTMENT_DETAIL_BASE = "investment_detail"
     const val INVESTMENT_DETAIL_ARG_ID = "investmentId"
@@ -350,6 +358,25 @@ fun ArthaNavHost(
                         popUpTo(SubRoutes.SHARE_RECEIPT_PATTERN) { inclusive = true }
                     }
                 },
+                onAddManually = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = SubRoutes.POLICY_IMPORT_PATTERN,
+            arguments = listOf(navArgument(SubRoutes.POLICY_IMPORT_ARG_URI) { type = NavType.StringType }),
+        ) { entry ->
+            val encoded = entry.arguments?.getString(SubRoutes.POLICY_IMPORT_ARG_URI).orEmpty()
+            val uriString = android.net.Uri.decode(encoded)
+            InsurancePolicyImportScreen(
+                imageUriString = uriString,
+                onBack = { navController.popBackStack() },
+                onSaved = { id ->
+                    navController.navigate(SubRoutes.insuranceDetail(id)) {
+                        popUpTo(SubRoutes.POLICY_IMPORT_PATTERN) { inclusive = true }
+                    }
+                },
+                // Manual add is a sheet on InsurancesScreen (Task 6 wires the "add manually"
+                // entry point there); for now just pop back to wherever the import was launched.
                 onAddManually = { navController.popBackStack() },
             )
         }

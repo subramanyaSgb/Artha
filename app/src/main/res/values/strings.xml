@@ -1362,6 +1362,15 @@
     <string name="withdrawal_sheet_after_withdrawal">After withdrawal</string>
     <string name="withdrawal_sheet_confirm">Confirm withdrawal</string>
 
+    <!-- Insurance policy-PDF import -->
+    <string name="policy_import_title">Import Policy</string>
+    <string name="policy_import_scanning">Reading your policy…</string>
+    <string name="policy_import_error_title">Could not read policy</string>
+    <string name="policy_import_retry">Try again</string>
+    <string name="policy_import_add_manually">Add policy manually</string>
+    <string name="policy_import_save">Save policy</string>
+    <string name="policy_import_extra_details">%1$d extra details captured from your policy</string>
+
     <!-- UPI Receipt Share -->
     <string name="share_receipt_title">Receipt Import</string>
     <string name="share_receipt_scanning">Reading your receipt…</string>
