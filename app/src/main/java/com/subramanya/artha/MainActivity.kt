@@ -47,6 +47,7 @@ import com.subramanya.artha.ui.onboarding.OnboardingViewModel
 import com.subramanya.artha.ui.onboarding.OnboardingViewModelFactory
 import com.subramanya.artha.ui.splash.SplashScreen
 import com.subramanya.artha.ui.theme.ArthaTheme
+import com.subramanya.artha.utils.PolicyDocStore
 import com.subramanya.artha.utils.ReceiptStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -151,10 +152,11 @@ private fun ArthaInner(app: ArthaApplication, pendingShareUri: Uri?, openReviewT
             runCatching {
                 val txnUris = app.database.transactionDao().allReceiptUris()
                 val cardUris = app.database.cardDao().allImageUris()
-                // Uploaded insurance policy docs also live in filesDir/receipts — include
-                // them or they get pruned on startup. (see receipt-store-prune-scope memory)
+                ReceiptStore.pruneOrphans(app, txnUris + cardUris)
+                // Uploaded insurance policy docs live in their own filesDir/policy_docs dir
+                // (verbatim PDFs/images) — prune it separately. (see receipt-store-prune-scope memory)
                 val policyUris = app.database.insuranceDao().allPolicyDocUris()
-                ReceiptStore.pruneOrphans(app, txnUris + cardUris + policyUris)
+                PolicyDocStore.pruneOrphans(app, policyUris)
             }
             val name = app.settingsPreferences.userName.first()
             val elapsed = System.currentTimeMillis() - started

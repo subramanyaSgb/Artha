@@ -474,20 +474,34 @@ private fun DialableRow(label: String, value: String) {
 }
 
 /**
- * "View policy document" — the uploaded doc is persisted through ReceiptStore, which
- * re-encodes it to a JPEG in filesDir/receipts. So it's an image, not a live PDF;
- * we show it fullscreen via the same viewer the receipt flow uses (no FileProvider
- * for filesDir exists, and ACTION_VIEW on a JPEG-of-a-PDF would be misleading).
+ * "View policy document" — the uploaded doc is now stored VERBATIM via PolicyDocStore
+ * (real PDF or image). PDFs open in an external viewer via FileProvider + ACTION_VIEW so
+ * every page is reachable; images keep the in-app fullscreen viewer.
  */
 @Composable
 private fun DocumentsSection(policyDocUri: String) {
     val context = LocalContext.current
+    val isPdf = policyDocUri.substringAfterLast('.').equals("pdf", ignoreCase = true)
     var fullscreen by remember { mutableStateOf(false) }
     SectionCard(title = stringResource(R.string.insurance_detail_documents_title)) {
-        TextButton(onClick = { fullscreen = true }) {
+        val noViewerMsg = stringResource(R.string.insurance_detail_no_pdf_viewer)
+        TextButton(onClick = {
+            if (isPdf) {
+                val intent = com.subramanya.artha.utils.PolicyDocStore.viewIntent(context, policyDocUri)
+                if (intent == null || runCatching { context.startActivity(intent) }.isFailure) {
+                    android.widget.Toast.makeText(context, noViewerMsg, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                fullscreen = true
+            }
+        }) {
             Icon(Icons.Filled.Description, contentDescription = null)
             Spacer(Modifier.size(8.dp))
-            Text(stringResource(R.string.insurance_detail_view_policy))
+            Text(
+                stringResource(
+                    if (isPdf) R.string.insurance_detail_view_policy_pdf else R.string.insurance_detail_view_policy,
+                ),
+            )
         }
     }
 

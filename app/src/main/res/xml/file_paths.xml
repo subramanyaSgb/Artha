@@ -2,4 +2,6 @@
 <paths>
     <!-- Allow the Settings → Export to share files written to context.cacheDir. -->
     <cache-path name="cache" path="." />
+    <!-- Vend content:// uris for stored policy docs so ACTION_VIEW can open the real PDF. -->
+    <files-path name="policy_docs" path="policy_docs/" />
 </paths>

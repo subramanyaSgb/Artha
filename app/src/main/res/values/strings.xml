@@ -1083,6 +1083,8 @@
     <string name="insurance_detail_premium_total">Total</string>
     <string name="insurance_detail_documents_title">Documents</string>
     <string name="insurance_detail_view_policy">View policy document</string>
+    <string name="insurance_detail_view_policy_pdf">View policy PDF</string>
+    <string name="insurance_detail_no_pdf_viewer">No app found to open PDF files</string>
 
     <!-- Insurance delete -->
     <string name="insurance_delete_confirm_title">Delete this policy?</string>

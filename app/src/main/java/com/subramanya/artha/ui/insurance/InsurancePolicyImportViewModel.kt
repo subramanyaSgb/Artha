@@ -11,7 +11,7 @@ import com.subramanya.artha.data.repository.InsuranceTypeRepository
 import com.subramanya.artha.domain.model.Insurance
 import com.subramanya.artha.domain.model.InsuranceTypeOption
 import com.subramanya.artha.utils.PolicyDocParser
-import com.subramanya.artha.utils.ReceiptStore
+import com.subramanya.artha.utils.PolicyDocStore
 import com.subramanya.artha.utils.renderPolicyPagesToBase64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -137,8 +137,9 @@ class InsurancePolicyImportViewModel(
         updateParsed { it.copy(isSaving = true) }
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            // Persist the source doc into filesDir/receipts (same store the receipt flow uses).
-            val savedDocUri = ReceiptStore.persist(context, imageUri)
+            // Persist the source doc VERBATIM into filesDir/policy_docs — keeps a real
+            // multi-page PDF (not a re-encoded 1-page JPEG) so the user can view all pages.
+            val savedDocUri = PolicyDocStore.persist(context, imageUri)
             val insurance = Insurance(
                 id = UUID.randomUUID().toString(),
                 name = current.name.trim(),
