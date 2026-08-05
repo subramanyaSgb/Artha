@@ -22,6 +22,8 @@ import java.util.UUID
  * one-time-use, so bytes are buffered up front. ponytail: first-3-pages cap — a "scan
  * more pages" control is a future enhancement, not needed until a real policy hides data
  * past page 3.
+ *
+ * Blocking (I/O + bitmap rasterization) — call on Dispatchers.IO.
  */
 fun renderPolicyPagesToBase64(context: Context, uri: Uri, maxPages: Int = 3): List<String> {
     // Picker URIs are one-time-use grants: buffer the whole thing once, then work from memory.
@@ -76,6 +78,8 @@ private fun renderPage(renderer: PdfRenderer, index: Int): String {
  * JPEG 85, Base64 NO_WRAP — same output format as UpiReceiptParser. Rendered PDF pages are
  * already ~1500px, but the image-passthrough branch can hand us a huge photo, so cap the
  * longer side at [TARGET_LONG_EDGE_PX] to keep the base64 payload sane.
+ *
+ * Owns the recycle of [bitmap]: callers must not touch it after this returns.
  */
 private fun bitmapToBase64(bitmap: Bitmap): String {
     val out = ByteArrayOutputStream()
@@ -85,6 +89,9 @@ private fun bitmapToBase64(bitmap: Bitmap): String {
         Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true)
     } else bitmap
     scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
+    // Recycle the scaled copy only if downscaling actually allocated a new one, then the input.
+    if (scaled !== bitmap) scaled.recycle()
+    bitmap.recycle()
     return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
 }
 
