@@ -5,6 +5,10 @@ package com.subramanya.artha.utils
  * (members/riders/coverage/exclusions/contacts) stored verbatim in details_json and
  * rendered by the detail screen. All fields optional — anything the model can't read
  * comes back null and the review screen leaves it blank.
+ *
+ * `*Hint` fields (typeHint, premiumFrequencyHint) are raw model output — resolved against
+ * the type / frequency catalogues before becoming a final Insurance, hence they don't
+ * match the domain field names.
  */
 data class PolicyData(
     val name: String?,
