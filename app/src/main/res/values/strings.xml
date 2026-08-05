@@ -1063,6 +1063,7 @@
     <string name="insurance_detail_life_assured">Life assured</string>
     <string name="insurance_detail_uin">UIN</string>
     <string name="insurance_detail_status">Status</string>
+    <string name="insurance_detail_status_title">Policy status</string>
     <string name="insurance_detail_members_title">Insured members</string>
     <!-- %1$s = relation, %2$s = age -->
     <string name="insurance_detail_member_relation_age">%1$s · %2$s</string>

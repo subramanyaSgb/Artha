@@ -282,31 +282,7 @@ private fun MetaBlock(insurance: Insurance) {
             MetaRow(stringResource(R.string.insurance_detail_tax_section), it)
         }
         insurance.agentContact?.takeIf { it.isNotBlank() }?.let { contact ->
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    stringResource(R.string.insurance_detail_agent),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(contact, style = MaterialTheme.typography.bodyMedium)
-                    val phoneLike = contact.filter { it.isDigit() || it == '+' }
-                    if (phoneLike.length >= 7) {
-                        IconButton(onClick = {
-                            val intent = Intent(Intent.ACTION_DIAL).apply {
-                                data = Uri.parse("tel:$phoneLike")
-                            }
-                            runCatching { context.startActivity(intent) }
-                        }) {
-                            Icon(Icons.Filled.Call, contentDescription = stringResource(R.string.insurance_detail_call_agent))
-                        }
-                    }
-                }
-            }
+            DialableRow(stringResource(R.string.insurance_detail_agent), contact)
         }
     }
 }
@@ -361,6 +337,12 @@ private fun LinkedInvestmentCard(name: String, onClick: () -> Unit) {
 
 @Composable
 private fun PolicyDetailSections(details: PolicyDetails) {
+    details.status?.takeIf { it.isNotBlank() }?.let { status ->
+        SectionCard(title = stringResource(R.string.insurance_detail_status_title)) {
+            MetaRow(stringResource(R.string.insurance_detail_status), status)
+        }
+    }
+
     if (details.members.isNotEmpty()) {
         SectionCard(title = stringResource(R.string.insurance_detail_members_title)) {
             details.members.forEach { m ->
