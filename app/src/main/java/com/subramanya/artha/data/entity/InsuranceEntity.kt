@@ -48,6 +48,20 @@ data class InsuranceEntity(
     val policyDocUri: String?,
     @ColumnInfo(name = "tax_section")
     val taxSection: String?,
+    // Insurance redesign (v11->v12): rich policy fields extracted from an uploaded PDF.
+    // details_json holds open-ended extras the parser can't map to a dedicated column.
+    @ColumnInfo(name = "plan_name")
+    val planName: String? = null,
+    @ColumnInfo(name = "policy_term")
+    val policyTerm: String? = null,
+    @ColumnInfo(name = "life_assured")
+    val lifeAssured: String? = null,
+    @ColumnInfo(name = "uin")
+    val uin: String? = null,
+    @ColumnInfo(name = "insurer_helpline")
+    val insurerHelpline: String? = null,
+    @ColumnInfo(name = "details_json")
+    val detailsJson: String? = null,
     val icon: String,
     val color: Long,
     @ColumnInfo(name = "is_archived")

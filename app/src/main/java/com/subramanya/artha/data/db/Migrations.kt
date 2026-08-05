@@ -195,3 +195,22 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
         db.execSQL("ALTER TABLE cards ADD COLUMN card_image_uri TEXT")
     }
 }
+
+/**
+ * v11 -> v12: insurance redesign — rich policy fields extracted from an uploaded policy PDF.
+ * See docs/plans/2026-08-05-insurance-redesign-design.md.
+ *
+ * Purely additive: six nullable TEXT columns on `insurances`. `details_json` holds the
+ * open-ended extra fields the AI parser can't map to a dedicated column. Existing rows keep
+ * NULLs, matching the entity's nullable defaults.
+ */
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE insurances ADD COLUMN plan_name TEXT")
+        db.execSQL("ALTER TABLE insurances ADD COLUMN policy_term TEXT")
+        db.execSQL("ALTER TABLE insurances ADD COLUMN life_assured TEXT")
+        db.execSQL("ALTER TABLE insurances ADD COLUMN uin TEXT")
+        db.execSQL("ALTER TABLE insurances ADD COLUMN insurer_helpline TEXT")
+        db.execSQL("ALTER TABLE insurances ADD COLUMN details_json TEXT")
+    }
+}
