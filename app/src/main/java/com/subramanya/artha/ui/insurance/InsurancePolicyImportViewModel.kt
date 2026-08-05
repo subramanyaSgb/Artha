@@ -198,7 +198,9 @@ class InsurancePolicyImportViewModel(
     }
 
     private fun plainAmount(amount: Double): String =
-        if (amount == amount.toLong().toDouble()) amount.toLong().toString() else amount.toString()
+        // %.2f for the fractional case, not Double.toString() — sum-assured values are often in
+        // lakhs/crores and toString() would render them in scientific notation (e.g. 1.2E7).
+        if (amount == amount.toLong().toDouble()) amount.toLong().toString() else "%.2f".format(amount)
 
     /** How many rich keys (members/riders/coverage/exclusions/contacts/…) the parse captured. */
     private fun countExtraDetails(detailsJson: String?): Int {
