@@ -25,27 +25,35 @@ class PolicyDocParser(
     private val routesMeKeyProvider: (suspend () -> String)? = null,
     private val nimKeyProvider: (suspend () -> String)? = null,
     private val openRouterKeyProvider: (suspend () -> String)? = null,
+    // Extra Groq keys (separate accounts) tried right after the primary Groq. A multi-page
+    // policy PDF (~2.5K vision tokens/page) can hit one key's 8K-tokens/min cap → 429; each
+    // backup key has its own quota, so the fast Groq path survives the spike.
+    private val groqBackupKeysProvider: (suspend () -> List<String>)? = null,
 ) {
 
     /** All page images go in one request (one image_url entry each) + the policy prompt. */
     suspend fun parse(pageImagesB64: List<String>): PolicyData? {
         if (pageImagesB64.isEmpty()) return null
         val groqKey = groqKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
+        val groqBackupKeys = groqBackupKeysProvider?.invoke()?.filter { it.isNotBlank() }.orEmpty()
         val routesMeKey = routesMeKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
         val nimKey = nimKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
         val orKey = openRouterKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
-        if (groqKey == null && routesMeKey == null && nimKey == null && orKey == null) return null
+        if (groqKey == null && groqBackupKeys.isEmpty() && routesMeKey == null && nimKey == null && orKey == null) return null
 
-        val providers = listOfNotNull(
-            groqKey?.let { Provider(GROQ_ENDPOINT, GROQ_MODEL, it, 30_000, reasoningEffortNone = true) },
-            routesMeKey?.let { Provider(ROUTESME_ENDPOINT, ROUTESME_MODEL, it, 30_000) },
-            nimKey?.let { Provider(NIM_ENDPOINT, NIM_MODEL, it, 25_000) },
+        fun groqProvider(key: String) = Provider(GROQ_ENDPOINT, GROQ_MODEL, key, 30_000, reasoningEffortNone = true)
+
+        val providers = buildList {
+            groqKey?.let { add(groqProvider(it)) }
+            groqBackupKeys.forEach { add(groqProvider(it)) }  // separate accounts → separate TPM quota
+            routesMeKey?.let { add(Provider(ROUTESME_ENDPOINT, ROUTESME_MODEL, it, 30_000)) }
+            nimKey?.let { add(Provider(NIM_ENDPOINT, NIM_MODEL, it, 25_000)) }
             orKey?.let {
-                Provider(OR_ENDPOINT, OR_MODEL, it, 30_000, extraHeaders = mapOf(
+                add(Provider(OR_ENDPOINT, OR_MODEL, it, 30_000, extraHeaders = mapOf(
                     "HTTP-Referer" to "https://github.com/subramanyaSgb/Artha",
-                ))
-            },
-        )
+                )))
+            }
+        }
 
         for (p in providers) {
             val result = runCatching {

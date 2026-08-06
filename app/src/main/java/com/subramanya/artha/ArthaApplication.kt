@@ -129,6 +129,15 @@ class ArthaApplication : Application() {
     /** Groq key (primary receipt-vision provider) — baked from local.properties → [BuildConfig.GROQ_API_KEY]. */
     fun groqApiKey(): String = BuildConfig.GROQ_API_KEY
 
+    /**
+     * Backup Groq keys from separate accounts — each has its own 8K-tokens/min quota. A
+     * multi-page policy PDF can exhaust one key's per-minute budget, so the parser falls
+     * through these before the slower non-Groq providers. Blank ones are skipped.
+     */
+    fun groqApiKeysBackup(): List<String> =
+        listOf(BuildConfig.GROQ_API_KEY_2, BuildConfig.GROQ_API_KEY_3, BuildConfig.GROQ_API_KEY_4)
+            .filter { it.isNotBlank() }
+
     /** RoutesMe key (second receipt-vision provider) — baked from local.properties → [BuildConfig.ROUTESME_API_KEY]. */
     fun routesMeApiKey(): String = BuildConfig.ROUTESME_API_KEY
 

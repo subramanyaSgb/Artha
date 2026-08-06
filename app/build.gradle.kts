@@ -27,8 +27,8 @@ android {
         applicationId = "com.subramanya.artha"
         minSdk = 26
         targetSdk = 34
-        versionCode = 47
-        versionName = "0.41.1"
+        versionCode = 48
+        versionName = "0.41.2"
 
         // Baked NIM API key (see localProps note above). Empty string if not set.
         buildConfigField(
@@ -45,6 +45,23 @@ android {
             "String",
             "GROQ_API_KEY",
             "\"${localProps.getProperty("GROQ_API_KEY", "")}\"",
+        )
+        // Backup Groq keys from separate accounts — each has its own 8K-tokens/min quota, so a
+        // rate-limited primary falls through to these before the slower non-Groq providers.
+        buildConfigField(
+            "String",
+            "GROQ_API_KEY_2",
+            "\"${localProps.getProperty("GROQ_API_KEY_2", "")}\"",
+        )
+        buildConfigField(
+            "String",
+            "GROQ_API_KEY_3",
+            "\"${localProps.getProperty("GROQ_API_KEY_3", "")}\"",
+        )
+        buildConfigField(
+            "String",
+            "GROQ_API_KEY_4",
+            "\"${localProps.getProperty("GROQ_API_KEY_4", "")}\"",
         )
         buildConfigField(
             "String",

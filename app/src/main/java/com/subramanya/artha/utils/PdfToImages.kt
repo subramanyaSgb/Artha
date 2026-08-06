@@ -105,4 +105,8 @@ private fun bitmapToBase64(bitmap: Bitmap): String {
     return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
 }
 
-private const val TARGET_LONG_EDGE_PX = 1500
+// Vision token cost scales ~with image area. At 1500px a page ran ~2.5K tokens, so 3 pages
+// (~7.7K) brushed Groq's free 8K-tokens/min cap → 429. 1150px roughly halves the area/tokens
+// (~1.4K/page, ~4.2K for 3 pages) while keeping policy schedule text legible. ponytail: if a
+// dense policy ever mis-reads, bump this back up — the multi-key fallback covers the TPM spike.
+private const val TARGET_LONG_EDGE_PX = 1150

@@ -73,6 +73,7 @@ fun InsurancePolicyImportScreen(
             imageUri = Uri.parse(imageUriString),
             policyDocParser = PolicyDocParser(
                 groqKeyProvider = { app.groqApiKey() },
+                groqBackupKeysProvider = { app.groqApiKeysBackup() },
                 routesMeKeyProvider = { app.routesMeApiKey() },
                 nimKeyProvider = { app.nimApiKey() },
                 openRouterKeyProvider = { app.openRouterApiKey() },
