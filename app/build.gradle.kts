@@ -27,8 +27,8 @@ android {
         applicationId = "com.subramanya.artha"
         minSdk = 26
         targetSdk = 34
-        versionCode = 48
-        versionName = "0.41.2"
+        versionCode = 49
+        versionName = "0.41.3"
 
         // Baked NIM API key (see localProps note above). Empty string if not set.
         buildConfigField(
