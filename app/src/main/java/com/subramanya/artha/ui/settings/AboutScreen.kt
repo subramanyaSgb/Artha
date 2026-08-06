@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -172,6 +173,24 @@ fun AboutScreen(
                 )
                 Spacer(Modifier.height(10.dp))
 
+                // Source link — opens the public GitHub repo in the browser.
+                val sourceUrl = stringResource(R.string.about_source_url)
+                AboutLinkRow(
+                    eyebrow = stringResource(R.string.about_source_eyebrow),
+                    value = stringResource(R.string.about_source_value),
+                    onClick = {
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(sourceUrl),
+                                ),
+                            )
+                        }
+                    },
+                )
+                Spacer(Modifier.height(10.dp))
+
                 // Manual update check row
                 val checker = remember { AppUpdateChecker(context) }
                 UpdateCheckRow(
@@ -297,6 +316,7 @@ private fun FeaturesSection() {
         ),
         R.string.about_features_group_ai to listOf(
             R.string.about_features_ai_1, R.string.about_features_ai_2,
+            R.string.about_features_ai_3, R.string.about_features_ai_4,
         ),
         R.string.about_features_group_grow to listOf(
             R.string.about_features_grow_1, R.string.about_features_grow_2, R.string.about_features_grow_3,
@@ -367,6 +387,51 @@ private fun FeaturesSection() {
                     }
                 }
             }
+        }
+    }
+}
+
+/** Like [AboutMetaRow] but tappable — the value reads as a link and opens [onClick]. */
+@Composable
+private fun AboutLinkRow(eyebrow: String, value: String, onClick: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = eyebrow.uppercase(),
+                style = EyebrowStyle,
+                color = Text3,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = value,
+                style = TextStyle(
+                    fontFamily = IbmPlexMono,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFeatureSettings = "tnum, lnum",
+                ),
+            )
+            Spacer(Modifier.size(8.dp))
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
         }
     }
 }

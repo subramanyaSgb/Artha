@@ -663,6 +663,9 @@
     <string name="about_credit_value">Subramanya G B</string>
     <string name="about_version_eyebrow">Version</string>
     <string name="about_check_updates">Check for updates</string>
+    <string name="about_source_eyebrow">Source</string>
+    <string name="about_source_value">GitHub</string>
+    <string name="about_source_url">https://github.com/subramanyaSgb/Artha</string>
     <string name="about_checking">Checking…</string>
     <string name="about_up_to_date">You\'re up to date</string>
     <string name="about_update_error">Couldn\'t check — try again</string>
@@ -678,10 +681,11 @@
     <string name="about_features_ai_1">AI Quick Entry — type, speak, or snap a photo</string>
     <string name="about_features_ai_2">UPI receipt scanning (PhonePe, GPay, Paytm…)</string>
     <string name="about_features_ai_3">Bank SMS auto-import with a review queue</string>
+    <string name="about_features_ai_4">Insurance policy PDF scanning — auto-fills every detail</string>
     <string name="about_features_group_grow">Grow &amp; protect</string>
     <string name="about_features_grow_1">Investments with per-type valuation</string>
     <string name="about_features_grow_2">Fixed-deposit partial withdrawal</string>
-    <string name="about_features_grow_3">Insurance policies &amp; premium reminders</string>
+    <string name="about_features_grow_3">Insurance — upload a policy PDF, AI fills the details &amp; shows it as a certificate; premium reminders</string>
     <string name="about_features_group_plan">Plan ahead</string>
     <string name="about_features_plan_1">Budgets &amp; savings goals</string>
     <string name="about_features_plan_2">Subscriptions &amp; recurring auto-entries</string>
