@@ -21,6 +21,9 @@ object CertTokens {
     val pageBg = Color(0xFF08090A)
     val cardBg = Color(0xFF121415)
     val cardBorder = Color(0xFF1E2123)
+    // Slightly brighter border used on lifted dark cards (accordions, quick-facts grid)
+    // so they read as raised on the near-black page bg instead of a muddy mass.
+    val cardBorderLifted = Color(0xFF24272A)
     val rowBg = Color(0xFF171A1C)
     val rowBorder = Color(0xFF22262A)
     val dividerThin = Color(0xFF1B1E20)

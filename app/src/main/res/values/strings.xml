@@ -1082,6 +1082,8 @@
     <string name="insurance_detail_premium_gst">GST</string>
     <string name="insurance_detail_premium_total">Total</string>
     <string name="insurance_detail_documents_title">Documents</string>
+    <string name="insurance_cert_doc_title">Policy document</string>
+    <string name="insurance_cert_doc_tap_to_view">Tap to view</string>
     <string name="insurance_detail_view_policy">View policy document</string>
     <string name="insurance_detail_view_policy_pdf">View policy PDF</string>
     <string name="insurance_detail_no_pdf_viewer">No app found to open PDF files</string>

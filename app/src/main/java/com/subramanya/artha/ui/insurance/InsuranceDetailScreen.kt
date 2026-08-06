@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -228,136 +229,144 @@ private fun CertificateBody(
         val hasNominee = !ins.nominee.isNullOrBlank()
 
         // Divider shows if any schedule content follows (Policy Schedule always does).
-        ScheduleDivider(stringResource(R.string.insurance_cert_schedule_divider))
+        // Pulled ~6dp closer to the validity card above (design margin-top:6px).
+        ScheduleDivider(
+            stringResource(R.string.insurance_cert_schedule_divider),
+            modifier = Modifier.offset(y = (-6).dp),
+        )
 
-        // I — Policy Schedule (always: at least the commencement date exists)
-        AccordionSection(
-            numeral = stringResource(R.string.insurance_cert_num_i),
-            title = stringResource(R.string.insurance_cert_section_policy_schedule),
-            initiallyOpen = true,
-        ) {
-            ins.planName?.takeIf { it.isNotBlank() }
-                ?.let { MetaRow(stringResource(R.string.insurance_detail_plan_name), it) }
-            ins.policyNumber?.takeIf { it.isNotBlank() }
-                ?.let { MetaRow(stringResource(R.string.insurance_detail_policy_number), it) }
-            ins.uin?.takeIf { it.isNotBlank() }
-                ?.let { MetaRow(stringResource(R.string.insurance_detail_uin), it) }
-            ins.policyTerm?.takeIf { it.isNotBlank() }
-                ?.let { MetaRow(stringResource(R.string.insurance_detail_policy_term), it) }
-            MetaRow(stringResource(R.string.insurance_cert_commencement), startText)
-            endText?.let { MetaRow(stringResource(R.string.insurance_cert_expiry), it) }
-        }
-
-        // II — Insured Members
-        if (members.isNotEmpty()) {
+        // The 8 numbered accordions (I-VIII) sit in their own group at a tighter 10dp
+        // gap; the surrounding blocks keep the 14dp top-level rhythm (design spec).
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // I — Policy Schedule (always: at least the commencement date exists)
             AccordionSection(
-                numeral = stringResource(R.string.insurance_cert_num_ii),
-                title = stringResource(R.string.insurance_cert_section_members),
+                numeral = stringResource(R.string.insurance_cert_num_i),
+                title = stringResource(R.string.insurance_cert_section_policy_schedule),
+                initiallyOpen = true,
             ) {
-                members.forEachIndexed { i, m ->
-                    if (i > 0) Spacer(Modifier.size(8.dp))
-                    MemberRow(
-                        initials = initialsOf(m.name),
-                        name = m.name,
-                        sub = memberSub(m),
-                        avatarGradient = avatarGradientFor(i),
-                        proposer = i == 0,
-                    )
+                ins.planName?.takeIf { it.isNotBlank() }
+                    ?.let { MetaRow(stringResource(R.string.insurance_detail_plan_name), it) }
+                ins.policyNumber?.takeIf { it.isNotBlank() }
+                    ?.let { MetaRow(stringResource(R.string.insurance_detail_policy_number), it) }
+                ins.uin?.takeIf { it.isNotBlank() }
+                    ?.let { MetaRow(stringResource(R.string.insurance_detail_uin), it) }
+                ins.policyTerm?.takeIf { it.isNotBlank() }
+                    ?.let { MetaRow(stringResource(R.string.insurance_detail_policy_term), it) }
+                MetaRow(stringResource(R.string.insurance_cert_commencement), startText)
+                endText?.let { MetaRow(stringResource(R.string.insurance_cert_expiry), it) }
+            }
+
+            // II — Insured Members
+            if (members.isNotEmpty()) {
+                AccordionSection(
+                    numeral = stringResource(R.string.insurance_cert_num_ii),
+                    title = stringResource(R.string.insurance_cert_section_members),
+                ) {
+                    members.forEachIndexed { i, m ->
+                        if (i > 0) Spacer(Modifier.size(8.dp))
+                        MemberRow(
+                            initials = initialsOf(m.name),
+                            name = m.name,
+                            sub = memberSub(m),
+                            avatarGradient = avatarGradientFor(i),
+                            proposer = i == 0,
+                        )
+                    }
                 }
             }
-        }
 
-        // III — Nominee
-        if (hasNominee) {
-            AccordionSection(
-                numeral = stringResource(R.string.insurance_cert_num_iii),
-                title = stringResource(R.string.insurance_cert_section_nominee),
-            ) {
-                MetaRow(stringResource(R.string.insurance_detail_nominee), ins.nominee.orEmpty())
-            }
-        }
-
-        // IV — Coverage & Benefits
-        if (hasCoverage) {
-            AccordionSection(
-                numeral = stringResource(R.string.insurance_cert_num_iv),
-                title = stringResource(R.string.insurance_cert_section_coverage),
-            ) {
-                details?.coverage?.forEach { MetaRow(it.label, it.value) }
-            }
-        }
-
-        // V — Premium & Payment
-        if (hasPremium) {
-            AccordionSection(
-                numeral = stringResource(R.string.insurance_cert_num_v),
-                title = stringResource(R.string.insurance_cert_section_premium),
-            ) {
-                val pb = details?.premiumBreakdown
-                pb?.base?.let { MetaRow(stringResource(R.string.insurance_detail_premium_base), it) }
-                pb?.riders?.let { MetaRow(stringResource(R.string.insurance_detail_premium_riders), it) }
-                pb?.gst?.let { MetaRow(stringResource(R.string.insurance_detail_premium_gst), it) }
-                val total = pb?.total ?: IndianNumberFormat.format(ins.premiumAmount)
-                PremiumTotalRow(stringResource(R.string.insurance_detail_premium_total), total)
-            }
-        }
-
-        // VI — Riders & Add-ons
-        if (hasRiders) {
-            AccordionSection(
-                numeral = stringResource(R.string.insurance_cert_num_vi),
-                title = stringResource(R.string.insurance_cert_section_riders),
-            ) {
-                details?.riders?.forEachIndexed { i, r ->
-                    if (i > 0) Spacer(Modifier.size(8.dp))
-                    RiderRow(name = r.name, premium = r.premium, note = r.note)
+            // III — Nominee
+            if (hasNominee) {
+                AccordionSection(
+                    numeral = stringResource(R.string.insurance_cert_num_iii),
+                    title = stringResource(R.string.insurance_cert_section_nominee),
+                ) {
+                    MetaRow(stringResource(R.string.insurance_detail_nominee), ins.nominee.orEmpty())
                 }
             }
-        }
 
-        // VII — Waiting Periods & Exclusions
-        if (hasExclusions) {
-            AccordionSection(
-                numeral = stringResource(R.string.insurance_cert_num_vii),
-                title = stringResource(R.string.insurance_cert_section_exclusions),
-            ) {
-                details?.exclusions?.forEach { ExclusionRow(it) }
+            // IV — Coverage & Benefits
+            if (hasCoverage) {
+                AccordionSection(
+                    numeral = stringResource(R.string.insurance_cert_num_iv),
+                    title = stringResource(R.string.insurance_cert_section_coverage),
+                ) {
+                    details?.coverage?.forEach { MetaRow(it.label, it.value) }
+                }
             }
-        }
 
-        // VIII — Insurer Contacts
-        if (hasContacts) {
-            AccordionSection(
-                numeral = stringResource(R.string.insurance_cert_num_viii),
-                title = stringResource(R.string.insurance_cert_section_contacts),
-            ) {
-                val c = details?.contacts
-                val helpline = (c?.helpline ?: ins.insurerHelpline)?.takeIf { it.isNotBlank() }
-                // Build the contact list so we can space rows uniformly (8.dp between).
-                val rows = buildList<@Composable () -> Unit> {
-                    helpline?.let { v ->
-                        add {
-                            ContactRow(
-                                icon = Icons.Filled.SupportAgent,
-                                label = stringResource(R.string.insurance_detail_helpline),
-                                value = v,
-                                trailingAction = dialAction(context, v),
-                            )
+            // V — Premium & Payment
+            if (hasPremium) {
+                AccordionSection(
+                    numeral = stringResource(R.string.insurance_cert_num_v),
+                    title = stringResource(R.string.insurance_cert_section_premium),
+                ) {
+                    val pb = details?.premiumBreakdown
+                    pb?.base?.let { MetaRow(stringResource(R.string.insurance_detail_premium_base), it) }
+                    pb?.riders?.let { MetaRow(stringResource(R.string.insurance_detail_premium_riders), it) }
+                    pb?.gst?.let { MetaRow(stringResource(R.string.insurance_detail_premium_gst), it) }
+                    val total = pb?.total ?: IndianNumberFormat.format(ins.premiumAmount)
+                    PremiumTotalRow(stringResource(R.string.insurance_detail_premium_total), total)
+                }
+            }
+
+            // VI — Riders & Add-ons
+            if (hasRiders) {
+                AccordionSection(
+                    numeral = stringResource(R.string.insurance_cert_num_vi),
+                    title = stringResource(R.string.insurance_cert_section_riders),
+                ) {
+                    details?.riders?.forEachIndexed { i, r ->
+                        if (i > 0) Spacer(Modifier.size(8.dp))
+                        RiderRow(name = r.name, premium = r.premium, note = r.note)
+                    }
+                }
+            }
+
+            // VII — Waiting Periods & Exclusions
+            if (hasExclusions) {
+                AccordionSection(
+                    numeral = stringResource(R.string.insurance_cert_num_vii),
+                    title = stringResource(R.string.insurance_cert_section_exclusions),
+                ) {
+                    details?.exclusions?.forEach { ExclusionRow(it) }
+                }
+            }
+
+            // VIII — Insurer Contacts
+            if (hasContacts) {
+                AccordionSection(
+                    numeral = stringResource(R.string.insurance_cert_num_viii),
+                    title = stringResource(R.string.insurance_cert_section_contacts),
+                ) {
+                    val c = details?.contacts
+                    val helpline = (c?.helpline ?: ins.insurerHelpline)?.takeIf { it.isNotBlank() }
+                    // Build the contact list so we can space rows uniformly (8.dp between).
+                    val rows = buildList<@Composable () -> Unit> {
+                        helpline?.let { v ->
+                            add {
+                                ContactRow(
+                                    icon = Icons.Filled.SupportAgent,
+                                    label = stringResource(R.string.insurance_detail_helpline),
+                                    value = v,
+                                    trailingAction = dialAction(context, v),
+                                )
+                            }
+                        }
+                        c?.claimsEmail?.let { v ->
+                            add { ContactRow(Icons.Filled.Email, stringResource(R.string.insurance_detail_claims_email), v) }
+                        }
+                        c?.branch?.let { v ->
+                            add { ContactRow(Icons.Filled.Business, stringResource(R.string.insurance_detail_branch), v) }
+                        }
+                        c?.tpa?.let { v ->
+                            add { ContactRow(Icons.Filled.LocalHospital, stringResource(R.string.insurance_detail_tpa), v) }
                         }
                     }
-                    c?.claimsEmail?.let { v ->
-                        add { ContactRow(Icons.Filled.Email, stringResource(R.string.insurance_detail_claims_email), v) }
+                    rows.forEachIndexed { i, row ->
+                        if (i > 0) Spacer(Modifier.size(8.dp))
+                        row()
                     }
-                    c?.branch?.let { v ->
-                        add { ContactRow(Icons.Filled.Business, stringResource(R.string.insurance_detail_branch), v) }
-                    }
-                    c?.tpa?.let { v ->
-                        add { ContactRow(Icons.Filled.LocalHospital, stringResource(R.string.insurance_detail_tpa), v) }
-                    }
-                }
-                rows.forEachIndexed { i, row ->
-                    if (i > 0) Spacer(Modifier.size(8.dp))
-                    row()
                 }
             }
         }
@@ -432,11 +441,8 @@ private fun DocumentsBlock(policyDocUri: String) {
     val isPdf = policyDocUri.substringAfterLast('.').equals("pdf", ignoreCase = true)
     var fullscreen by remember { mutableStateOf(false) }
     val noViewerMsg = stringResource(R.string.insurance_detail_no_pdf_viewer)
-    val label = stringResource(
-        if (isPdf) R.string.insurance_detail_view_policy_pdf else R.string.insurance_detail_view_policy,
-    )
 
-    DocumentsRow(label = label, onViewPdf = {
+    DocumentsCard(isPdf = isPdf, onView = {
         if (isPdf) {
             val intent = com.subramanya.artha.utils.PolicyDocStore.viewIntent(context, policyDocUri)
             if (intent == null || runCatching { context.startActivity(intent) }.isFailure) {

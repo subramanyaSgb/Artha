@@ -19,12 +19,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Umbrella
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Icon
@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -123,8 +124,11 @@ fun QuickFactsGrid(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // Soft shadow lifts the card off the near-black page bg (the 1dp border
+            // nearly vanishes on-device). Shadow must come BEFORE clip/background.
+            .shadow(2.dp, RoundedCornerShape(16.dp))
             .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, CertTokens.cardBorder, RoundedCornerShape(16.dp))
+            .border(1.dp, CertTokens.cardBorderLifted, RoundedCornerShape(16.dp))
             .background(CertTokens.cardBg),
     ) {
         rows.forEachIndexed { rowIndex, row ->
@@ -374,8 +378,10 @@ fun AccordionSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // Soft shadow lifts the card off the near-black page bg (see QuickFactsGrid).
+            .shadow(2.dp, RoundedCornerShape(14.dp))
             .clip(RoundedCornerShape(14.dp))
-            .border(1.dp, CertTokens.cardBorder, RoundedCornerShape(14.dp))
+            .border(1.dp, CertTokens.cardBorderLifted, RoundedCornerShape(14.dp))
             .background(CertTokens.cardBg),
     ) {
         Row(
@@ -416,8 +422,10 @@ fun AccordionSection(
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowDown,
                 contentDescription = null,
-                tint = CertTokens.labelMuted,
-                modifier = Modifier.rotate(chevronRotation),
+                tint = CertTokens.textMuted,
+                modifier = Modifier
+                    .size(16.dp)
+                    .rotate(chevronRotation),
             )
         }
         AnimatedVisibility(visible = open) {
@@ -693,42 +701,97 @@ fun PremiumTotalRow(label: String, value: String) {
 
 // ---------------- 11. Documents card ----------------
 
+/**
+ * Titled "Documents" CARD (design ~lines 419-447): a dark card with a heading, then
+ * a doc row per stored document. Each row = a PDF/IMG thumbnail chip + title + meta +
+ * chevron, clickable to open. Caller passes the view action (PolicyDocStore / in-app
+ * image viewer) — this composable only handles presentation.
+ *
+ * @param isPdf drives the chip label/colour (terracotta "PDF" vs green "IMG").
+ */
 @Composable
-fun DocumentsRow(label: String, onViewPdf: () -> Unit) {
+fun DocumentsCard(isPdf: Boolean, onView: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .border(1.dp, CertTokens.cardBorder, RoundedCornerShape(14.dp))
+            .background(CertTokens.cardBg)
+            .padding(15.dp),
+    ) {
+        Text(
+            stringResource(R.string.insurance_detail_documents_title),
+            style = TextStyle(
+                fontFamily = Manrope,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = CertTokens.textPrimary,
+            ),
+        )
+        Spacer(Modifier.height(10.dp))
+        DocRow(isPdf = isPdf, onView = onView)
+    }
+}
+
+/** A single doc tile inside [DocumentsCard]. */
+@Composable
+private fun DocRow(isPdf: Boolean, onView: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(11.dp))
             .border(1.dp, CertTokens.rowBorder, RoundedCornerShape(11.dp))
             .background(CertTokens.rowBg)
-            .clickable(onClick = onViewPdf)
-            .padding(horizontal = 11.dp, vertical = 12.dp),
+            .clickable(onClick = onView)
+            .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // PDF/IMG thumbnail chip (portrait ~32x38).
         Box(
             modifier = Modifier
-                .size(30.dp)
-                .clip(RoundedCornerShape(9.dp))
-                .background(CertTokens.gold.copy(alpha = 0.10f)),
+                .width(32.dp)
+                .height(38.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .border(1.dp, Color(0xFF2E3338), RoundedCornerShape(4.dp))
+                .background(Color(0xFF21252A)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                Icons.Filled.PictureAsPdf,
-                contentDescription = null,
-                tint = CertTokens.gold,
-                modifier = Modifier.size(15.dp),
+            Text(
+                if (isPdf) "PDF" else "IMG",
+                style = TextStyle(
+                    fontFamily = Manrope,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isPdf) CertTokens.terracotta else CertTokens.successGreen,
+                ),
             )
         }
-        Text(
-            label,
-            modifier = Modifier.weight(1f),
-            style = TextStyle(
-                fontFamily = com.subramanya.artha.ui.theme.Manrope,
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = CertTokens.textPrimary,
-            ),
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.insurance_cert_doc_title),
+                style = TextStyle(
+                    fontFamily = Manrope,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CertTokens.textPrimary,
+                ),
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                stringResource(R.string.insurance_cert_doc_tap_to_view),
+                style = TextStyle(
+                    fontFamily = Manrope,
+                    fontSize = 10.5.sp,
+                    color = CertTokens.labelMuted,
+                ),
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = CertTokens.textMuted,
+            modifier = Modifier.size(16.dp),
         )
     }
 }
