@@ -54,7 +54,7 @@ import kotlin.math.tan
  *   A  gold-foil frame  (linear-gradient bezel + drop shadow)
  *   B  paper            (radial cream gradient + guilloché texture + vignette)
  *   C  double border    (two concentric green rings — Compose has no double border)
- *   D  inner hairline    (thin ring + top highlight + 4 canvas-drawn corner fleurons)
+ *   D  inner hairline    (thin ring + top highlight)
  *
  * Every dynamic value comes from a param; a null/blank param hides its whole
  * sub-block so sparse policies degrade gracefully. planName + sumInsured always
@@ -64,8 +64,8 @@ import kotlin.math.tan
  *
  * Notes on judgment calls the task left open:
  *  - Life-assured name: rendered as-is (no honorific — can't infer gender).
- *  - Corner/title ornaments: canvas-drawn fleurons (see [CertOrnament]) instead
- *    of ❦/❧ glyphs, which would tofu without a bundled symbol font.
+ *  - Title ornaments: canvas-drawn fleurons (see [CertOrnament]) instead of ❧
+ *    glyphs, which would tofu without a bundled symbol font.
  *  - Double border: drawn as two concentric rounded-rect rings via drawBehind.
  *  - Seal text: insurer initials + issue year (derived, generic embossed seal).
  */
@@ -163,12 +163,6 @@ fun PolicyCertificateHero(
                         lifeAssured = lifeAssured,
                         uin = uin,
                     )
-
-                    // 4 corner fleurons (canvas-drawn)
-                    CornerFleuron(Modifier.align(Alignment.TopStart), x = 3.dp, y = 3.dp)
-                    CornerFleuron(Modifier.align(Alignment.TopEnd), x = (-3).dp, y = 3.dp)
-                    CornerFleuron(Modifier.align(Alignment.BottomStart), x = 3.dp, y = (-3).dp)
-                    CornerFleuron(Modifier.align(Alignment.BottomEnd), x = (-3).dp, y = (-3).dp)
                 }
             }
         }
@@ -388,13 +382,23 @@ private fun HeroContent(
                     ),
                 )
                 if (!lifeAssured.isNullOrBlank()) {
+                    // Shrink the cursive name as it gets longer so it stays centered on 1-2 tidy
+                    // lines instead of wrapping awkwardly (a long "Subramanya Gopal Bellary" at 40sp
+                    // broke to a ragged left-leaning block).
+                    val nameSize = when {
+                        lifeAssured.length <= 14 -> 40.sp
+                        lifeAssured.length <= 22 -> 33.sp
+                        else -> 27.sp
+                    }
                     Text(
                         text = lifeAssured,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
                         style = TextStyle(
                             fontFamily = MrsSaintDelafield,
-                            fontSize = 40.sp,
+                            fontSize = nameSize,
                             color = CertTokens.greenDeep,
-                            lineHeight = 42.sp, // ~1.05
+                            lineHeight = nameSize * 1.05f,
                         ),
                     )
                 }
@@ -566,21 +570,6 @@ private fun EmbossedSeal(insurer: String, issuedOn: String?) {
             }
         }
     }
-}
-
-/** A corner fleuron offset by [x]/[y] from the aligned corner. */
-@Composable
-private fun CornerFleuron(modifier: Modifier, x: Dp, y: Dp) {
-    CertOrnament(
-        modifier = modifier.padding(
-            start = if (x >= 0.dp) x else 0.dp,
-            end = if (x < 0.dp) -x else 0.dp,
-            top = if (y >= 0.dp) y else 0.dp,
-            bottom = if (y < 0.dp) -y else 0.dp,
-        ),
-        color = CertTokens.doubleBorderGreen.copy(alpha = 0.75f),
-        size = 13.dp,
-    )
 }
 
 /**
