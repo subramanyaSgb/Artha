@@ -352,7 +352,32 @@ fun InsuranceFormSheet(
                     val resolvedId = editing?.id ?: UUID.randomUUID().toString()
                     val resolvedTax = taxSection.trim().takeIf { it.isNotBlank() }
                         ?: defaultTaxSectionFor(type)
-                    val resolved = Insurance(
+                    // On EDIT, start from the existing policy and copy ONLY the form's fields —
+                    // so anything the form has no input for (planName/policyTerm/lifeAssured/uin/
+                    // insurerHelpline/detailsJson from an uploaded PDF, and any future column) is
+                    // preserved. Building a fresh Insurance() here would silently null those out.
+                    val base = editing ?: Insurance(
+                        id = resolvedId,
+                        name = "",
+                        type = type,
+                        provider = "",
+                        policyNumber = null,
+                        sumAssured = 0.0,
+                        premiumAmount = 0.0,
+                        premiumFrequency = frequency,
+                        nextPremiumDate = null,
+                        startDate = startDate,
+                        endDate = null,
+                        nominee = null,
+                        agentContact = null,
+                        policyDocUri = null,
+                        taxSection = null,
+                        icon = "shield",
+                        color = color,
+                        isArchived = false,
+                        createdAt = now,
+                    )
+                    val resolved = base.copy(
                         id = resolvedId,
                         name = name.trim(),
                         type = type,
@@ -366,12 +391,8 @@ fun InsuranceFormSheet(
                         endDate = endDate,
                         nominee = nominee.trim().takeIf { it.isNotBlank() },
                         agentContact = agent.trim().takeIf { it.isNotBlank() },
-                        policyDocUri = editing?.policyDocUri,
                         taxSection = resolvedTax,
-                        icon = editing?.icon ?: "shield",
                         color = color,
-                        isArchived = editing?.isArchived ?: false,
-                        createdAt = editing?.createdAt ?: now,
                     )
                     scope.launch {
                         app.insuranceRepository.upsert(resolved)
