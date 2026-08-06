@@ -1086,6 +1086,60 @@
     <string name="insurance_detail_view_policy_pdf">View policy PDF</string>
     <string name="insurance_detail_no_pdf_viewer">No app found to open PDF files</string>
 
+    <!-- Insurance certificate detail (redesign) -->
+    <string name="insurance_cert_kind_health">Health Insurance Policy</string>
+    <string name="insurance_cert_kind_vehicle">Vehicle Insurance Policy</string>
+    <string name="insurance_cert_kind_life_term">Term Life Insurance Policy</string>
+    <string name="insurance_cert_kind_life_endowment">Endowment Life Insurance Policy</string>
+    <string name="insurance_cert_kind_travel">Travel Insurance Policy</string>
+    <string name="insurance_cert_kind_home">Home Insurance Policy</string>
+    <string name="insurance_cert_kind_other">Insurance Policy</string>
+
+    <string name="insurance_cert_fact_started">Started</string>
+    <string name="insurance_cert_fact_expires">Expires</string>
+    <string name="insurance_cert_fact_members">Members</string>
+    <string name="insurance_cert_fact_policy_type">Policy Type</string>
+    <string name="insurance_cert_fact_premium">Premium</string>
+    <string name="insurance_cert_fact_tax_benefit">Tax Benefit</string>
+    <string name="insurance_cert_members_count">%1$d insured</string>
+    <string name="insurance_cert_premium_freq_suffix">/%1$s</string>
+
+    <string name="insurance_cert_validity_period">VALIDITY PERIOD</string>
+    <string name="insurance_cert_valid">VALID</string>
+    <string name="insurance_cert_expired">EXPIRED</string>
+    <string name="insurance_cert_elapsed">%1$s elapsed</string>
+    <string name="insurance_cert_remaining">%1$s remaining</string>
+    <string name="insurance_cert_days">%1$d days</string>
+
+    <string name="insurance_cert_schedule_divider">THE SCHEDULE</string>
+    <string name="insurance_cert_section_policy_schedule">Policy Schedule</string>
+    <string name="insurance_cert_section_members">Insured Members</string>
+    <string name="insurance_cert_section_nominee">Nominee</string>
+    <string name="insurance_cert_section_coverage">Coverage &amp; Benefits</string>
+    <string name="insurance_cert_section_premium">Premium &amp; Payment</string>
+    <string name="insurance_cert_section_riders">Riders &amp; Add-ons</string>
+    <string name="insurance_cert_section_exclusions">Waiting Periods &amp; Exclusions</string>
+    <string name="insurance_cert_section_contacts">Insurer Contacts</string>
+
+    <string name="insurance_cert_num_i">I</string>
+    <string name="insurance_cert_num_ii">II</string>
+    <string name="insurance_cert_num_iii">III</string>
+    <string name="insurance_cert_num_iv">IV</string>
+    <string name="insurance_cert_num_v">V</string>
+    <string name="insurance_cert_num_vi">VI</string>
+    <string name="insurance_cert_num_vii">VII</string>
+    <string name="insurance_cert_num_viii">VIII</string>
+
+    <string name="insurance_cert_proposer">PROPOSER</string>
+    <string name="insurance_cert_commencement">Commencement</string>
+    <string name="insurance_cert_expiry">Expiry</string>
+    <string name="insurance_cert_call">Call</string>
+    <string name="insurance_cert_range_dash">%1$s — %2$s</string>
+
+    <string name="insurance_cert_reminder_title">RENEWAL REMINDER</string>
+    <string name="insurance_cert_reminder_body">We\'ll remind you before %1$s.</string>
+    <string name="insurance_cert_disclaimer">Artha stores and displays the policy details you saved. We are not an insurer — contact %1$s directly.</string>
+
     <!-- Insurance delete -->
     <string name="insurance_delete_confirm_title">Delete this policy?</string>
     <string name="insurance_delete_confirm_body">This permanently removes the policy record. A linked investment row (if any) stays — delete it separately if you want it gone too.</string>
