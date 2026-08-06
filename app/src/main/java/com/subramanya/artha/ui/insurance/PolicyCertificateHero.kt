@@ -1,5 +1,6 @@
 package com.subramanya.artha.ui.insurance
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,13 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,7 +54,7 @@ import kotlin.math.tan
  *   A  gold-foil frame  (linear-gradient bezel + drop shadow)
  *   B  paper            (radial cream gradient + guilloché texture + vignette)
  *   C  double border    (two concentric green rings — Compose has no double border)
- *   D  inner hairline    (thin ring + top highlight + 4 corner fleurons)
+ *   D  inner hairline    (thin ring + top highlight + 4 canvas-drawn corner fleurons)
  *
  * Every dynamic value comes from a param; a null/blank param hides its whole
  * sub-block so sparse policies degrade gracefully. planName + sumInsured always
@@ -61,7 +63,9 @@ import kotlin.math.tan
  * a one-off ornate certificate, not translatable app copy.
  *
  * Notes on judgment calls the task left open:
- *  - "Mr." prefix: always prefixed (we can't infer gender). See [lifeAssured].
+ *  - Life-assured name: rendered as-is (no honorific — can't infer gender).
+ *  - Corner/title ornaments: canvas-drawn fleurons (see [CertOrnament]) instead
+ *    of ❦/❧ glyphs, which would tofu without a bundled symbol font.
  *  - Double border: drawn as two concentric rounded-rect rings via drawBehind.
  *  - Seal text: insurer initials + issue year (derived, generic embossed seal).
  */
@@ -75,7 +79,7 @@ fun PolicyCertificateHero(
     sumInsuredWords: String?, // "ONE CRORE ONLY" (null → hide)
     policyNumber: String?, // "92838249"
     issuedOn: String?, // "22 NOV 2024"
-    lifeAssured: String?, // "Gopala Krishnan" → cursive "Mr. <name>"
+    lifeAssured: String?, // "Gopala Krishnan" → cursive signature name
     uin: String?, // "MHIHLIP24063V012425"
     modifier: Modifier = Modifier,
 ) {
@@ -160,7 +164,7 @@ fun PolicyCertificateHero(
                         uin = uin,
                     )
 
-                    // 4 corner fleurons (❦)
+                    // 4 corner fleurons (canvas-drawn)
                     CornerFleuron(Modifier.align(Alignment.TopStart), x = 3.dp, y = 3.dp)
                     CornerFleuron(Modifier.align(Alignment.TopEnd), x = (-3).dp, y = 3.dp)
                     CornerFleuron(Modifier.align(Alignment.BottomStart), x = 3.dp, y = (-3).dp)
@@ -256,12 +260,10 @@ private fun HeroContent(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "❧", // ❧
-                    style = TextStyle(
-                        fontSize = 11.sp,
-                        color = CertTokens.greenMuted.copy(alpha = 0.8f),
-                    ),
+                CertOrnament(
+                    color = CertTokens.greenMuted.copy(alpha = 0.8f),
+                    size = 12.dp,
+                    mirrored = false,
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -276,13 +278,10 @@ private fun HeroContent(
                     textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "❧", // ❧ mirrored
-                    modifier = Modifier.scale(scaleX = -1f, scaleY = 1f),
-                    style = TextStyle(
-                        fontSize = 11.sp,
-                        color = CertTokens.greenMuted.copy(alpha = 0.8f),
-                    ),
+                CertOrnament(
+                    color = CertTokens.greenMuted.copy(alpha = 0.8f),
+                    size = 12.dp,
+                    mirrored = true,
                 )
             }
             if (!policyKind.isNullOrBlank()) {
@@ -390,7 +389,7 @@ private fun HeroContent(
                 )
                 if (!lifeAssured.isNullOrBlank()) {
                     Text(
-                        text = "Mr. $lifeAssured",
+                        text = lifeAssured,
                         style = TextStyle(
                             fontFamily = MrsSaintDelafield,
                             fontSize = 40.sp,
@@ -569,22 +568,85 @@ private fun EmbossedSeal(insurer: String, issuedOn: String?) {
     }
 }
 
-/** A corner fleuron glyph (❦) offset by [x]/[y] from the aligned corner. */
+/** A corner fleuron offset by [x]/[y] from the aligned corner. */
 @Composable
 private fun CornerFleuron(modifier: Modifier, x: Dp, y: Dp) {
-    Text(
-        text = "❦", // ❦
+    CertOrnament(
         modifier = modifier.padding(
             start = if (x >= 0.dp) x else 0.dp,
             end = if (x < 0.dp) -x else 0.dp,
             top = if (y >= 0.dp) y else 0.dp,
             bottom = if (y < 0.dp) -y else 0.dp,
         ),
-        style = TextStyle(
-            fontSize = 13.sp,
-            color = CertTokens.doubleBorderGreen.copy(alpha = 0.75f),
-        ),
+        color = CertTokens.doubleBorderGreen.copy(alpha = 0.75f),
+        size = 13.dp,
     )
+}
+
+/**
+ * A small canvas-drawn certificate flourish — a 4-point diamond with two short
+ * tapering strokes fanning out on either side (a minimal fleuron). Drawn with
+ * Canvas rather than a Unicode glyph so it renders identically on every device
+ * regardless of font glyph coverage (❦/❧ would tofu without a bundled symbol
+ * font). [mirrored] flips it horizontally for the right-side title ornament.
+ */
+@Composable
+private fun CertOrnament(
+    modifier: Modifier = Modifier,
+    color: Color = CertTokens.doubleBorderGreen,
+    size: Dp = 12.dp,
+    mirrored: Boolean = false,
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+        val cx = w / 2f
+        val cy = h / 2f
+        val flip = if (mirrored) -1f else 1f
+
+        // Central 4-point diamond (filled).
+        val dx = w * 0.16f // half-width of the diamond
+        val dy = h * 0.30f // half-height of the diamond
+        val diamond = Path().apply {
+            moveTo(cx, cy - dy)
+            lineTo(cx + dx, cy)
+            lineTo(cx, cy + dy)
+            lineTo(cx - dx, cy)
+            close()
+        }
+        drawPath(diamond, color)
+
+        // Two short curved tapering strokes fanning out from the diamond tips,
+        // one to each side — the "leaves" of the fleuron.
+        val stroke = Stroke(width = h * 0.08f, cap = StrokeCap.Round)
+        val reach = w * 0.34f
+        // right leaf (mirrored flips to the left)
+        drawPath(
+            Path().apply {
+                moveTo(cx + flip * dx, cy)
+                quadraticTo(
+                    cx + flip * reach, cy - dy * 0.9f,
+                    cx + flip * (reach + w * 0.08f), cy - dy * 0.2f,
+                )
+            },
+            color,
+            style = stroke,
+        )
+        // left leaf
+        drawPath(
+            Path().apply {
+                moveTo(cx - flip * dx, cy)
+                quadraticTo(
+                    cx - flip * reach, cy - dy * 0.9f,
+                    cx - flip * (reach + w * 0.08f), cy - dy * 0.2f,
+                )
+            },
+            color,
+            style = stroke,
+        )
+        // small dot above the diamond for a finished, deliberate look
+        drawCircle(color, radius = h * 0.06f, center = Offset(cx, cy - dy * 1.25f))
+    }
 }
 
 /** Horizontal dotted rule in the gold-brown accent. */
