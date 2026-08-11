@@ -79,6 +79,7 @@ import com.subramanya.artha.ui.theme.Text3
 import com.subramanya.artha.utils.DateFormatter
 import com.subramanya.artha.utils.IndianNumberFormat
 import com.subramanya.artha.utils.UpiReceiptParser
+import kotlinx.coroutines.flow.first
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -100,6 +101,7 @@ fun ShareReceiptScreen(
                 openRouterKeyProvider = { app.openRouterApiKey() },
                 groqKeyProvider = { app.groqApiKey() },
                 routesMeKeyProvider = { app.routesMeApiKey() },
+                userNameProvider = { app.settingsPreferences.userName.first() },
             ),
             accountRepository = app.accountRepository,
             cardRepository = app.cardRepository,

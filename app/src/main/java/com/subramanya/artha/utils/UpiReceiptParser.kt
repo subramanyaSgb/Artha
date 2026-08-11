@@ -52,9 +52,14 @@ class UpiReceiptParser(
     private val openRouterKeyProvider: (suspend () -> String)? = null,
     private val groqKeyProvider: (suspend () -> String)? = null,
     private val routesMeKeyProvider: (suspend () -> String)? = null,
+    // The app owner's name (from Settings). Anchors the model so it never returns the owner as
+    // the merchant and reads DEBIT/CREDIT from the owner's side — a UPI screenshot shows both
+    // parties, and without this anchor the model sometimes picks the owner or flips direction.
+    private val userNameProvider: (suspend () -> String)? = null,
 ) {
 
     suspend fun parse(context: Context, uri: Uri): ReceiptData? {
+        val userName = userNameProvider?.invoke()?.trim().orEmpty()
         val groqKey = groqKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
         val routesMeKey = routesMeKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
         val nimKey = nimKeyProvider?.invoke()?.takeIf { it.isNotBlank() }
@@ -82,7 +87,7 @@ class UpiReceiptParser(
 
         for (p in providers) {
             val result = runCatching {
-                callProvider(p.endpoint, p.model, p.key, b64, p.timeoutMs, p.reasoningEffortNone, p.extraHeaders)
+                callProvider(p.endpoint, p.model, p.key, b64, p.timeoutMs, userName, p.reasoningEffortNone, p.extraHeaders)
             }
             result.getOrNull()?.let { return it }
             // Any failure (auth, timeout, 5xx, empty) → try the next provider in the chain.
@@ -105,6 +110,7 @@ class UpiReceiptParser(
         key: String,
         b64: String,
         timeoutMs: Int,
+        userName: String,
         reasoningEffortNone: Boolean = false,
         extraHeaders: Map<String, String> = emptyMap(),
     ): ReceiptData? {
@@ -117,7 +123,7 @@ class UpiReceiptParser(
                 put(JSONObject().apply {
                     put("role", "user")
                     put("content", JSONArray().apply {
-                        put(JSONObject().apply { put("type", "text"); put("text", PROMPT) })
+                        put(JSONObject().apply { put("type", "text"); put("text", buildPrompt(userName)) })
                         put(JSONObject().apply {
                             put("type", "image_url")
                             put("image_url", JSONObject().apply { put("url", "data:image/jpeg;base64,$b64") })
@@ -133,10 +139,14 @@ class UpiReceiptParser(
         val raw = post(endpoint, key, body, timeoutMs, extraHeaders)
         val content = extractContent(raw) ?: return null
         val json = extractJsonObject(content) ?: return null
-        return decode(json)
+        return decode(json, userName)
     }
 
-    private fun decode(json: JSONObject): ReceiptData? {
+    /** Test seam: decode a JSON string directly (no network), applying the owner-name filter. */
+    internal fun decodeForTest(jsonString: String, userName: String): ReceiptData? =
+        runCatching { JSONObject(jsonString) }.getOrNull()?.let { decode(it, userName) }
+
+    private fun decode(json: JSONObject, userName: String): ReceiptData? {
         val amount = Regex("""\d+(?:\.\d{1,2})?""")
             .find(str(json, "amount").orEmpty().replace(",", ""))
             ?.value?.toDoubleOrNull()
@@ -146,7 +156,9 @@ class UpiReceiptParser(
         val data = ReceiptData(
             amount = amount,
             dateTimeMillis = dateTime,
-            merchant = str(json, "merchant"),
+            // Safety net: if the model still returned the owner as the merchant, drop it —
+            // the owner is never the counterparty. (The prompt already tells it not to.)
+            merchant = str(json, "merchant")?.takeUnless { isOwnerName(it, userName) },
             description = str(json, "description"),
             paymentAppHint = str(json, "paymentApp"),
             bankHint = str(json, "bank"),
@@ -268,6 +280,25 @@ class UpiReceiptParser(
         return runCatching { JSONObject(text.substring(start, end + 1)) }.getOrNull()
     }
 
+    /**
+     * True if [candidate] is (or closely overlaps) the app owner's [userName] — used to reject
+     * the owner being returned as the merchant. Compares case-insensitively and also treats a
+     * significant word-overlap as a match (handles "Subramanya G B" vs "Subramanya Gopal Bellary").
+     */
+    internal fun isOwnerName(candidate: String, userName: String): Boolean {
+        val owner = userName.trim()
+        if (owner.isBlank()) return false
+        val a = candidate.trim().lowercase()
+        val b = owner.lowercase()
+        if (a == b || a.contains(b) || b.contains(a)) return true
+        val aWords = a.split(Regex("\\s+")).filter { it.length >= 3 }.toSet()
+        val bWords = b.split(Regex("\\s+")).filter { it.length >= 3 }.toSet()
+        if (aWords.isEmpty() || bWords.isEmpty()) return false
+        val shared = aWords.count { it in bWords }
+        // ≥2 shared name words, or the candidate's words are entirely a subset of the owner's.
+        return shared >= 2 || aWords.all { it in bWords }
+    }
+
     private fun bitmapToBase64(bitmap: Bitmap): String {
         val out = ByteArrayOutputStream()
         val scaled = if (bitmap.width > 1024 || bitmap.height > 1024) {
@@ -297,18 +328,38 @@ class UpiReceiptParser(
         )
         val ABSENT_TOKENS = setOf("null", "n/a", "na", "none", "-", "unknown", "not found")
 
-        val PROMPT = """
+    }
+
+    /**
+     * Builds the extraction prompt. When [userName] is known, it's injected as the account
+     * owner so the model can tell the two on-screen parties apart — a UPI screenshot shows both
+     * the owner and the counterparty, and without this anchor the model sometimes returns the
+     * owner as the merchant or flips DEBIT/CREDIT.
+     */
+    internal fun buildPrompt(userName: String): String {
+        val ownerLine = userName.trim().takeIf { it.isNotBlank() }?.let {
+            """
+            The account owner (the app user) is "$it". This name may appear on the screenshot as
+            a header/avatar — it is NEVER the merchant. The "merchant" is always the OTHER party.
+            direction is from the owner's side: DEBIT if "$it" PAID/SENT the money, CREDIT if "$it"
+            RECEIVED it.
+            """.trimIndent()
+        } ?: """
+            direction: DEBIT if money was PAID/SENT/DEBITED by the account owner, CREDIT if money
+            was RECEIVED/CREDITED (look for "received", "credited", "paid to you", green +amount).
+            """.trimIndent()
+
+        return """
             Extract the payment details from this receipt/payment screenshot (any UPI or banking app).
             Reply with ONLY a JSON object, no markdown fences. Use these keys, omit any you cannot read.
             For date/time use EXACTLY these formats: date as YYYY-MM-DD, time as HH:MM in 24-hour clock.
-            For direction: DEBIT if money was PAID/SENT/DEBITED by the account owner, CREDIT if money was
-            RECEIVED/CREDITED (look for words like "received", "credited", "paid to you", green +amount).
+            $ownerLine
             {
               "amount": <the rupee amount, plain number like 434>,
               "date": "<YYYY-MM-DD, e.g. 2026-07-03>",
               "time": "<HH:MM 24-hour, e.g. 14:46>",
               "direction": "<DEBIT or CREDIT>",
-              "merchant": "<full other-party name, ignore 2-letter avatar initials>",
+              "merchant": "<full other-party name (NOT the account owner), ignore 2-letter avatar initials>",
               "description": "<short purpose if visible, else omit>",
               "paymentApp": "<one of PHONEPE GPAY PAYTM CRED BHIM AMAZONPAY OTHER>",
               "bank": "<payer bank/account name, e.g. Jupiter, HDFC Bank>",
